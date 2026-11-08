@@ -80,6 +80,12 @@ make dist-check           # a clean clone builds a green artifact
 here. They guard the source repository's relationship with a sibling checkout
 and its own model; the export carries neither.
 
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md), including the one rule that changes
+how a pull request works here: this tree is generated. Participation is covered
+by [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
 ## License
 
 MIT. See `LICENSE`.
