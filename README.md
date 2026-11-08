@@ -1,9 +1,8 @@
 # Nativa Core
 
-**This tree is generated.** Every file here is exported from
-[`responsive-sk/nativa-php-core`](https://github.com/responsive-sk/nativa-php-core)
-at a recorded commit; `.nativa-core-export.json` names it. A hand edit here is
-overwritten by the next export. Change the source repository instead.
+**This tree is generated.** Every file here is exported from a private source
+repository at a recorded commit; `.nativa-core-export.json` names that commit.
+A hand edit here is overwritten by the next export — send changes upstream.
 
 ## What it is
 
