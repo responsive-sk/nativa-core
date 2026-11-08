@@ -1,0 +1,30 @@
+:root{--k-bg:#ffffff;--k-bg-alt:#f6f7f9;--k-border:#e2e5ea;--k-text:#1c2333;--k-muted:#5b6478;--k-accent:#1d4ed8;--k-accent-ink:#ffffff;--k-error:#b91c1c;--k-radius:.5rem;--k-measure:44rem;--k-sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--k-mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--k-bg);color:var(--k-text);font-family:var(--k-sans);line-height:1.6}
+a{color:var(--k-accent)}
+a:hover{text-decoration:none}
+.k-header{border-bottom:1px solid var(--k-border);background:var(--k-bg-alt)}
+.k-header__brand{display:inline-block;padding:.9rem 1.25rem;font-weight:700;color:var(--k-text);text-decoration:none}
+.k-nav{display:inline-block;padding:.9rem 0}
+.k-nav__link{margin-right:1rem;color:var(--k-muted);text-decoration:none}
+.k-nav__link:hover{color:var(--k-text)}
+.k-nav__link[aria-current="page"]{color:var(--k-text);font-weight:600}
+.k-locale{display:inline-block;float:right;padding:.9rem 1.25rem}
+.k-locale__link{margin-left:.5rem;color:var(--k-muted);text-decoration:none;font-size:.875rem}
+.k-locale__link[aria-current="true"]{color:var(--k-text);font-weight:600}
+.k-main{max-width:var(--k-measure);margin:0 auto;padding:2.5rem 1.25rem 4rem}
+.k-section__title{font-size:1.75rem;line-height:1.25;margin:0 0 1rem}
+.k-section__empty{color:var(--k-muted)}
+.k-list{padding-left:1.25rem}
+.k-list li{margin:.375rem 0}
+.k-article__body{overflow-wrap:break-word}
+.k-article__body pre{background:var(--k-bg-alt);border:1px solid var(--k-border);border-radius:var(--k-radius);padding:1rem;overflow:auto;font-family:var(--k-mono);font-size:.875rem}
+.k-article__body code{font-family:var(--k-mono);font-size:.875em}
+.k-error{text-align:center;padding:4rem 1rem}
+.k-error__code{font-family:var(--k-mono);font-size:3.5rem;line-height:1;margin:0;color:var(--k-error)}
+.k-error__title{font-size:1.5rem;margin:1rem 0 .5rem}
+.k-error__detail{color:var(--k-muted);margin:0 0 1.5rem;white-space:pre-wrap}
+.k-error__link{display:inline-block;background:var(--k-accent);color:var(--k-accent-ink);text-decoration:none;padding:.6rem 1.25rem;border-radius:var(--k-radius)}
+.k-footer{border-top:1px solid var(--k-border);background:var(--k-bg-alt);padding:1.25rem;text-align:center;color:var(--k-muted);font-size:.875rem}
+@media (max-width:40rem){.k-main{padding:1.5rem 1rem 3rem}.k-error{padding:2.5rem 1rem}.k-locale{float:none;display:block;padding:0 1.25rem .75rem}}

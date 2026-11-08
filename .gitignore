@@ -24,11 +24,14 @@
 !/storage/uploads/.gitkeep
 
 # Installed module slices are operator state; the catalogue under modules/ is
-# tracked. The three rescues are the kernel's own slices, committed on purpose.
+# tracked. The four rescues are the kernel's own slices, committed on purpose.
+# KernelTheme is the default presentation a kernel-only tree renders with, and
+# bin/build/install-catalogue.sh counts it among the installed modules.
 src/Modules/*
 !src/Modules/Core
 !src/Modules/Database
 !src/Modules/Tooling
+!src/Modules/KernelTheme
 
 # Built bundles are artifacts, except the two frozen bundles: a deploy without
 # Node serves them byte-identical, and their freeze tests fail on a hand edit.
