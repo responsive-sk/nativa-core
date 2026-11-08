@@ -1,0 +1,182 @@
+/* ── TOC (mobile fab; desktop shows the inline panel above content) ── */
+.ms-toc__title {
+    font-size: var(--m-text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--m-muted);
+    margin: 0 0 10px;
+    font-family: var(--m-font);
+}
+
+.ms-toc__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-toc__list > * + * {
+        margin-top: 6px;
+    }
+}
+
+.ms-toc__list {
+    gap: 6px;
+}
+
+.ms-toc__item--sub {
+    margin-left: var(--m-sp-4);
+}
+
+.ms-toc__link {
+    color: var(--m-muted);
+    font-size: var(--m-text-md);
+    text-decoration: none;
+}
+
+.ms-toc__link:hover {
+    color: var(--m-primary-ink);
+}
+
+/* Active state driven by the shared scrollspy (toc-scrollspy.ts), which
+   toggles the --active sibling of each link's own BEM block. Without this
+   rule the class flips but nothing changes on screen. */
+.ms-toc__link--active {
+    color: var(--m-primary-ink);
+    font-weight: 600;
+}
+
+.ms-toc-mobile {
+    display: none;
+}
+
+.ms-pager {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 0 var(--m-sp-6);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-pager {
+        gap: 0;
+    }
+}
+
+.ms-pager {
+    gap: var(--m-sp-4);
+}
+
+.ms-pager__link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--m-primary-ink);
+    font-size: var(--m-text-base);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.ms-pager__link:hover {
+    text-decoration: underline;
+}
+
+.ms-pager__placeholder {
+    visibility: hidden;
+}
+
+.ms-author-bio {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--m-sp-6);
+    font-family: var(--m-font);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-author-bio > * + * {
+        margin-left: var(--m-sp-4);
+    }
+}
+
+.ms-author-bio {
+    gap: var(--m-sp-4);
+}
+
+.ms-author-bio__avatar {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.ms-author-bio__text {
+    font-size: var(--m-text-md);
+    color: var(--m-muted);
+    margin: 0;
+}
+
+.ms-author-bio__name {
+    color: var(--m-ink);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.ms-author-bio__name:hover {
+    color: var(--m-primary-ink);
+}
+
+@media (max-width: 767px) {
+    .ms-toc-mobile {
+        display: block;
+        position: fixed;
+        right: 20px;
+        bottom: 80px;
+        z-index: 95;
+    }
+
+    .ms-toc-toggle {
+        display: inline-flex;
+        align-items: center;
+        padding: 9px 14px;
+        background: var(--m-primary);
+        color: #fff;
+        border: none;
+        border-radius: var(--m-r-full);
+        font-size: var(--m-text-sm);
+        font-weight: 600;
+        cursor: pointer;
+        font-family: var(--m-font);
+    }
+
+    @supports not ((gap: 1px) and (inset: 0)) {
+        .ms-toc-toggle > * + * {
+            margin-left: 6px;
+        }
+    }
+
+    .ms-toc-toggle {
+        gap: 6px;
+    }
+
+    .ms-toc-toggle:hover {
+        background: var(--m-primary-hover);
+    }
+
+    .ms-toc-panel {
+        display: none;
+        position: absolute;
+        right: 0;
+        bottom: 110%;
+        width: 240px;
+        max-height: 50vh;
+        overflow-y: auto;
+        background: var(--m-surface);
+        border: 1px solid var(--m-border);
+        border-radius: var(--m-r-md);
+        padding: var(--m-sp-4);
+        box-shadow: var(--m-shadow-md);
+    }
+
+    .ms-toc-panel.open {
+        display: block;
+    }
+}

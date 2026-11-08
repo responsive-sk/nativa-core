@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via Modules\Core\Application\Services\View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>            <?php echo $settingsTabs . "\n"; ?>
+
+            <p class="m-muted"><?= $intro ?></p>
+
+            <?= $panel ?>

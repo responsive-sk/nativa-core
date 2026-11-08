@@ -1,0 +1,12 @@
+# pnpm workspace root — the five theme packages are direct children of this
+# directory, so `*` matches starter/, erik/, moonshine/, magazine/ and minimal/.
+#
+# NOTE: the old per-package walk-up guard (`ignoreWorkspace: true` /
+# `ignore-workspace=true`) is deliberately NOT carried over. It existed to make
+# pnpm ignore any workspace above this repo; the repo now owns a workspace here,
+# and pnpm reads that setting as "ignore this workspace file", which would make
+# `pnpm -r` see a single root package and build nothing. A stray workspace
+# further up the tree (e.g. in $HOME) still cannot win: pnpm stops at the first
+# pnpm-workspace.yaml it finds walking up, and this one is closest.
+packages:
+  - "*"

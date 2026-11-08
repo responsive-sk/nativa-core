@@ -1,0 +1,51 @@
+/**
+ * code.css — highlight tokens, copy button, badge, TOC.
+ *
+ * From Modules/Mono/assets/critical/mono.css (vendored snapshot section).
+ */
+
+/* --- Code highlight tokens: .tok-* spans emitted by mo-code-highlight.js
+   (the no-build twin of the shared code-highlight.ts the built themes bundle).
+   Scoped to fenced blocks inside main so article and docs pages are covered;
+   light variant under data-theme like the rest of this file. --- */
+main pre{position:relative}
+main pre .copy-btn{position:absolute;top:8px;right:8px;font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-muted);background-color:var(--color-bg-hover);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:.15em .5em;cursor:pointer;opacity:0;transition:opacity var(--transition-fast),color var(--transition-fast)}
+main pre:hover .copy-btn{opacity:1}
+main pre .copy-btn:hover{color:var(--color-text)}
+main pre .copy-btn.copied{color:var(--brand-emerald);border-color:var(--brand-emerald)}
+main pre .tok-keyword{color:#c084fc}
+main pre .tok-string{color:#86efac}
+main pre .tok-number{color:#fbbf24}
+main pre .tok-comment{color:#94a3b8;font-style:italic}
+main pre .tok-function{color:#60a5fa}
+main pre .tok-variable{color:#f472b6}
+main pre .tok-type{color:#2dd4bf}
+main pre .tok-operator{color:#f472b6}
+main pre .tok-property{color:#7dd3fc}
+main pre .tok-tag{color:#f87171}
+main pre .tok-attr{color:#fbbf24}
+main pre .tok-punctuation{color:#94a3b8}
+[data-theme=light] main pre .tok-keyword{color:#7c3aed}
+[data-theme=light] main pre .tok-string{color:#15803d}
+[data-theme=light] main pre .tok-number{color:#b45309}
+[data-theme=light] main pre .tok-comment{color:#64748b;font-style:italic}
+[data-theme=light] main pre .tok-function{color:#2563eb}
+[data-theme=light] main pre .tok-variable{color:#db2777}
+[data-theme=light] main pre .tok-type{color:#0d9488}
+[data-theme=light] main pre .tok-operator{color:#db2777}
+[data-theme=light] main pre .tok-property{color:#0284c7}
+[data-theme=light] main pre .tok-tag{color:#dc2626}
+[data-theme=light] main pre .tok-attr{color:#b45309}
+[data-theme=light] main pre .tok-punctuation{color:#64748b}
+main pre.has-badge{padding-top:2rem}
+main pre .mo-code-badge{position:absolute;top:8px;left:8px;font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-muted);background-color:var(--color-bg-hover);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:.15em .5em;text-transform:uppercase;letter-spacing:.05em;pointer-events:none}
+.mo-article-layout{display:block}@media (min-width:1024px){.mo-article-layout{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:var(--space-8);align-items:start}}
+.mo-toc{margin-top:var(--space-6);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4);background-color:var(--color-bg);font-size:var(--text-sm)}
+.mo-toc__title{margin:0 0 var(--space-2);font-size:var(--text-xs);font-weight:var(--font-semibold);text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted)}
+.mo-toc__list{list-style:none;margin:0;padding:0}
+.mo-toc__item--sub{padding-left:var(--space-4)}
+.mo-toc__link{display:block;padding:var(--space-1) 0;color:var(--color-text-muted);text-decoration:none}
+.mo-toc__link:hover{color:var(--brand-gold)}
+.mo-toc__link:focus-visible{box-shadow:var(--focus-ring);outline:none}
+@media (min-width:1024px){.mo-toc{margin-top:0;position:sticky;top:calc(var(--navbar-height) + var(--space-4))}}
+.mo-toc__link--active{color:var(--brand-gold);font-weight:var(--font-semibold)}

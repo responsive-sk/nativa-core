@@ -1,0 +1,19 @@
+/* ── Magazine accent tokens (on top of the imported starter base) ── */
+:root {
+  --mag-accent: #f59e0b; /* decorative amber (dark) — icons, borders, underline */
+  --mag-accent-strong: #b45309; /* button/CTA bg — white text >= 4.5:1 */
+  --mag-accent-hover: #92400e; /* button hover bg — white text >= 4.5:1 */
+  --mag-accent-soft: #fbbf24; /* link/tag text on surface (dark) >= 4.5:1 */
+  --mag-tag-bg: rgba(245, 158, 11, 0.16);
+  --mag-font-serif: Georgia, "Times New Roman", serif;
+  --mag-header-h: 64px;
+}
+
+:root[data-theme="light"] {
+  --mag-accent: #d97706;
+  --mag-accent-strong: #b45309;
+  --mag-accent-hover: #92400e;
+  --mag-accent-soft: #92400e;
+  --mag-tag-bg: rgba(217, 119, 6, 0.12);
+}
+

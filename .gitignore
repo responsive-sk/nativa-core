@@ -1,0 +1,52 @@
+# Dependencies (dev-only; the runtime itself has none). The lockfile is committed.
+/vendor/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Runtime data: the kernel's SQLite files and what a running site writes.
+# Ignore the CONTENTS, never the directory, so the .gitkeep skeleton survives.
+/storage/data/*.db
+/storage/data/*.db-journal
+/storage/data/*.db-wal
+/storage/data/*.db-shm
+/storage/data/blog-taxonomy.json
+/storage/logs/*.log
+/storage/cache/*
+/storage/sessions/*
+/storage/uploads/*
+!/storage/data/.gitkeep
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+!/storage/sessions/.gitkeep
+!/storage/uploads/.gitkeep
+
+# Installed module slices are operator state; the catalogue under modules/ is
+# tracked. The three rescues are the kernel's own slices, committed on purpose.
+src/Modules/*
+!src/Modules/Core
+!src/Modules/Database
+!src/Modules/Tooling
+
+# Built bundles are artifacts, except the two frozen bundles: a deploy without
+# Node serves them byte-identical, and their freeze tests fail on a hand edit.
+/public/dist/*
+!/public/dist/griffe/
+!/public/dist/mono/
+
+# pnpm workspace dependencies. The second rule reaches a package-local store.
+/Frontend/packages/node_modules/
+/Frontend/packages/*/node_modules/
+
+# Test and tool caches
+.phpunit.result.cache
+.php-cs-fixer.cache
+.rector.cache/
+
+# Editor and OS noise
+.idea/
+.vscode/
+.DS_Store
+*.swp

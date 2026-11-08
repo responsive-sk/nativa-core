@@ -1,0 +1,16 @@
+/**
+ * mo-variants.css — custom Mono dev palettes for the variant switcher
+ * (dev-theme-switcher buttons in the navbar actions).
+ *
+ * Same shape as the upstream neon.css / fire-show.css: `:root` variable
+ * overrides only, so no class prefixing is needed — every mo-* rule reads
+ * these variables. `html[data-variant="…"]` (0-1-1) outranks the
+ * `[data-theme=light]` block (0-1-0) on purpose: a variant is a full
+ * re-skin, light mode included.
+ *
+ * Vendored, not copied: ember and glacier are designed for Mono (warm
+ * ember-orange / ice-cyan on near-black), the upstream webfont overrides
+ * are dropped (no external dependencies — the system stack stays).
+ */
+html[data-variant="ember"]{--brand-gold:#ff7a1a;--brand-gold-light:#ffa25e;--brand-gold-dark:#cc5a00;--brand-emerald:#34d399;--brand-ruby:#ff4530;--brand-sapphire:#38bdf8;--brand-amethyst:#c084fc;--color-bg:#0c0705;--color-bg-alt:#16100b;--color-bg-hover:#221610;--color-border:#332016;--color-text:#fff7ed;--color-text-muted:#c9b8a6;--color-text-inverse:#0c0705;--shadow-xs:0 0 5px rgba(255,122,26,.12);--shadow-sm:0 0 10px rgba(255,122,26,.2);--shadow-md:0 0 15px rgba(255,122,26,.28);--shadow-lg:0 0 20px rgba(255,122,26,.36);--shadow-xl:0 0 30px rgba(255,122,26,.44);--shadow-2xl:0 0 40px rgba(255,122,26,.5)}
+html[data-variant="glacier"]{--brand-gold:#38e1ff;--brand-gold-light:#a5f3fc;--brand-gold-dark:#0e7490;--brand-emerald:#2dd4bf;--brand-ruby:#fb7185;--brand-sapphire:#60a5fa;--brand-amethyst:#a78bfa;--color-bg:#060a0e;--color-bg-alt:#0c141b;--color-bg-hover:#12202b;--color-border:#1e2f3d;--color-text:#f0f9ff;--color-text-muted:#93a7b8;--color-text-inverse:#060a0e;--shadow-xs:0 0 5px rgba(56,225,255,.12);--shadow-sm:0 0 10px rgba(56,225,255,.2);--shadow-md:0 0 15px rgba(56,225,255,.28);--shadow-lg:0 0 20px rgba(56,225,255,.36);--shadow-xl:0 0 30px rgba(56,225,255,.44);--shadow-2xl:0 0 40px rgba(56,225,255,.5)}

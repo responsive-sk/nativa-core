@@ -1,0 +1,157 @@
+/**
+ * choice.css — "why choose" four-quadrant section (mo-choice).
+ *
+ * Static layout: the quadrant pairs sit side by side. mo-choice.ts moves the
+ * inner blocks against each other; with no JS (or reduced motion) every
+ * block keeps its natural place and both halves stay readable.
+ */
+
+.mo-choice {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg);
+}
+
+.mo-choice__top {
+    margin: 12rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.mo-choice__title {
+    font-size: clamp(2.25rem, 5vw, 4rem);
+    font-weight: var(--font-semibold);
+    line-height: 1.1;
+    margin: 0;
+    color: var(--color-text);
+}
+
+.mo-choice__accent { color: var(--brand-gold); }
+
+.mo-choice__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--color-border);
+}
+
+.mo-choice__row {
+    display: flex;
+    flex: 1;
+    align-self: stretch;
+}
+
+.mo-choice__row--top { border-bottom: 1px solid var(--color-border); }
+
+.mo-choice__sep {
+    min-width: 1px;
+    align-self: stretch;
+    background: var(--color-border);
+}
+
+.mo-choice__cell {
+    display: flex;
+    position: relative;
+    flex: 1;
+    padding: 4rem;
+    overflow: hidden;
+}
+
+.mo-choice__cell--left {
+    justify-content: flex-end;
+    -webkit-mask-image: linear-gradient(to left, transparent 0%, black 4rem);
+    mask-image: linear-gradient(to left, transparent 0%, black 4rem);
+}
+
+.mo-choice__cell--right {
+    justify-content: flex-start;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4rem);
+    mask-image: linear-gradient(to right, transparent 0%, black 4rem);
+}
+
+.mo-choice__inner {
+    width: 620px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    transition: transform .5s ease;
+    color: var(--color-text);
+}
+
+.mo-choice__inner h3 {
+    margin: 0;
+    font-size: var(--text-3xl);
+    font-weight: var(--font-semibold);
+}
+
+.mo-choice__inner p {
+    margin: 0;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}
+
+.mo-choice__progress {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 3rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.mo-choice__dots {
+    display: flex;
+    gap: 5px;
+}
+
+.mo-choice__dot {
+    width: 5px;
+    height: 14px;
+    background: var(--color-border);
+}
+
+.mo-choice__dot--on { background: var(--brand-gold); }
+
+.mo-choice__stage {
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    letter-spacing: .08em;
+}
+
+/* Portrait: one half at a time per row, cross-faded in place. */
+@media (orientation: portrait) {
+    .mo-choice__top { margin: 5rem 1rem; }
+    .mo-choice__title { font-size: 2.5rem; }
+    .mo-choice__row { position: relative; min-height: 200px; }
+    .mo-choice__sep { display: none; }
+    .mo-choice__cell {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 2rem;
+        justify-content: center;
+        text-align: center;
+        -webkit-mask-image: none;
+        mask-image: none;
+        transition: opacity .5s ease;
+    }
+    .mo-choice__row--bottom .mo-choice__cell { bottom: auto; top: 0; }
+    .mo-choice__inner {
+        width: 100%;
+        max-width: 400px;
+        align-items: center;
+        text-align: center;
+        transform: none !important;
+    }
+    .mo-choice__cell.mo-choice--hidden { opacity: 0; }
+    .mo-choice__cell.mo-choice--visible { opacity: 1; }
+    .mo-choice__progress { margin-top: 8rem; }
+}

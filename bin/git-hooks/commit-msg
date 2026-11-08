@@ -1,0 +1,16 @@
+#!/bin/sh
+# commit-msg hook — strip AI-agent footer lines from commit messages.
+#
+# This repo keeps agent footers out of its history (the nativa-minimal
+# convention). Even if a tool appends them, they never land.
+#
+# Install: cp bin/git-hooks/commit-msg .git/hooks/commit-msg
+# (git does not track .git/hooks, so each fresh clone needs this copy).
+set -e
+
+MSG_FILE="$1"
+
+[ -f "$MSG_FILE" ] || exit 0
+
+sed -i '/^🤖 Generated with Codebuff$/d' "$MSG_FILE"
+sed -i '/^Co-Authored-By: Codebuff <noreply@codebuff\.com>$/d' "$MSG_FILE"

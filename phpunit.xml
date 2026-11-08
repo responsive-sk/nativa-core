@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    failOnRisky="true"
+>
+    <!--
+      Two suites, and the split is the point.
+
+      `kernel` is the harness this repo owns. `modules` is the committed module
+      CATALOGUE — its entries may carry tests beside their code
+      (`modules/Blog/tests/`), and they are the only tests allowed to depend on
+      a module's classes. PHPUnit only picks up files ending in `Test.php`, so
+      the suite finds tests and never the sources beside them.
+
+      Keeping them here rather than under `tests/` is what makes `phpstan`
+      clean in a kernel-only checkout: `tests/` is analysed, `modules/` is not,
+      so a test that names an optional module's class (`BlogServices`) cannot
+      make the analyser fail in a tree where that module is not installed.
+      Such a test skips at runtime (see its `setUp()`) and is absent from the
+      kernel's own analysis scope — the same shape as the module code itself.
+    -->
+    <testsuites>
+        <testsuite name="kernel">
+            <directory>tests</directory>
+                    <exclude>tests/Architecture/KernelShapeTest.php</exclude>
+            <exclude>tests/Architecture/MagoScopeContractTest.php</exclude>
+            <exclude>tests/Architecture/NameOwnershipContractTest.php</exclude>
+            <exclude>tests/Architecture/PersistedBooleanContractTest.php</exclude>
+            <exclude>tests/Architecture/ToolchainRegistryContractTest.php</exclude>
+            <exclude>tests/Architecture/DocsCatalogContractTest.php</exclude>
+            <exclude>tests/Architecture/SlovakProseContractTest.php</exclude>
+            <exclude>tests/Architecture/ModelCatalogueContractTest.php</exclude>
+            <exclude>tests/Architecture/ModelPayloadContractTest.php</exclude>
+            <exclude>tests/Architecture/ModelReferenceContractTest.php</exclude>
+            <exclude>tests/Architecture/ScenarioTestBindingContractTest.php</exclude>
+            <exclude>tests/Content/EmDashContractTest.php</exclude>
+            <exclude>tests/Content/ProseRhythmContractTest.php</exclude>
+</testsuite>
+        <testsuite name="modules">
+            <directory>modules</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+</phpunit>

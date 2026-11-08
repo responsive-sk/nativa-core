@@ -1,0 +1,16 @@
+/**
+ * reveal.css — line-mask scroll reveals.
+ *
+ * From Modules/Griffe/assets/critical/griffe.css (`scroll reveal`
+ * section). Lines are visible by default; gr-reveal.ts arms the masked
+ * state first (progressive enhancement — no-JS readers never see hidden
+ * text).
+ */
+
+.gr-anim { display: block; overflow: hidden; }
+.gr-anim__line { display: block; }
+.gr-reveal-armed .gr-anim__line {
+    transform: translateY(110%);
+    transition: transform .7s var(--gr-ease);
+}
+.gr-reveal-armed .gr-in .gr-anim__line, .gr-reveal-armed.gr-in .gr-anim__line { transform: none; }

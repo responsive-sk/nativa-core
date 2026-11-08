@@ -1,0 +1,93 @@
+/**
+ * steps.css — horizontal accordion (mo-steps), from boson's horizontal-accordion.
+ * Open step takes the free width; closed steps collapse to a 5em rail and
+ * show a plus glyph, grayscale until hovered.
+ */
+.mo-steps { padding: 6rem 0; }
+
+.mo-steps__accordion {
+    display: flex;
+    min-height: 400px;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.mo-step {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 5em;
+    border-right: 1px solid var(--color-border);
+    cursor: pointer;
+    overflow: hidden;
+    transition: flex-grow .3s ease, background-color .3s ease;
+}
+
+.mo-step:last-child { border-right: none; }
+.mo-step--open { flex: 1 1 0; cursor: default; }
+.mo-step--closed:hover { background: var(--color-bg-hover); }
+
+.mo-step__top {
+    display: flex;
+    align-items: center;
+    gap: 3em;
+    padding: 2em 3em;
+}
+
+.mo-step__number {
+    color: var(--brand-gold);
+    font-family: var(--font-mono), monospace;
+    font-weight: 600;
+}
+
+.mo-step__headline {
+    margin: 0;
+    text-transform: uppercase;
+    font-size: var(--text-lg);
+}
+
+.mo-step__text {
+    margin: 0;
+    padding: 0 3em 2em;
+    line-height: 1.75;
+    color: var(--color-text-muted);
+    max-width: 700px;
+    animation: mo-step-appear 1s forwards;
+}
+
+.mo-step--closed .mo-step__top {
+    justify-content: center;
+    padding: 2em 0;
+    gap: 0;
+}
+
+.mo-step--closed .mo-step__headline,
+.mo-step--closed .mo-step__text { display: none; }
+
+.mo-step--closed .mo-step__top::after {
+    content: '+';
+    color: var(--color-text-muted);
+    font-size: var(--text-xl);
+    margin-left: auto;
+    filter: grayscale(100%);
+    transition: filter .2s ease;
+}
+
+.mo-step--closed:hover .mo-step__top::after { filter: none; }
+.mo-step--closed .mo-step__number { color: var(--color-text-muted); }
+.mo-step--closed:hover .mo-step__number { color: var(--brand-gold); }
+
+@keyframes mo-step-appear {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (orientation: portrait) {
+    .mo-steps__accordion { flex-direction: column; min-height: 0; }
+    .mo-step { flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--color-border); }
+    .mo-step:last-child { border-bottom: none; }
+    .mo-step--open { flex: 0 0 auto; }
+    .mo-step--closed .mo-step__top { padding: 1em 0; justify-content: space-between; }
+    .mo-step--closed .mo-step__headline { display: block; }
+    .mo-step__top { padding: 1em; }
+    .mo-step__text { padding: 0 1em 1.5em; }
+}

@@ -1,0 +1,15 @@
+/*
+ * index.css — ordered entry chain for the shared public base stylesheet.
+ *
+ * The sections were cut out of the former single `base.css` along its own
+ * section comments; the chain preserves their original order, so the cascade
+ * and the built output are unchanged. Edit the section files, not this file.
+ */
+
+@import './tokens.css';
+@import './chrome.css';
+@import './home.css';
+@import './article.css';
+@import './toc.css';
+@import './blog.css';
+@import './cards.css';

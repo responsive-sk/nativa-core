@@ -1,0 +1,209 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via Modules\Core\Application\Services\View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?><!DOCTYPE html>
+<html lang="<?php echo $htmlLang; ?>">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title><?php echo $titleEscaped; ?> — Mark</title>
+    <?php echo $markCssLinks . "\n"; ?>
+    <style nonce="__CSP_NONCE_PLACEHOLDER__">
+        :root {
+            --m-bg: #0f172a; --m-surface: #1e293b; --m-surface-2: #1a2332;
+            --m-ink: #e2e8f0; --m-muted: #94a3b8; --m-border: #334155;
+            --m-primary: #7c3aed; --m-primary-hover: #6d28d9;
+            --m-primary-soft: rgba(124,58,237,.12); --m-primary-ink: #a78bfa;
+            --m-secondary: #475569; --m-secondary-hover: #334155;
+            --m-success: #22c55e; --m-success-bg: rgba(34,197,94,.12); --m-success-ink: #4ade80;
+            --m-warning: #f59e0b; --m-warning-bg: rgba(245,158,11,.12); --m-warning-ink: #fbbf24;
+            --m-error: #ef4444; --m-error-bg: rgba(239,68,68,.12); --m-error-ink: #fca5a5;
+            --m-info: #3b82f6; --m-info-bg: rgba(59,130,246,.12); --m-info-ink: #60a5fa;
+            --m-r-sm: 6px; --m-r-md: 8px; --m-r-lg: 12px;
+        }
+        :root[data-theme="light"] {
+            --m-bg: #f8fafc; --m-surface: #ffffff; --m-surface-2: #f1f5f9;
+            --m-ink: #0f172a; --m-muted: #64748b; --m-border: #e2e8f0;
+            --m-primary-soft: rgba(124,58,237,.08); --m-primary-ink: #7c3aed;
+            --m-success-bg: rgba(34,197,94,.1); --m-success-ink: #15803d;
+            --m-warning-bg: rgba(245,158,11,.1); --m-warning-ink: #b45309;
+            --m-error-bg: rgba(239,68,68,.1); --m-error-ink: #b91c1c;
+            --m-info-bg: rgba(59,130,246,.1); --m-info-ink: #1d4ed8;
+        }
+        @media (prefers-color-scheme: light) {
+            :root:not([data-theme="dark"]) {
+                --m-bg: #f8fafc; --m-surface: #ffffff; --m-surface-2: #f1f5f9;
+                --m-ink: #0f172a; --m-muted: #64748b; --m-border: #e2e8f0;
+                --m-primary-soft: rgba(124,58,237,.08); --m-primary-ink: #7c3aed;
+                --m-success-bg: rgba(34,197,94,.1); --m-success-ink: #15803d;
+                --m-warning-bg: rgba(245,158,11,.1); --m-warning-ink: #b45309;
+                --m-error-bg: rgba(239,68,68,.1); --m-error-ink: #b91c1c;
+                --m-info-bg: rgba(59,130,246,.1); --m-info-ink: #1d4ed8;
+            }
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Gilroy', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+               background: var(--m-bg); color: var(--m-ink); }
+        /* Top navigation bar */
+        .m-topnav { position: fixed; top: 0; left: 0; right: 0; height: 48px; z-index: 200;
+            background: #020617; color: #fff; display: flex; align-items: center;
+            padding: 0 20px; gap: 8px; }
+        .m-topnav__brand { font-weight: 700; font-size: 16px; color: #fff;
+            text-decoration: none; margin-right: 16px; display: flex; align-items: center; gap: 8px; }
+        .m-topnav__brand svg { width: 20px; height: 20px; }
+        .m-topnav__links { display: flex; gap: 2px; flex: 1; }
+        .m-nav__link { padding: 8px 12px; font-size: 13px; font-weight: 500;
+            color: #94a3b8; text-decoration: none; border-radius: var(--m-r-md);
+            white-space: nowrap; transition: all 150ms ease; }
+        .m-nav__link:hover { color: #fff; background: rgba(255,255,255,.08); }
+        .m-nav__link--active { color: #fff; background: var(--m-primary); }
+        .m-nav__link--group { background: none; border: none; cursor: pointer; }
+        .m-nav__chevron { transition: transform 200ms ease; opacity: .5; margin-left: 2px; }
+        .m-nav__group--active .m-nav__chevron { transform: rotate(180deg); }
+        .m-nav__group { position: relative; }
+        .m-nav__dropdown { display: none; position: absolute; top: 100%; left: 0;
+            background: #020617; border: 1px solid rgba(255,255,255,.1);
+            border-radius: var(--m-r-md); padding: 4px; min-width: 140px; z-index: 300;
+            box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+        .m-nav__group--active .m-nav__dropdown { display: block; }
+        .m-nav__group:hover .m-nav__dropdown,
+        .m-nav__group:focus-within .m-nav__dropdown { display: block; }
+        .m-nav__link--child { display: block; padding: 6px 12px; font-size: 12px; }
+        .m-topnav__actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .m-topnav__user { display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+            border-radius: var(--m-r-md); color: #94a3b8; font-size: 13px;
+            text-decoration: none; border: 1px solid transparent; }
+        .m-topnav__user:hover { color: #fff; border-color: rgba(255,255,255,.2); }
+        .m-topnav__avatar { width: 24px; height: 24px; border-radius: 50%;
+            background: var(--m-primary-soft); color: var(--m-primary-ink);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700; }
+        /* Theme toggle */
+        .m-topnav__theme { background: none; border: none; color: #94a3b8;
+            cursor: pointer; padding: 4px; border-radius: var(--m-r-sm); }
+        .m-topnav__theme:hover { color: #fff; }
+        .m-topnav__theme svg { width: 16px; height: 16px; display: block; }
+        .m-topnav__theme-icon--sun, .m-topnav__theme-icon--moon { display: none; }
+        :root[data-theme="dark"] .m-topnav__theme-icon--sun { display: block; }
+        :root[data-theme="light"] .m-topnav__theme-icon--moon { display: block; }
+        /* Content area */
+        .m-compact-page { padding: 48px 0 0; min-height: 100vh; }
+        .m-compact-wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+        .m-compact-head { display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+            position: sticky; top: 48px; z-index: 50; background: var(--m-bg);
+            padding: 16px 0 12px; margin-top: -28px; }
+        .m-compact-head::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+            height: 1px; background: var(--m-border); }
+        .m-compact-head h1 { font-size: 24px; margin: 0; }
+        /* Mobile hamburger */
+        .m-topnav__burger { display: none; background: none; border: none; color: #94a3b8;
+            cursor: pointer; padding: 4px; }
+        .m-topnav__burger svg { width: 20px; height: 20px; }
+        @media (max-width: 1100px) and (min-width: 768px) {
+            .m-nav__link { padding: 8px 7px; font-size: 12px; }
+        }
+        @media (max-width: 767px) {
+            .m-topnav__links { display: none; position: absolute; top: 48px; left: 0; right: 0;
+                background: #020617; flex-direction: column; padding: 8px;
+                border-top: 1px solid rgba(255,255,255,.1); }
+            .m-topnav__links.open { display: flex; }
+            .m-topnav__burger { display: block; }
+            /* Inline submenus inside the column burger panel. */
+            .m-topnav__links .m-nav__dropdown { position: static; display: none;
+                box-shadow: none; border: 0; min-width: 0; padding: 2px 0 4px 16px; }
+            .m-topnav__links .m-nav__group--active .m-nav__dropdown,
+            .m-topnav__links .m-nav__group:hover .m-nav__dropdown { display: block; }
+        }
+    </style>
+    <?php echo $htmxScript . "\n"; ?>
+    <?php echo $htmxConfig . "\n"; ?>
+    <?php $compactThemeInitScript = Modules\Core\Application\Services\View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/admin-theme-init.js'); ?>
+    <script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $compactThemeInitScript; ?></script>
+</head>
+<body>
+    <nav class="m-topnav">
+        <a class="m-topnav__brand" href="<?php echo $url('mark.dashboard'); ?>">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+            Mark
+        </a>
+        <button type="button" class="m-topnav__burger" id="m-topnav-burger" aria-label="Toggle menu">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="m-topnav__links" id="m-topnav-links">
+            <?php echo $navHtml . "\n"; ?>
+        </div>
+        <div class="m-topnav__actions">
+            <button type="button" class="m-topnav__theme" data-theme-toggle aria-label="Toggle theme" title="Toggle theme">
+                <span class="m-topnav__theme-icon--sun" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                </span>
+                <span class="m-topnav__theme-icon--moon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </span>
+            </button>
+            <a class="m-topnav__user" href="<?php echo $url('mark.users'); ?>" title="Profile">
+                <span class="m-topnav__avatar"><?php echo $currentUserName[0]; ?></span>
+                <span><?php echo $currentUserName; ?></span>
+            </a>
+            <form method="POST" action="/logout" class="m-form--bare">
+                <?php echo $csrf . "\n"; ?>
+                <button type="submit" class="m-topnav__theme" title="Logout" aria-label="Logout">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </form>
+        </div>
+    </nav>
+    <main class="m-compact-page">
+        <div class="m-compact-wrap">
+            <div class="m-compact-head">
+                <h1><?php echo $titleEscaped; ?></h1>
+                <?php echo $actionsBar . "\n"; ?>
+            </div>
+            <?php echo $content . "\n"; ?>
+        </div>
+    </main>
+<?php $compactShellScript = Modules\Core\Application\Services\View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/compact-shell.js'); ?>
+    <?php $compactShellCommands = Modules\Core\Application\Services\View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/compact-shell-commands.js'); ?>
+    <script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $compactShellScript; ?>
+        var recent = <?php echo $recentJson; ?>;
+        <?php echo $compactShellCommands; ?></script>
+    <!-- Confirm dialog modal -->
+    <dialog class="m-dialog" id="m-dialog">
+        <div class="m-dialog__body">
+            <p class="m-dialog__title" id="m-dialog-title"></p>
+            <p class="m-dialog__desc" id="m-dialog-desc"></p>
+        </div>
+        <div class="m-dialog__actions">
+            <button class="m-btn m-btn-ghost" id="m-dialog-cancel" type="button">Cancel</button>
+            <button class="m-btn m-btn-error" id="m-dialog-confirm" type="button">Confirm</button>
+        </div>
+    </dialog>
+    <!-- Command palette -->
+    <div class="m-palette-overlay" id="m-palette-overlay">
+        <div class="m-palette">
+            <div class="m-palette__header">
+                <svg class="m-palette__search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" id="m-palette-input" class="m-palette__input" placeholder="Type a command..." autocomplete="off" spellcheck="false">
+                <kbd class="m-palette__kbd">Esc</kbd>
+            </div>
+            <div class="m-palette__body" id="m-palette-list"></div>
+            <div class="m-palette__footer">
+                <span class="m-palette__hint"><kbd class="m-palette__kbd">↑↓</kbd> navigate</span>
+                <span class="m-palette__hint"><kbd class="m-palette__kbd">↵</kbd> select</span>
+                <span class="m-palette__hint"><kbd class="m-palette__kbd">esc</kbd> close</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

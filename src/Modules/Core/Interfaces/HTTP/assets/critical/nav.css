@@ -1,0 +1,50 @@
+.st-nav { display: flex; gap: 18px; margin-left: auto; }
+@supports not ((gap: 1px) and (inset: 0)) { .st-nav { gap: 0; } .st-nav__link { margin-right: 18px; } }
+.st-nav__link { color: var(--st-muted); text-decoration: none; font-size: 14px; }
+.st-nav__link--active { color: var(--st-accent); font-weight: 600; }
+.st-nav__item { position: relative; }
+.st-nav__sub { display: none; position: absolute; top: 100%; left: 0; background: var(--st-bg);
+               border: 1px solid var(--st-border); border-radius: 8px; padding: 6px 0; min-width: 160px;
+               list-style: none; margin: 0; box-shadow: 0 8px 20px rgba(26,34,51,.12); z-index: 10; }
+.st-nav__item:hover .st-nav__sub, .st-nav__item:focus-within .st-nav__sub { display: block; }
+.st-nav__sub .st-nav__link { display: block; padding: 6px 14px; white-space: nowrap; }
+.st-nav__toggle-input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.st-nav__toggle { display: none; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0;
+                  background: transparent; border: 1px solid var(--st-border); border-radius: 6px;
+                  color: var(--st-muted); cursor: pointer; }
+.st-nav__toggle:hover { color: var(--st-accent); border-color: var(--st-accent); }
+.st-nav__toggle-icon { line-height: 1; }
+.st-nav__toggle-icon svg { display: block; width: 18px; height: 18px; }
+.st-nav__toggle-icon--close { display: none; }
+#st-nav-toggle:checked ~ .st-nav__toggle .st-nav__toggle-icon--open { display: none; }
+#st-nav-toggle:checked ~ .st-nav__toggle .st-nav__toggle-icon--close { display: block; }
+.st-nav__overlay { display: none; }
+#st-nav-toggle:checked ~ .st-nav__overlay { display: block; position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+                                             z-index: 98; background: rgba(2,6,23,.55); cursor: default; }
+@media (max-width: 767px) {
+    .st-header { position: relative; z-index: 99; }
+    .st-header__inner { padding: 14px 16px; gap: 12px; }
+    @supports not ((gap: 1px) and (inset: 0)) { .st-header__inner { gap: 0; } .st-header__inner > * { margin-right: 12px; } }
+    .st-nav { display: none; }
+    .st-nav__toggle { display: inline-flex; margin-left: auto; }
+    .st-locale { margin-left: auto; }
+    #st-nav-toggle:focus ~ .st-nav__toggle { outline: 2px solid var(--st-accent); outline-offset: 2px; }
+    @supports selector(:focus-visible) { #st-nav-toggle:focus-visible ~ .st-nav__toggle { outline: 2px solid var(--st-accent); outline-offset: 2px; } }            #st-nav-toggle:checked ~ .st-nav { display: flex; flex-direction: column; position: fixed; top: var(--st-header-h);
+                            right: 0; bottom: 0; left: 0; margin-left: 0; z-index: 100; background: var(--st-bg);
+                            padding: 8px 24px 32px; overflow-y: auto; align-items: stretch;
+                            pointer-events: none; }
+    #st-nav-toggle:checked ~ .st-nav .st-nav__link { display: block; padding: 13px 0; font-size: 16px; color: var(--st-ink);
+                                                      border-bottom: 1px solid var(--st-border);
+                                                      pointer-events: auto; }
+    #st-nav-toggle:checked ~ .st-nav .st-nav__link--active { color: var(--st-accent); }
+    #st-nav-toggle:checked ~ .st-nav .st-nav__item { position: static; }
+    #st-nav-toggle:checked ~ .st-nav .st-nav__sub { display: block; position: static; min-width: 0; border: 0;
+                                                     border-radius: 0; box-shadow: none; padding: 4px 0 10px 18px; }
+    #st-nav-toggle:checked ~ .st-nav .st-nav__sub .st-nav__link { border-bottom: 0; padding: 9px 0; font-size: 14px;
+                                                                   color: var(--st-muted); }
+    .navbar__actions { display: none; }
+    #st-nav-toggle:checked ~ .navbar__actions { display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+                                                z-index: 101; background: var(--st-bg); padding: 12px 24px;
+                                                border-top: 1px solid var(--st-border); justify-content: center;
+                                                align-items: center; gap: 12px; }
+}

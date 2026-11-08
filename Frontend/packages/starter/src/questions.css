@@ -1,0 +1,198 @@
+/*
+ * questions.css — the reader-questions block on an article or a page.
+ *
+ * The markup comes from `QuestionBlockRenderer` in the Questions module,
+ * which builds every class from the ACTIVE THEME'S PREFIX — so questions on a
+ * magazine article render under `mag-`, on erik under `er-`, never under the
+ * starter prefix. This file therefore has to exist per theme, exactly like
+ * `comments.css` and `form.css`, and one canonical source generates the rest
+ * (`node bin/generate/generate-questions-css.mjs`).
+ *
+ * A block only ONE theme styles is a block the other five readers never see:
+ * nothing in the DOM says a class exists, a rule that matches nothing is not
+ * an error, and the parity guard cannot help if the generator never ran.
+ *
+ * NOTE FOR THE GENERATOR: this comment deliberately names no concrete theme
+ * prefix. `bin/generate/generate-questions-css.mjs` swaps the starter prefix
+ * textually, so a literal starter class name here would be rewritten into
+ * nonsense in the copies.
+ *
+ * Palette indirection: the rules below never name a theme token directly,
+ * they name the locals declared in the palette block. A theme copy swaps that
+ * block and inherits everything else.
+ *
+ * Chrome 70 baseline:
+ *   - No @layer.
+ *   - flex/grid `gap` ships an @supports not (gap) margin fallback.
+ */
+
+:root {
+  /* --- palette (generated) --- */
+  --questions-ink: var(--st-ink);
+  --questions-muted: var(--st-muted);
+  --questions-border: var(--st-border);
+  --questions-surface: var(--st-surface);
+  --questions-accent: var(--st-accent);
+  --questions-accent-bg: var(--st-accent-strong);
+  --questions-accent-hover: var(--st-accent-hover);
+  --questions-error-bg: rgba(239, 68, 68, 0.12);
+  --questions-error-ink: var(--st-error-ink);
+  --questions-sent-bg: var(--st-tag-bg);
+  --questions-accent-ink: #ffffff;
+  --questions-radius: 6px;
+  --questions-width: 720px;
+  --questions-form-width: 520px;
+  /* --- end palette --- */
+}
+
+.st-questions {
+  max-width: var(--questions-width);
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--questions-border);
+}
+
+.st-questions__title {
+  font-size: 20px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+
+.st-questions__count {
+  color: var(--questions-muted);
+  font-weight: 400;
+}
+
+.st-questions__hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--questions-muted);
+  margin: 0;
+}
+
+.st-questions__list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+}
+
+.st-questions__item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--questions-border);
+}
+
+.st-questions__meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--questions-muted);
+  margin-bottom: 6px;
+}
+
+/* The reader's own words are DATA, never markup — the renderer escapes them,
+   and this keeps the question visually distinct from the attempt below it
+   without relying on a `<strong>` alone to carry the difference. */
+.st-questions__body,
+.st-questions__answer {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.st-questions__answer {
+  color: var(--questions-muted);
+  margin-top: 6px;
+}
+
+.st-questions__empty {
+  color: var(--questions-muted);
+  font-size: 14px;
+}
+
+/* The PRG confirmation. It is painted only when the `question-sent` marker is
+   present — a redirect nobody renders is a silent no-op, and a reader who
+   cannot tell their question arrived will ask again. */
+.st-questions__sent {
+  background: var(--questions-sent-bg);
+  color: var(--questions-ink);
+  border-left: 3px solid var(--questions-accent);
+  border-radius: var(--questions-radius);
+  padding: 10px 14px;
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+.st-questions__form {
+  display: grid;
+  gap: 10px;
+  max-width: var(--questions-form-width);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .st-questions__form {
+    gap: 0;
+  }
+
+  .st-questions__form > * {
+    margin-bottom: 10px;
+  }
+}
+
+.st-questions__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--questions-ink);
+}
+
+.st-questions__input,
+.st-questions__textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--questions-ink);
+  background: var(--questions-surface);
+  border: 1px solid var(--questions-border);
+  border-radius: var(--questions-radius);
+}
+
+.st-questions__input:focus,
+.st-questions__textarea:focus {
+  outline: none;
+  border-color: var(--questions-accent);
+}
+
+.st-questions__textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.st-questions__button {
+  justify-self: start;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--questions-accent-ink);
+  background: var(--questions-accent-bg);
+  border: 0;
+  border-radius: var(--questions-radius);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.st-questions__button:hover {
+  background: var(--questions-accent-hover);
+}
+
+.st-questions__error {
+  background: var(--questions-error-bg);
+  color: var(--questions-error-ink);
+  border-radius: var(--questions-radius);
+  padding: 8px 12px;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+/* The honeypot: `hidden` is what actually hides it, this only keeps a bot that
+   strips attributes from finding a field it should not fill. */
+.st-questions__hp {
+  display: none;
+}

@@ -1,0 +1,24 @@
+/*
+ * index.css — ordered entry chain for the mark stylesheet.
+ *
+ * The sections were cut out of the former single file along its own
+ * section comments; the chain preserves their original order, so the
+ * cascade and the built output are unchanged. Edit the section files,
+ * not this file.
+ */
+
+/* ── Mark Admin Design System (MoonShine-inspired) ──────────────────
+ * Single entry point for Vite build → public/dist/mark/
+ * Source of truth for all admin panel styles.
+ * Tokens: --m-* custom properties (dark/light).
+ * Components: .m-btn, .m-badge, .m-card, .m-table, .m-form, etc.
+ * Backward compat: .cba-* aliases delegate to .m-* classes.
+ * Sidebar: .layout-sidebar (MoonShine layout-menu pattern).
+ */
+
+@import './tokens.css';
+@import './base.css';
+@import './chrome.css';
+@import './components.css';
+@import './data.css';
+@import './utilities.css';

@@ -1,0 +1,13 @@
+{
+  "name": "@nativa/theme-mono",
+  "version": "0.1.0",
+  "description": "Nativa mono theme — vanilla TypeScript + Vite, ES2015 / Chrome 70 baseline.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  }
+}

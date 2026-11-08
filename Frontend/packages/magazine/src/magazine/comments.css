@@ -1,0 +1,188 @@
+/*
+ * comments.css — GENERATED, do not edit.
+ * Source: Frontend/packages/starter/src/comments.css
+ * Regenerate: node bin/generate/generate-comments-css.mjs
+ * Prefix: mag-
+ */
+
+/*
+ * comments.css — the comment section on the article page.
+ *
+ * The markup comes from `CommentSection` in the Comments module, which builds
+ * every class from the ACTIVE THEME'S PREFIX — so comments on a magazine
+ * article render under `mag-`, on erik under `er-`, never under the starter
+ * prefix. This file therefore has to exist per theme.
+ *
+ * It USED to live in `src/base/comments.css`, byte-pinned across the packages
+ * (`FrontendPackageParityTest`). That was the defect: a byte-pinned shared
+ * file can only carry ONE prefix, so the three non-starter themes shipped 21
+ * rules that could never match the markup they render — comments looked
+ * unstyled on magazine and moonshine while starter and erik were fine, and
+ * nothing failed, because the guard was checking bytes and the bytes agreed.
+ * The same contract `form.css` already follows: one canonical source, the
+ * rest generated.
+ *
+ * NOTE FOR THE GENERATOR: this comment deliberately names no concrete theme
+ * prefix. `bin/generate/generate-comments-css.mjs` swaps the starter prefix textually,
+ * so a literal starter class name here would be rewritten into nonsense in the
+ * copies.
+ *
+ * The three generated copies come from this one by replacing the class prefix
+ * and the palette block (`node bin/generate/generate-comments-css.mjs`);
+ * `FrontendCommentsParityTest` asserts they keep the same selector SET, so a
+ * rule added here cannot silently go missing in a theme.
+ *
+ * Palette indirection: the rules below never name a theme token directly,
+ * they name the locals declared in the palette block. A theme copy swaps that
+ * block and inherits everything else.
+ *
+ * Chrome 70 baseline:
+ *   - No @layer.
+ *   - flex/grid `gap` ships an @supports not (gap) margin fallback.
+ */
+
+:root {
+  
+/* --- palette (generated) --- */
+  --comments-ink: var(--st-ink);
+  --comments-muted: var(--st-muted);
+  --comments-border: var(--st-border);
+  --comments-surface: var(--st-surface);
+  --comments-accent: var(--mag-accent-soft);
+  --comments-accent-bg: var(--mag-accent-strong);
+  --comments-accent-hover: var(--mag-accent-hover);
+  --comments-error-bg: rgba(239, 68, 68, 0.12);
+  --comments-error-ink: var(--st-error-ink);
+  --comments-accent-ink: #ffffff;
+  --comments-radius: 4px;
+  /* Full width, not 720px: magazine runs a sidebar layout and this block
+     spans the content column. Preserved from a ".mag-page .st-comments"
+     override in utilities.css that could never match — the magazine page
+     renders mag-comments — so the intent had to be carried here. */
+  --comments-width: none;
+  --comments-form-width: 520px;
+/* --- end palette --- */
+}
+
+.mag-comments {
+  max-width: var(--comments-width);
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--comments-border);
+}
+
+.mag-comments__title {
+  font-size: 20px;
+  line-height: 1.3;
+  margin: 0 0 16px;
+}
+
+.mag-comments__count {
+  color: var(--comments-muted);
+  font-weight: 400;
+}
+
+.mag-comments__list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+}
+
+.mag-comments__item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--comments-border);
+}
+
+.mag-comments__meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--comments-muted);
+  margin-bottom: 6px;
+}
+
+.mag-comments__body {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.mag-comments__empty {
+  color: var(--comments-muted);
+  font-size: 14px;
+}
+
+.mag-comments__form {
+  display: grid;
+  gap: 10px;
+  max-width: var(--comments-form-width);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .mag-comments__form {
+    gap: 0;
+  }
+
+  .mag-comments__form > * {
+    margin-bottom: 10px;
+  }
+}
+
+.mag-comments__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--comments-ink);
+}
+
+.mag-comments__input,
+.mag-comments__textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--comments-ink);
+  background: var(--comments-surface);
+  border: 1px solid var(--comments-border);
+  border-radius: var(--comments-radius);
+}
+
+.mag-comments__input:focus,
+.mag-comments__textarea:focus {
+  outline: none;
+  border-color: var(--comments-accent);
+}
+
+.mag-comments__textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.mag-comments__button {
+  justify-self: start;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--comments-accent-ink);
+  background: var(--comments-accent-bg);
+  border: 0;
+  border-radius: var(--comments-radius);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.mag-comments__button:hover {
+  background: var(--comments-accent-hover);
+}
+
+.mag-comments__identity {
+  font-size: 13px;
+  color: var(--comments-muted);
+  margin: 0;
+}
+
+.mag-comments__error {
+  background: var(--comments-error-bg);
+  color: var(--comments-error-ink);
+  border-radius: var(--comments-radius);
+  padding: 8px 12px;
+  font-size: 13px;
+  margin: 0 0 12px;
+}

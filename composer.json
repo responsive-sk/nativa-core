@@ -1,0 +1,53 @@
+{
+    "name": "responsive-sk/nativa-core",
+    "description": "responsive.sk Nativa Core: the kernel, a module catalogue you add to and remove from, and the theme sources. Generated from responsive-sk/nativa-php-core.",
+    "type": "project",
+    "license": "MIT",
+    "keywords": [
+        "php",
+        "kernel",
+        "zero-dependency",
+        "sqlite",
+        "modular",
+        "cms"
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "ext-pdo_sqlite": "*",
+        "ext-sqlite3": "*",
+        "php": "^8.5.12"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^12.0",
+        "rector/rector": "2.6.1",
+        "symfony/console": "^8.0",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\": "src/Modules/",
+            "Themes\\": "src/Themes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse --ansi -c phpstan.neon --memory-limit=512M",
+        "cs-fix": "php-cs-fixer fix --ansi --verbose",
+        "cs-fix-dry": "php-cs-fixer fix --ansi --verbose --dry-run",
+        "rector": "rector process --ansi",
+        "rector-dry": "rector process --ansi --dry-run"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

@@ -1,0 +1,26 @@
+/**
+ * footer.css — minimal legal footer, focus visibility and the
+ * reduced-motion calm-down.
+ *
+ * From Modules/Griffe/assets/critical/griffe.css (`footer` + `misc`
+ * sections).
+ */
+
+.gr-footer {
+    border-top: 1px solid var(--gr-line);
+    padding: 2rem 0;
+    color: var(--gr-muted);
+    font-size: .9rem;
+}
+
+.gr-footer__inner { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center; justify-content: space-between; }
+.gr-footer__links { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+.gr-footer__links a { color: var(--gr-muted); text-decoration: none; }
+.gr-footer__links a:hover { color: var(--gr-accent); }
+
+:focus-visible { outline: 2px solid var(--gr-accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; }
+    .gr-header { transition: none; }
+}

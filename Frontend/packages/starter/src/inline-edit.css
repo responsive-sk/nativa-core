@@ -1,0 +1,400 @@
+/*
+ * inline-edit.css — the owner's Markdown editor on the public article page.
+ *
+ * Per-theme, not a shared base section: the markup is emitted by the Blog
+ * module (BlogInlineEditor) with this theme's prefix, and the base stylesheet
+ * is duplicated byte-for-byte into the other packages (FrontendPackageParityTest).
+ * Sizing and colours use the article surface's own tokens, so the block reads
+ * as part of the article rather than as a control bolted onto it.
+ */
+
+.st-inline-edit {
+  border-radius: 8px;
+  margin: 0 0 24px;
+  padding: 12px 20px 20px;
+}
+
+.st-inline-edit__summary {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  list-style: revert;
+}
+
+.st-inline-edit[open] .st-inline-edit__summary {
+  margin-bottom: 12px;
+}
+
+.st-inline-edit__label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.st-inline-edit__textarea {
+  border: 1px solid var(--st-border);
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px;
+  resize: vertical;
+  width: 100%;
+}
+
+.st-inline-edit__actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .st-inline-edit__actions > * + * {
+    margin-left: 12px;
+  }
+}
+
+.st-inline-edit__save {
+  background: var(--st-accent-strong);
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 9px 18px;
+}
+
+.st-inline-edit__save:hover {
+  background: var(--st-accent-hover);
+}
+
+.st-inline-edit__cancel {
+  color: var(--st-muted);
+  font-size: 14px;
+}
+
+.st-inline-edit__notice {
+  border: 1px solid var(--st-border);
+  border-radius: 6px;
+  margin: 16px 0;
+  padding: 12px 14px;
+}
+/* ── Author editor: formatting toolbar + live preview ──────────────────────
+ * Built by src/inline-editor.ts over the canonical textarea, which stays the
+ * field that submits. Separations are margins rather than `gap`, because grid
+ * `gap` is Chrome 84+ and the baseline is 70.
+ */
+.st-inline-edit__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .st-inline-edit__split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.st-inline-edit__toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  /* The toolbar is the grid's FIRST child and the split has two columns, so
+   * without this it took column 1, pushed the preview into column 2 and left the
+   * textarea to wrap onto a second row — the author saw the editor stacked
+   * UNDER the preview instead of beside it. Spanning both columns puts the
+   * toolbar on its own row and gives row 2 to the textarea and the preview.
+   * `1 / -1` rather than `1 / 3`: the latter is only correct while there are
+   * exactly two columns. Chrome 57+, well inside the 70 baseline. */
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+}
+
+.st-inline-edit__tool {
+  background: var(--st-surface);
+  border: 1px solid var(--st-border);
+  border-radius: 4px;
+  color: var(--st-ink);
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1;
+  margin: 0 4px 4px 0;
+  min-height: 30px;
+  min-width: 30px;
+  padding: 6px 8px;
+}
+
+.st-inline-edit__tool:hover {
+  border-color: var(--st-accent);
+  color: var(--st-accent);
+}
+
+.st-inline-edit__tool:focus {
+  outline: 2px solid var(--st-accent);
+  outline-offset: 1px;
+}
+
+.st-inline-edit__preview-toggle {
+  background: none;
+  border: 0;
+  color: var(--st-muted);
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: auto;
+  padding: 4px;
+}
+
+.st-inline-edit__preview-toggle[aria-pressed="true"] {
+  color: var(--st-accent);
+}
+
+.st-inline-edit__row {
+  min-width: 0;
+}
+
+.st-inline-edit__preview {
+  background: var(--st-bg);
+  border: 1px solid var(--st-border);
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: 12px;
+  min-width: 0;
+  overflow-wrap: break-word;
+  padding: 12px;
+}
+
+/* Stacked by default, side by side once there is room for two columns. The
+ * 12px separation is a margin, not `gap`: grid `gap` is Chrome 66+ in flex but
+ * only Chrome 84+ in grid, and the baseline is 70. */
+.st-inline-edit__split[data-preview="shown"] .st-inline-edit__preview {
+  display: block;
+  margin-top: 12px;
+}
+
+.st-inline-edit__split[data-preview="hidden"] .st-inline-edit__preview {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .st-inline-edit__split[data-preview="shown"] .st-inline-edit__preview {
+    margin-top: 0;
+  }
+}
+
+.st-inline-edit__preview > :first-child {
+  margin-top: 0;
+}
+
+.st-inline-edit__preview h1,
+.st-inline-edit__preview h2,
+.st-inline-edit__preview h3 {
+  line-height: 1.25;
+}
+
+.st-inline-edit__preview code {
+  background: var(--st-code-bg);
+  border-radius: 3px;
+  font-size: 0.9em;
+  padding: 1px 4px;
+}
+
+.st-inline-edit__preview pre {
+  background: var(--st-code-bg);
+  border-radius: 6px;
+  overflow-x: auto;
+  padding: 10px 12px;
+}
+
+.st-inline-edit__preview pre code {
+  background: none;
+  padding: 0;
+}
+
+.st-inline-edit__preview img {
+  max-width: 100%;
+}
+
+.st-inline-edit__preview hr {
+  border: 0;
+  border-top: 1px solid var(--st-border);
+}
+
+/* ── Fullscreen sheet ───────────────────────────────────────────────────────
+ * When JavaScript opens the disclosure it marks it `data-editor-fullscreen`
+ * and the SAME element becomes a fixed, full-viewport sheet. Nothing is moved
+ * in the DOM, so the form, the textarea and the CSRF field are untouched and
+ * submission cannot be disturbed — and with no JavaScript this rule never
+ * applies, the disclosure opens inline, and the form still posts.
+ *
+ * `<dialog>` is deliberately not used: its top-layer behaviour and `::backdrop`
+ * lag the Chrome 70 baseline, and a fixed sheet needs neither.
+ */
+.st-inline-edit[data-editor-fullscreen="true"] {
+  background: var(--st-bg);
+  border: 0;
+  border-radius: 0;
+  box-sizing: border-box;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  max-height: none;
+  overflow: auto;
+  padding: 16px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 2147483000;
+}
+
+/* The summary is the trigger; inside the sheet the title bar takes over. */
+.st-inline-edit[data-editor-fullscreen="true"] > summary {
+  display: none;
+}
+
+.st-inline-edit__bar {
+  align-items: center;
+  display: none;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.st-inline-edit[data-editor-fullscreen="true"] > .st-inline-edit__bar {
+  display: flex;
+}
+
+.st-inline-edit__bar-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.st-inline-edit__bar-close {
+  background: var(--st-surface);
+  border: 1px solid var(--st-border);
+  border-radius: 6px;
+  color: var(--st-ink);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 14px;
+}
+
+.st-inline-edit__bar-close:hover {
+  border-color: var(--st-accent);
+  color: var(--st-accent);
+}
+
+/* The sheet is tall; let the editor use the height instead of 20 fixed rows. */
+/* Both panes get the SAME fixed height in the sheet, and each scrolls on its
+ * own. A synced preview is only legible if the two scrollbars run alongside
+ * each other: give them different heights and the panes drift apart vertically
+ * no matter how correct the scroll mapping is. `height` rather than
+ * `min-height`, because a min-height lets the textarea grow to 20 rows while
+ * the preview stops at 78vh — and then they do not line up at all. */
+.st-inline-edit[data-editor-fullscreen="true"] .st-inline-edit__textarea,
+.st-inline-edit[data-editor-fullscreen="true"] .st-inline-edit__preview {
+  height: 70vh;
+  overflow: auto;
+}
+
+.st-inline-edit[data-editor-fullscreen="true"] .st-inline-edit__split {
+  min-height: 60vh;
+}
+
+/* Stop the page behind the sheet from scrolling with it. */
+body[data-editor-open] {
+  overflow: hidden;
+}
+
+/* ── The author's own source, on a dark ground ──────────────────────────────
+ * A `<textarea>` cannot hold markup, so the colours are painted on a backdrop
+ * and the field sits on top with a transparent background and a visible caret.
+ * The dark ground is the editor's OWN token, not the article's: the article is
+ * the RESULT and is rendered in the theme's surface, while the source is a
+ * different kind of thing and reads better on the code surface an author
+ * already expects from every other editor.
+ *
+ * `caret-color` is set explicitly — a transparent `color` would take the caret
+ * with it, and a field the author cannot see their caret in is unusable.
+ * Chrome 70 does not support `caret-color` (Chrome 89), so the caret simply
+ * keeps its default colour here, which is legible on this ground. The property
+ * is set anyway: where it is supported it wins, and where it is not the
+ * declaration is inert rather than harmful.
+ */
+.st-inline-edit__textarea {
+  background: transparent;
+  caret-color: var(--st-editor-ink);
+  color: transparent;
+  position: relative;
+  z-index: 1;
+}
+
+.st-inline-edit__field {
+  /* Pinned to the DARK code surface in both themes, not the theme's own
+   * --*-code-bg: in a light theme that token is a pale surface, and the
+   * highlight palette below is the dark one — pairing them would put 10px
+   * text at roughly 1.6:1. A code surface is dark; this is a code surface. */
+  background: var(--st-editor-bg);
+  border: 1px solid var(--st-editor-border);
+  border-radius: 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+}
+
+.st-inline-edit__backdrop {
+  color: var(--st-ink);
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  white-space: pre-wrap;
+}
+
+/* Markdown source colouring. Same `.tok-` names the article's own code blocks
+ * use, so the two agree on what a keyword looks like — the author recognises
+ * the vocabulary they already see in the preview. */
+.st-inline-edit__backdrop .tok-heading {
+  color: #c084fc;
+  font-weight: 600;
+}
+
+.st-inline-edit__backdrop .tok-strong {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.st-inline-edit__backdrop .tok-emphasis {
+  color: #f472b6;
+  font-style: italic;
+}
+
+.st-inline-edit__backdrop .tok-link {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.st-inline-edit__backdrop .tok-code {
+  color: #86efac;
+}
+
+.st-inline-edit__backdrop .tok-fence {
+  color: #7c8ba1;
+  font-weight: 600;
+}
+
+.st-inline-edit__backdrop .tok-quote {
+  color: #2dd4bf;
+}
+
+.st-inline-edit__backdrop .tok-list {
+  color: #fb923c;
+}
+
+.st-inline-edit__backdrop .tok-rule {
+  color: #7c8ba1;
+}

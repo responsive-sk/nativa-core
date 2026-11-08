@@ -1,0 +1,31 @@
+.st-footer { border-top: 1px solid var(--st-border); margin-top: 64px; }
+.st-footer__inner { max-width: 1080px; margin: 0 auto; padding: 24px;
+                    font-size: 13px; color: var(--st-muted); }
+.st-hero__media { width: 100%; max-width: 720px; height: auto; margin: 40px auto 0; display: block; border-radius: 12px; }
+.st-footer__nav { display: flex; gap: 18px; }
+@supports not ((gap: 1px) and (inset: 0)) { .st-footer__nav { gap: 0; } .st-footer__nav .st-footer__link { margin-right: 18px; } }
+.st-locale { display: flex; gap: 6px; margin-left: 0; }
+@supports not ((gap: 1px) and (inset: 0)) { .st-locale { gap: 0; } .st-locale__link { margin-left: 6px; } }
+.st-locale__link { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+                   color: var(--st-muted); text-decoration: none; padding: 3px 7px; border-radius: 5px;
+                   border: 1px solid transparent; }
+.st-locale__link:hover { color: var(--st-accent); border-color: var(--st-border); }
+.st-locale__link--active { color: var(--st-accent-soft); border-color: var(--st-accent); background: var(--st-tag-bg); }
+.st-footer__link { color: var(--st-muted); text-decoration: none; font-size: 13px; }
+.st-theme-toggle { display: inline-flex; align-items: center; justify-content: center;
+                   width: 32px; height: 32px; padding: 0; margin-left: auto;
+                   background: transparent; border: 1px solid var(--st-border); border-radius: 6px;
+                   color: var(--st-muted); cursor: pointer; }
+.st-theme-toggle:hover { color: var(--st-accent); border-color: var(--st-accent); }
+.st-theme-toggle__icon--sun, .st-theme-toggle__icon--moon { display: none; line-height: 1; }
+.st-theme-toggle__icon svg { display: block; width: 15px; height: 15px; }
+:root[data-theme="dark"] .st-theme-toggle__icon--sun { display: block; }
+:root[data-theme="light"] .st-theme-toggle__icon--moon { display: block; }
+.navbar__actions { align-items:center; gap:.5rem; margin-left:0; display:flex; }
+@supports not ((gap:1px) and (inset:0)) { .navbar__actions { gap:0; } .navbar__actions > * + * { margin-left:.5rem; } }
+.navbar__actions .st-theme-toggle { margin-left:0; }
+.st-login-btn { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 9px;
+                background:transparent; border:1px solid var(--st-border); border-radius:6px;
+                color:var(--st-muted); text-decoration:none; font-size:12px; font-weight:600; }
+.st-login-btn:hover { color:var(--st-accent); border-color:var(--st-accent); }
+.st-login-btn svg { flex-shrink:0; }

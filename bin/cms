@@ -1,0 +1,858 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types = 1);
+
+/*
+ * bin/cms — the kernel's module tool. Plain PHP, zero dependencies.
+ *
+ * The kernel runtime has no Composer packages, so this tool cannot be a
+ * symfony/console application the way the showcase's bin/cms is: what manages
+ * modules must run in a tree whose vendor/ directory may not exist. Thirteen
+ * commands, argv-parsed, exit 0 on success and 1 on refusal or error:
+ *
+ *   module:list              installed + catalogued modules
+ *   module:show [<Name>]     the catalogue → slice drift, or one module's manifest
+ *   module:add <Name>        copy the slice in (refuses an incomplete closure by name)
+ *   module:remove <Name>     delete the slice (refuses while another module imports it)
+ *   migrate                  run every module migrator (the first-request run, forced)
+ *   settings:profile [--file=PATH]  apply a committed deployment profile (needs the Settings module)
+ *   schedule:run             run the Scheduler timetable entries due now (needs the Scheduler module)
+ *   queue:work               work one batch of queued jobs (needs the Queue module)
+ *   queue:prune              drop failed jobs older than an interval (needs the Queue module)
+ *   outbox:process           deliver pending outbox messages and prune them (needs the Outbox module)
+ *   generate-images          render article preview images (needs the Blog module)
+ *   clickhouse:attach        attach the kernel's SQLite files as ClickHouse databases
+ *                            (needs the Clickhouse module)
+ *   clickhouse:status        the server's view of the attached databases, and drift
+ *                            (needs the Clickhouse module)
+ *   clickhouse:query "<sql>" run one statement (read-only unless --write)
+ *                            (needs the Clickhouse module)
+ *   user:admin [email] [password]  create or repair an administrator (needs the Users module)
+ *   discovery:clear          delete the discovery cache (rebuilt on the next request)
+ *   discovery:status         whether the discovery cache exists and is fresh
+ *
+ * The lifecycle itself lives in ModuleInstaller (a service the test harness
+ * drives in-process); this script only prints results and maps refusals to
+ * exit codes. The wording of every message is owned by the service — what
+ * the CLI prints and what the tests assert is the same string.
+ *
+ * THREE of the commands DELIVER rather than manage — `schedule:run`,
+ * `queue:work` and `outbox:process` — so each calls `wire_module_handlers()`
+ * from `src/composition.php` first. A handler pairing that only the web
+ * process registers leaves a CLI drain with an empty handler map, and every
+ * message lands as `No handler registered for event type` while the HTTP
+ * responses still look healthy (Boot 16). The pairing lives in one file; this
+ * script is one of the processes that has to run it. `generate-images` does
+ * NOT wire, because it delivers nothing — it renders files, and wiring a
+ * handler map it will never read would be a lie about what it does.
+ *
+ * The last two commands come from modules, which is why they are plain PHP
+ * rather than symfony Console commands: a module command that extends
+ * `Symfony\...\Command` cannot be loaded without `vendor/`, so it would be a
+ * command that only exists on a developer machine.
+ */
+
+use Modules\Core\Interfaces\CLI\CliOutput;
+use Modules\Core\Interfaces\CLI\Support\DatabaseMigrator;
+use Modules\Tooling\ModuleCatalog;
+use Modules\Tooling\ModuleInstaller;
+use Modules\Tooling\ModuleManifest;
+
+require_once __DIR__ . '/../src/init.php';
+require_once __DIR__ . '/../src/composition.php';
+
+/** @return never */
+function fail(string $message): void
+{
+    fwrite(STDERR, 'cms: ' . $message . PHP_EOL);
+    exit(1);
+}
+
+function out(string $message = ''): void
+{
+    fwrite(STDOUT, $message . PHP_EOL);
+}
+
+function printManifest(ModuleManifest $manifest, string $where): void
+{
+    out(sprintf('Module %s (%s)', $manifest->name, $where));
+    out(sprintf('  source:      %s', $manifest->sourceDir));
+    out(sprintf('  sqlite file: storage/data/%s', $manifest->sqliteFile()));
+
+    foreach ($manifest->routes as $route) {
+        out(sprintf(
+            '  route:       %s %s  (name: %s, in %s)',
+            $route['method'],
+            $route['path'],
+            $route['name'] ?? '(none)',
+            $route['file'],
+        ));
+    }
+
+    $lists = [
+        'migrator'       => $manifest->migrators,
+        'middleware'     => $manifest->middleware,
+        'nav badge'      => $manifest->navBadges,
+        'markdown block' => $manifest->markdownBlocks,
+        'shell provider' => $manifest->shellProviders,
+        'theme module'   => $manifest->themeModules,
+        'asset'          => $manifest->assets,
+    ];
+
+    foreach ($lists as $kind => $files) {
+        foreach ($files as $file) {
+            out(sprintf('  %-14s %s', $kind . ':', $file));
+        }
+    }
+
+    $closure = $manifest->closure();
+
+    out('  closure:     ' . ([] === $closure ? '(none — a leaf)' : implode(', ', $closure)));
+    out('  module.json: ' . (null === $manifest->extra ? 'absent (scan alone decides)' : 'present'));
+
+    if ([] === $manifest->routes && [] === $manifest->migrators && [] === $manifest->middleware
+        && [] === $manifest->navBadges && [] === $manifest->markdownBlocks
+        && [] === $manifest->shellProviders && [] === $manifest->themeModules && [] === $manifest->assets
+    ) {
+        out('  contributes: nothing the scan can see');
+    }
+}
+
+function cmdList(ModuleCatalog $catalog): void
+{
+    $installed = $catalog->installed();
+    $catalogued = $catalog->catalogued();
+
+    out('Installed (' . count($installed) . '): ' . ([] === $installed ? '(none — kernel only)' : implode(', ', $installed)));
+    out('Catalogued (' . count($catalogued) . '): ' . ([] === $catalogued ? '(empty catalog)' : implode(', ', $catalogued)));
+
+    // A grouped module is still one of the entries above; this line says WHERE
+    // it is filed, so a reader looking in `modules/` does not conclude it is
+    // missing. Group names are read from the catalogue, never listed here.
+    foreach (ModuleCatalog::catalogueGroups() as $group) {
+        $members = array_values(array_filter(
+            $catalogued,
+            static fn (string $name): bool => str_contains(
+                (string) $catalog->cataloguePath($name),
+                DIRECTORY_SEPARATOR . $group . DIRECTORY_SEPARATOR,
+            ),
+        ));
+
+        if ([] !== $members) {
+            out(sprintf('%s (%d): %s — modules/%s/', $group, count($members), implode(', ', $members), $group));
+        }
+    }
+}
+
+/**
+ * `module:show` with no name reports the catalogue → slice drift for every
+ * module; with a name it prints that module's manifest plus the same answer.
+ *
+ * The catalogue (`modules/<Name>/`) is the SOURCE — tracked, authored, and
+ * what `module:add` copies. The slice (`src/Modules/<Name>/`) is generated and
+ * untracked. Nothing in git compares them, so a fix can land on one side only
+ * and the tree still looks green; this is the measurement that makes the gap
+ * visible, with the file counts and the file names.
+ */
+function cmdShow(ModuleCatalog $catalog, ?string $name): void
+{
+    if (null === $name) {
+        cmdDrift($catalog);
+
+        return;
+    }
+
+    try {
+        $drift = $catalog->drift($name);
+
+        if ($catalog->isInstalled($name)) {
+            printManifest($catalog->installedManifest($name), 'installed');
+        } else {
+            printManifest($catalog->manifest($name), 'catalog — not installed');
+        }
+
+        printDrift($catalog, $name, $drift);
+    } catch (RuntimeException $e) {
+        fail($e->getMessage());
+    }
+}
+
+function cmdDrift(ModuleCatalog $catalog): void
+{
+    $names = array_values(array_unique([...$catalog->catalogued(), ...$catalog->installed()]));
+    sort($names);
+
+    out('Catalogue → installed slice (the catalogue in modules/ is the source):');
+
+    $counts = ['identical' => 0, 'drifted' => 0, 'not-installed' => 0, 'not-catalogued' => 0];
+
+    foreach ($names as $name) {
+        $drift = $catalog->drift($name);
+        $counts[$drift['status']]++;
+
+        out(sprintf(
+            '  %-14s %-15s %s',
+            $name,
+            $drift['status'],
+            driftCounts($drift),
+        ));
+    }
+
+    out(sprintf(
+        '%d identical, %d drifted, %d not installed, %d not catalogued.',
+        $counts['identical'],
+        $counts['drifted'],
+        $counts['not-installed'],
+        $counts['not-catalogued'],
+    ));
+}
+
+/**
+ * The counts half of a drift line — files on each side plus what differs.
+ *
+ * @param array{status: string, testsOnly: bool, catalog: int, installed: int, onlyInCatalog: list<string>, onlyInInstalled: list<string>, changed: list<string>} $drift
+ */
+function driftCounts(array $drift): string
+{
+    $counts = $drift['catalog'] . '/' . $drift['installed'];
+
+    if ('drifted' !== $drift['status']) {
+        return $counts;
+    }
+
+    return sprintf(
+        '%s (%d only in catalog, %d only in installed, %d changed)%s',
+        $counts,
+        count($drift['onlyInCatalog']),
+        count($drift['onlyInInstalled']),
+        count($drift['changed']),
+        $drift['testsOnly'] ? ' — tests only' : ' — RUNTIME',
+    );
+}
+
+/**
+ * @param array{status: string, testsOnly: bool, catalog: int, installed: int, onlyInCatalog: list<string>, onlyInInstalled: list<string>, changed: list<string>} $drift
+ */
+function printDrift(ModuleCatalog $catalog, string $name, array $drift): void
+{
+    // The catalogue path is the catalogue's answer, not the CLI's: a grouped
+    // module would otherwise be reported as `modules/Erik/`, which no longer
+    // exists — the same quiet lie the move is trying to avoid.
+    $path = $catalog->cataloguePath($name);
+    $source = null === $path
+        ? 'modules/' . $name . '/'
+        : substr($path, strlen(dirname(__DIR__)) + 1) . '/';
+
+    switch ($drift['status']) {
+        case 'identical':
+            out(sprintf('  drift:       identical to %s (%d file(s) on both sides)', $source, $drift['catalog']));
+
+            return;
+
+        case 'not-installed':
+            out(sprintf('  drift:       not installed — %d file(s) in %s', $drift['catalog'], $source));
+
+            return;
+
+        case 'not-catalogued':
+            out(sprintf(
+                '  drift:       installed but not catalogued — %d file(s) in %s/, no source in modules/',
+                $drift['installed'],
+                substr($catalog->installedPath($name), strlen(dirname(__DIR__)) + 1),
+            ));
+
+            return;
+
+        default:
+            out(sprintf(
+                '  drift:       drifted from %s — catalog %d, installed %d (only in catalog: %d, only in installed: %d, changed: %d)',
+                $source,
+                $drift['catalog'],
+                $drift['installed'],
+                count($drift['onlyInCatalog']),
+                count($drift['onlyInInstalled']),
+                count($drift['changed']),
+            ));
+    }
+
+    if ($drift['testsOnly']) {
+        out('               expected: test files only — run from modules/, never loaded by the app');
+    } else {
+        out('               RUNTIME drift: reinstall the module (`php bin/cms module:remove <Name> --force && php bin/cms module:add <Name>`)');
+    }
+
+    foreach ($drift['onlyInCatalog'] as $file) {
+        out('    only in catalog:   ' . $file);
+    }
+
+    foreach ($drift['onlyInInstalled'] as $file) {
+        out('    only in installed: ' . $file);
+    }
+
+    foreach ($drift['changed'] as $file) {
+        out('    changed:           ' . $file);
+    }
+}
+
+function cmdAdd(ModuleInstaller $installer, ModuleCatalog $catalog, string $name): void
+{
+    try {
+        $result = $installer->add($name);
+    } catch (RuntimeException $e) {
+        fail($e->getMessage());
+    }
+
+    // The install target is the catalogue's shape, not `src/Modules/<Name>/`:
+    // a grouped module lands in `src/Modules/<Group>/<Name>/`. Printing the name
+    // twice was how a theme install read as `src/Modules/Boson/` while the
+    // files were in `src/Modules/Themes/Boson/` — the path is asked from the
+    // catalog instead of spelled here.
+    $target = $catalog->installedPath($name);
+    $root = dirname(__DIR__) . DIRECTORY_SEPARATOR;
+    $shown = str_starts_with($target, $root) ? substr($target, strlen($root)) : $target;
+
+    out(sprintf("Installed '%s': %d file(s) copied to %s/.", $name, $result['copied'], $shown));
+    out(sprintf('Page cache flushed (%d entr%s removed) — routes are reachable on the next request.', $result['flushed'], 1 === $result['flushed'] ? 'y' : 'ies'));
+}
+
+function cmdRemove(ModuleInstaller $installer, string $name, bool $force): void
+{
+    try {
+        $result = $installer->remove($name, $force);
+    } catch (RuntimeException $e) {
+        fail($e->getMessage());
+    }
+
+    out(sprintf("Removed '%s': the slice is gone.", $name));
+    out(sprintf('Page cache flushed (%d entr%s removed).', $result['flushed'], 1 === $result['flushed'] ? 'y' : 'ies'));
+
+    // The code is not the data: what the module WROTE stays where it is, and
+    // the operator is told exactly what and where — a removal that silently
+    // deletes the only copy of someone's data is not a removal, it is loss.
+    if ([] === $result['leftovers']) {
+        out('No leftover data: no module database, no tracked uploads, no frontend package entry in this tree.');
+    } else {
+        out('Left behind (not deleted):');
+        foreach ($result['leftovers'] as $leftover) {
+            out('  - ' . $leftover);
+        }
+    }
+
+    if ([] !== $result['holders']) {
+        out('Note: removed with --force while still imported by:');
+        foreach ($result['holders'] as $holder) {
+            out('  - ' . $holder);
+        }
+    }
+}
+
+function usage(): void
+{
+    out('Usage: php bin/cms <command> [args]');
+    out('');
+    out('  module:list              installed + catalogued modules');
+    out('  module:show [<Name>]     drift report, or one module\'s manifest');
+    out('  module:add <Name>        install a module (refuses an incomplete closure)');
+    out('  module:remove <Name> [--force]  remove a module (refuses while imported)');
+    out('  migrate                  run every module migrator (the first-request run, forced)');
+    out('  schedule:run             run due Scheduler timetable entries (exit 1 on any failure)');
+    out('  queue:work [<name>] [--limit=N]  work one batch of queued jobs (exit 1 on a parked job)');
+    out('  queue:prune [--interval="30 days"] [--dry-run]');
+    out('                            drop failed jobs older than the interval');
+    out('  outbox:process [--limit=N] [--prune-interval="7 days"] [--no-prune]');
+    out('                            deliver pending outbox messages and prune processed ones');
+    out('  generate-images [-s|--slug S] [-f|--format FMT]  render article preview images');
+    out('  clickhouse:attach [--db=<name>] [--prefix=<p>] [--dry-run] [--force] [--checkpoint]');
+    out('                            attach every storage/data/*.db as a ClickHouse database');
+    out('  clickhouse:status         the server\'s view of the attached databases, and drift');
+    out('  clickhouse:query "<sql>" [--db=<name>] [--write] [--format=JSONEachRow|TSV]');
+    out('                            run one statement (read-only unless --write)');
+    out('  user:admin [email] [password] [--name=NAME]');
+    out('                            create or repair an administrator (defaults admin@example.test / admin1234)');
+    out('  settings:profile [--file=PATH]');
+    out('                            apply a committed deployment profile (default: config/deploy.php)');
+    out('  discovery:clear          delete the discovery cache (rebuilt on the next request)');
+    out('  discovery:status         whether the discovery cache exists and is fresh');
+}
+
+/**
+ * Run every module migrator — the same idempotent run the HTTP bootstrap does
+ * on its first request, without the marker in the way.
+ *
+ * The marker is invalidated when a module is installed or removed, so this is
+ * not the everyday path; it is the lever for the two cases the marker cannot
+ * cover: a marker left stale by an older tree, and a table dropped by hand
+ * (measured on Boot 16 — `audit_log` gone, every admin write 500ing on it).
+ */
+function cmdMigrate(): void
+{
+    (new DatabaseMigrator())->run(output());
+}
+
+/**
+ * Create (or repair) an administrator account — the supported way out of the
+ * fresh-install dead end: `migrate` builds the schema empty, and a registered
+ * account holds no permission, so every `/mark` page answers 403.
+ *
+ * The behaviour lives in the Users module; this function only supplies the
+ * connection and the output, the same split every other module command keeps.
+ *
+ * @param list<string> $argv the full argv; options start at index 2
+ */
+function cmdUserAdmin(array $argv): void
+{
+    if (!class_exists(\Modules\Users\Interfaces\CLI\Command\EnsureAdminCommand::class)) {
+        fail('user:admin needs the Users module (bin/cms module:add Users).');
+    }
+
+    $pdo = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connection('users');
+    $command = new \Modules\Users\Interfaces\CLI\Command\EnsureAdminCommand($pdo);
+
+    exit($command->run(array_merge(['user:admin'], array_slice($argv, 2)), output()));
+}
+
+/**
+ * Apply a committed deployment profile to the settings table.
+ *
+ * The ARTIFACT's identity, not the developer's: `build-dist.sh` runs this right
+ * after `migrate`, so a rebuilt dist boots with the theme and the site name the
+ * profile names instead of the kernel defaults. Measured 2026-10-17 — a rebuilt
+ * responsive.sk artifact came up on the kernel theme, which reads as "the copy
+ * is gone".
+ *
+ * @param list<string> $argv the full argv; the profile starts at index 2
+ */
+function cmdSettingsProfile(array $argv): void
+{
+    if (!class_exists(\Modules\Settings\Interfaces\CLI\Command\ApplyDeploymentProfileCommand::class)) {
+        fail('settings:profile needs the Settings module (bin/cms module:add Settings).');
+    }
+
+    $pdo = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connection('config');
+    $command = new \Modules\Settings\Interfaces\CLI\Command\ApplyDeploymentProfileCommand($pdo);
+
+    exit($command->run(array_merge(['settings:profile'], array_slice($argv, 2)), output()));
+}
+
+/**
+ * Run the Scheduler timetable entries due now — the cron entry (`* * * * *
+ * php bin/cms schedule:run`) that replaces the showcase's long-running
+ * worker. Per-task lines plus the summary go to stdout; the exit code is 1
+ * when any due task failed, else 0, so the cron daemon notices a poison
+ * task instead of silently rotating past it.
+ */
+function cmdScheduleRun(): void
+{
+    if (!class_exists(\Modules\Scheduler\Interfaces\HTTP\SchedulerServices::class)) {
+        fail('schedule:run needs the Scheduler module (bin/cms module:add Scheduler).');
+    }
+
+    // Delivery in this process, so the handler map is the one the tasks use.
+    wire_module_handlers();
+
+    $output = \Modules\Scheduler\Interfaces\HTTP\SchedulerServices::output(
+        static function (string $message): void {
+            out($message);
+        },
+    );
+
+    $schedule = \Modules\Scheduler\Interfaces\HTTP\SchedulerServices::schedule();
+    \Modules\Scheduler\Interfaces\HTTP\SchedulerServices::withQueueWork(
+        $schedule,
+        static function (string $message): void {
+            out($message);
+        },
+    );
+
+    exit(\Modules\Scheduler\Interfaces\HTTP\SchedulerServices::run($schedule, $output));
+}
+
+/**
+ * Deliver the pending outbox messages and prune the processed ones.
+ *
+ * The operator side of the same queue `src/http.php` drains at the end of
+ * every request — for a deployment without traffic, or an operator who wants to
+ * see the backlog before it clears itself.
+ *
+ * @param list<string> $argv the full argv; options start at index 2
+ */
+function cmdOutboxProcess(array $argv): void
+{
+    if (!class_exists(\Modules\Outbox\Interfaces\CLI\Command\ProcessOutboxCommand::class)) {
+        fail('outbox:process needs the Outbox module (bin/cms module:add Outbox).');
+    }
+
+    // It DRAINS, so it wires first. The command registers the handler its own
+    // module can see; the Audit↔Outbox pairing is the one it cannot, and that
+    // is what `wire_module_handlers()` exists for — without it every
+    // `security.*` message this drain touches would be parked as unroutable.
+    wire_module_handlers();
+
+    $exit = \Modules\Outbox\Interfaces\CLI\Command\ProcessOutboxCommand::run(
+        array_merge(['outbox:process'], array_slice($argv, 2)),
+        output(),
+    );
+
+    exit($exit);
+}
+
+/**
+ * Render article preview images.
+ *
+ * NOT a delivery command: it writes files and reads none of the queues, so it
+ * wires nothing.
+ *
+ * @param list<string> $argv the full argv; options start at index 2
+ */
+function cmdGenerateImages(array $argv): void
+{
+    if (!class_exists(\Modules\Blog\Interfaces\CLI\Command\GenerateImagesCommand::class)) {
+        fail('generate-images needs the Blog module (bin/cms module:add Blog).');
+    }
+
+    $command = new \Modules\Blog\Interfaces\CLI\Command\GenerateImagesCommand();
+
+    exit($command->run(
+        array_merge(['generate-images'], array_slice($argv, 2)),
+        output(),
+    ));
+}
+
+/**
+ * Attach the kernel's SQLite files as ClickHouse databases.
+ *
+ * A module command, guarded the way the Blog command is: a kernel-only tree
+ * has no Clickhouse slice to load, and the guard names the install.
+ *
+ * @param list<string> $argv the full argv; options start at index 2
+ */
+function cmdClickhouseAttach(array $argv): void
+{
+    if (!class_exists(\Modules\Clickhouse\Interfaces\CLI\Command\AttachCommand::class)) {
+        fail('clickhouse:attach needs the Clickhouse module (bin/cms module:add Clickhouse).');
+    }
+
+    $command = new \Modules\Clickhouse\Interfaces\CLI\Command\AttachCommand();
+
+    exit($command->run(
+        array_merge(['clickhouse:attach'], array_slice($argv, 2)),
+        output(),
+    ));
+}
+
+/**
+ * Report what the ClickHouse server sees, and anything that drifted.
+ *
+ * @param list<string> $argv the full argv; options start at index 2
+ */
+function cmdClickhouseStatus(array $argv): void
+{
+    if (!class_exists(\Modules\Clickhouse\Interfaces\CLI\Command\StatusCommand::class)) {
+        fail('clickhouse:status needs the Clickhouse module (bin/cms module:add Clickhouse).');
+    }
+
+    $command = new \Modules\Clickhouse\Interfaces\CLI\Command\StatusCommand();
+
+    exit($command->run(
+        array_merge(['clickhouse:status'], array_slice($argv, 2)),
+        output(),
+    ));
+}
+
+/**
+ * Run one statement against the server — read-only unless `--write`.
+ *
+ * @param list<string> $argv the full argv; the statement starts at index 2
+ */
+function cmdClickhouseQuery(array $argv): void
+{
+    if (!class_exists(\Modules\Clickhouse\Interfaces\CLI\Command\QueryCommand::class)) {
+        fail('clickhouse:query needs the Clickhouse module (bin/cms module:add Clickhouse).');
+    }
+
+    $command = new \Modules\Clickhouse\Interfaces\CLI\Command\QueryCommand();
+
+    exit($command->run(
+        array_merge(['clickhouse:query'], array_slice($argv, 2)),
+        output(),
+    ));
+}
+
+/**
+ * Adapt this file's `out()` into the `CliOutput` a command reports through.
+ *
+ * Built here, in the CLI, so the commands themselves stay free of any printing
+ * concern — the same split `SchedulerServices::output()` keeps for the
+ * timetable, and the reason a test can drive a command in-process and read what
+ * it said.
+ *
+ * `strip_tags` is not decoration: the migrators' wording is shared with a
+ * Console-oriented caller that used to wrap some lines in `<info>`, and
+ * printing those tags literally into a crontab mail is worse than no colour.
+ * The module commands stopped emitting markup at all, so this only protects
+ * the shared migrator text.
+ */
+function output(): CliOutput
+{
+    return new class () implements CliOutput {
+        public function writeln(string $message): void
+        {
+            out(strip_tags($message));
+        }
+    };
+}
+
+/**
+ * Work one batch of queued jobs — the queue's operator surface.
+ *
+ * `DatabaseQueue::work()` shipped with exactly one call site in the whole tree:
+ * an inline `php` heredoc inside `bin/build/admin-smoke.sh`. So the queue had a
+ * worker that no operator could put in crontab, no support answer could point
+ * at, and no documentation could describe — the gate was the only place on the
+ * planet that could run it. (The end-of-request drain that ships today is the
+ * OUTBOX's: a different mechanism, a different database, an idempotent handler.
+ * No producer pushes a Queue job yet either, so this command has nothing to
+ * deliver until one does — stated rather than papered over.)
+ *
+ * The handler pairing is wired first, for the reason in the file header.
+ *
+ * @param list<string> $argv the full argv; options start at index 2
+ */
+function cmdQueueWork(array $argv): void
+{
+    if (!class_exists(\Modules\Queue\Interfaces\HTTP\QueueServices::class)) {
+        fail('queue:work needs the Queue module (bin/cms module:add Queue).');
+    }
+
+    wire_module_handlers();
+
+    $queue = null;
+    $limit = 10;
+
+    foreach (array_slice($argv, 2) as $argument) {
+        if (str_starts_with($argument, '--limit=')) {
+            $limit = max(1, (int) substr($argument, strlen('--limit=')));
+        } elseif (!str_starts_with($argument, '--')) {
+            $queue = $argument;
+        }
+    }
+
+    $result = \Modules\Queue\Interfaces\HTTP\QueueServices::work($queue, $limit);
+
+    out(sprintf(
+        'Queue: processed=%d failed=%d (queue: %s, limit %d)',
+        $result['processed'],
+        $result['failed'],
+        $queue ?? '(any)',
+        $limit,
+    ));
+
+    if ($result['failed'] > 0) {
+        out(sprintf(
+            'Failed jobs are parked in failed_jobs — retry or drop them at /mark/queue%s.',
+            null === $queue ? '' : ' (queue: ' . $queue . ')',
+        ));
+    }
+
+    exit(\Modules\Queue\Interfaces\HTTP\QueueServices::exitCode($result));
+}
+
+/**
+ * Drop failed jobs older than an interval — the retention `failed_jobs` never
+ * had. Measured on 2026-10-16: four parked rows spanning two hours to a year
+ * all survived a worker run, and DatabaseQueue had no prune/clean/purge/expire
+ * method at all. The only removal was an operator clicking "drop this job".
+ *
+ * NOT wired through `wire_module_handlers()`, unlike the two commands above:
+ * pruning delivers nothing, and registering a handler map this run will never
+ * read would be a lie about what it does — the same line `generate-images`
+ * sits on.
+ *
+ * `--dry-run` reports what WOULD go and deletes nothing, because the thing
+ * being deleted is a work queue rather than a log: there is a retry button on
+ * each row, and an unattended run that emptied it would report success.
+ *
+ * @param list<string> $argv
+ */
+function cmdQueuePrune(array $argv): void
+{
+    if (!class_exists(\Modules\Queue\Interfaces\HTTP\QueueServices::class)) {
+        fail('queue:prune needs the Queue module (bin/cms module:add Queue).');
+    }
+
+    $interval = '30 days';
+    $dryRun = false;
+
+    foreach (array_slice($argv, 2) as $argument) {
+        if (str_starts_with($argument, '--interval=')) {
+            $interval = substr($argument, strlen('--interval='));
+        } elseif ('--dry-run' === $argument) {
+            $dryRun = true;
+        } elseif (str_starts_with($argument, '--')) {
+            fail('unknown option "' . $argument . '" for queue:prune; known: --interval=, --dry-run');
+        } else {
+            fail('queue:prune takes options only, got "' . $argument . '"');
+        }
+    }
+
+    if ('' === trim($interval)) {
+        fail('--interval= must not be empty; SQLite would compare against now.');
+    }
+
+    $result = \Modules\Queue\Interfaces\HTTP\QueueServices::prune($interval, $dryRun);
+
+    if ($dryRun) {
+        out(sprintf(
+            'queue:prune --dry-run: %d failed job(s) older than %s would be removed; nothing was.',
+            $result['wouldRemove'],
+            $result['interval'],
+        ));
+
+        return;
+    }
+
+    out(sprintf(
+        'queue:prune: removed %d failed job(s) older than %s.',
+        $result['removed'],
+        $result['interval'],
+    ));
+}
+
+/**
+ * Delete the discovery cache — the next request rescans and rebuilds it.
+ * The file is derived state (like the migration marker), so clearing it is
+ * always safe; a missing file only costs one scan.
+ */
+function cmdDiscoveryClear(): void
+{
+    \Modules\Core\Application\Services\DiscoveryCache::clearCache();
+    out('Discovery cache cleared.');
+}
+
+/**
+ * Report whether the discovery cache exists, whether its fingerprint still
+ * matches the current module set, and how many routes it holds.
+ */
+function cmdDiscoveryStatus(): void
+{
+    $status = \Modules\Core\Application\Services\DiscoveryCache::fromAppPaths()->status();
+
+    out(sprintf('Exists:      %s', $status['exists'] ? 'yes' : 'no'));
+    out(sprintf('Fresh:       %s', $status['fresh'] ? 'yes' : 'no'));
+    out(sprintf('Routes:      %d', $status['routes']));
+    out(sprintf('Middleware:  %d', $status['middleware']));
+    out(sprintf('Fingerprint: %s', substr($status['fingerprint'], 0, 16) . '…'));
+    out(sprintf('Version:     %d', $status['version']));
+}
+
+/** @param list<string> $argv */
+function main(array $argv): void
+{
+    $command = $argv[1] ?? '';
+
+    $installer = ModuleInstaller::fromAppPaths();
+    $catalog = ModuleCatalog::fromAppPaths();
+
+    switch ($command) {
+        case 'module:list':
+            cmdList($catalog);
+
+            break;
+
+        case 'module:show':
+            cmdShow($catalog, $argv[2] ?? null);
+
+            break;
+
+        case 'module:add':
+            if (!isset($argv[2])) {
+                fail('module:add needs a module name.');
+            }
+
+            cmdAdd($installer, $catalog, $argv[2]);
+
+            break;
+
+        case 'module:remove':
+            if (!isset($argv[2])) {
+                fail('module:remove needs a module name.');
+            }
+
+            cmdRemove($installer, $argv[2], in_array('--force', $argv, true));
+
+            break;
+
+        case 'migrate':
+            cmdMigrate();
+
+            break;
+
+        case 'user:admin':
+            cmdUserAdmin($argv);
+
+            break;
+
+        case 'settings:profile':
+            cmdSettingsProfile($argv);
+
+            break;
+
+        case 'schedule:run':
+            cmdScheduleRun();
+
+            break;
+
+        case 'queue:work':
+            cmdQueueWork($argv);
+
+            break;
+
+        case 'queue:prune':
+            cmdQueuePrune($argv);
+
+            break;
+
+        case 'outbox:process':
+            cmdOutboxProcess($argv);
+
+            break;
+
+        case 'generate-images':
+            cmdGenerateImages($argv);
+
+            break;
+
+        case 'clickhouse:attach':
+            cmdClickhouseAttach($argv);
+
+            break;
+
+        case 'clickhouse:status':
+            cmdClickhouseStatus($argv);
+
+            break;
+
+        case 'clickhouse:query':
+            cmdClickhouseQuery($argv);
+
+            break;
+
+        case 'discovery:clear':
+            cmdDiscoveryClear();
+
+            break;
+
+        case 'discovery:status':
+            cmdDiscoveryStatus();
+
+            break;
+
+        default:
+            usage();
+
+            exit('' === $command ? 0 : 1);
+    }
+}
+
+main($argv ?? []);

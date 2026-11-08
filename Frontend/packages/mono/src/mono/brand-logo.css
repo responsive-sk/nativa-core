@@ -1,0 +1,25 @@
+/**
+ * brand-logo.css — the dot-grid mark in the navbar brand (mo-brand-dots).
+ * Colours mirror boson's logo: grey outer ring, red core, dimmed dots at 10%.
+ */
+.mo-brand-dots {
+    position: relative;
+    display: inline-block;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+}
+
+.mo-dot {
+    position: absolute;
+    background: #8B8B8B;
+    transition: opacity .5s ease;
+    will-change: transform;
+}
+
+.mo-dot--inner { background: #F93904; }
+
+.mo-dot--dimmed {
+    opacity: .1;
+    border-radius: 50%;
+}

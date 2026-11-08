@@ -1,0 +1,303 @@
+/* Blog article (rendered Markdown via BlogArticleAction) */
+.ba-article {
+  max-width: 720px;
+}
+
+.ba-article__header {
+  margin-bottom: 32px;
+}
+
+/* Cover image in article header — bleeds to full width, rounded top */
+.ba-article__cover {
+  display: block;
+  width: calc(100% + 48px);
+  max-width: none;
+  height: auto;
+  margin: 0 -24px 24px;
+  border-radius: 8px 8px 0 0;
+}
+
+.ba-article__title {
+  font-size: 32px;
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+
+.ba-article__meta {
+  font-size: 13px;
+  color: var(--ba-muted);
+}
+
+.ba-article h2 {
+  font-size: 24px;
+  line-height: 1.3;
+  margin: 40px 0 12px;
+}
+
+.ba-article h3 {
+  font-size: 19px;
+  line-height: 1.3;
+  margin: 28px 0 10px;
+}
+
+.ba-article p {
+  margin: 0 0 16px;
+}
+
+.ba-article a {
+  color: var(--ba-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ba-article code {
+  background: var(--ba-code-bg);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ba-article pre {
+  position: relative;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin: 0 0 16px;
+  font-size: 0.875em;
+  line-height: 1.6;
+  white-space: pre !important;
+}
+
+.ba-article pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  white-space: pre !important;
+  display: block !important;
+}
+
+/* Language badge */
+.ba-article pre[data-lang] {
+  padding-left: 52px;
+}
+.ba-article pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #64748b;
+  background: #1e293b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Copy button */
+.ba-article pre .copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, color .15s, border-color .15s;
+  z-index: 2;
+}
+
+.ba-article pre:hover .copy-btn {
+  opacity: 1;
+}
+
+.ba-article pre .copy-btn:hover {
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+.ba-article pre .copy-btn.copied {
+  color: #4ade80;
+  border-color: #4ade80;
+}
+
+/* Syntax highlighting tokens */
+.ba-article .tok-keyword { color: #c084fc; }
+.ba-article .tok-string { color: #86efac; }
+.ba-article .tok-number { color: #fbbf24; }
+.ba-article .tok-comment { color: #94a3b8; font-style: italic; }
+.ba-article .tok-function { color: #60a5fa; }
+.ba-article .tok-variable { color: #f472b6; }
+.ba-article .tok-type { color: #2dd4bf; }
+.ba-article .tok-operator { color: #f472b6; }
+.ba-article .tok-property { color: #7dd3fc; }
+.ba-article .tok-tag { color: #f87171; }
+.ba-article .tok-attr { color: #fbbf24; }
+.ba-article .tok-punctuation { color: #94a3b8; }
+
+/* Scrollbar */
+.ba-article pre::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ba-article pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ba-article pre::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+.ba-article pre::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.ba-article ul,
+.ba-article ol {
+  margin: 0 0 16px;
+  padding-left: 24px;
+}
+
+.ba-article li {
+  margin-bottom: 6px;
+}
+
+.ba-article table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.ba-article th,
+.ba-article td {
+  border: 1px solid var(--ba-border);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ba-article th {
+  background: var(--ba-surface);
+  font-weight: 600;
+}
+
+.ba-article blockquote {
+  border-left: 3px solid var(--ba-accent);
+  margin: 0 0 16px;
+  padding: 4px 16px;
+  color: var(--ba-muted);
+}
+
+.ba-article hr {
+  border: 0;
+  border-top: 1px solid var(--ba-border);
+  margin: 32px 0;
+}
+
+.ba-article__tags {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ba-border);
+}
+
+.ba-article__tag {
+  display: inline-block;
+  background: var(--ba-tag-bg);
+  color: var(--ba-accent-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+/* Members-only gate — teaser + sign-in prompt on gated articles */
+.ba-article__teaser {
+  font-size: 16px;
+  color: var(--ba-muted);
+}
+
+.ba-article-gate {
+  max-width: 720px;
+  margin-top: 24px;
+  padding: 28px 24px;
+  background: var(--ba-surface);
+  border: 1px solid var(--ba-border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.ba-article-gate__title {
+  font-size: 18px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+
+.ba-article-gate__text {
+  font-size: 14px;
+  color: var(--ba-muted);
+  margin: 0 0 16px;
+}
+
+.ba-article-gate__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* gap fallback (Chrome < 84): margin-based spacing */
+@supports not ((gap: 1px) and (inset: 0)) {
+  .ba-article-gate__actions {
+    gap: 0;
+  }
+
+  .ba-article-gate__actions .ba-article-gate__button {
+    margin-right: 10px;
+  }
+}
+
+.ba-article-gate__button {
+  display: inline-block;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ba-ink);
+  background: var(--ba-surface);
+  border: 1px solid var(--ba-border);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.ba-article-gate__button:hover {
+  border-color: var(--ba-accent);
+  color: var(--ba-accent);
+}
+
+.ba-article-gate__button--primary {
+  color: #ffffff;
+  background: var(--ba-accent-strong);
+  border-color: var(--ba-accent-strong);
+}
+
+.ba-article-gate__button--primary:hover {
+  background: var(--ba-accent-hover);
+  border-color: var(--ba-accent-hover);
+  color: #ffffff;
+}

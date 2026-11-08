@@ -1,0 +1,276 @@
+# =============================================================================
+# Nativa Core — CI
+# =============================================================================
+# GENERATED into the nativa-core repository by bin/build/export-core.sh. This
+# file is the export's own gate list, not a filtered copy of the source
+# workflow: the source jobs that need a sibling checkout or the source tree's
+# architectural model do not exist here.
+#
+# Every `make` target below is a target of the exported Makefile. The exporter
+# asserts that in both directions, so a job cannot call a recipe that is not
+# shipped.
+#
+#   1. analysis         lint + PHPStan over the kernel scope
+#   2. kernel-dependency the kernel-to-module rule (mago guard)
+#   3. curated-lint     the curated lint count, ceiling zero
+#   4. tests            PHPUnit: tests/ plus modules/*/tests/
+#   5. modules          the same suite with the catalogue installed
+#   6. assets           the theme bundles build and their manifests resolve
+#   7. dist             a clean clone builds a green artifact
+#   8. security-audit   no tracked .env, no secret-shaped literal
+#   9. dependency-audit no high or critical advisory in either lockfile
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PHP_VERSION: "8.5"
+
+jobs:
+  analysis:
+    name: Lint + PHPStan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: json, mbstring, pdo, pdo_sqlite, sqlite3
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: vendor/
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+            composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Lint every PHP file
+        run: make lint
+
+      - name: Run PHPStan
+        run: composer phpstan
+
+  kernel-dependency:
+    name: Kernel dependency (mago guard)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Cache mago
+        uses: actions/cache@v5
+        with:
+          path: storage/cache/mago-spike
+          key: mago-1.58.2-x86_64-unknown-linux-gnu
+
+      - name: Guard gate
+        run: make mago-guard
+
+  curated-lint:
+    name: Curated lint count (mago lint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Cache mago
+        uses: actions/cache@v5
+        with:
+          path: storage/cache/mago-spike
+          key: mago-1.58.2-x86_64-unknown-linux-gnu
+
+      - name: Lint gate
+        run: make mago-lint
+
+  tests:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: json, mbstring, pdo, pdo_sqlite, sqlite3
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: vendor/
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+            composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run PHPUnit
+        run: make test
+
+  modules:
+    name: Modules (catalogue installed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: json, mbstring, pdo, pdo_sqlite, sqlite3, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: vendor/
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+            composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install the catalogue in closure order
+        run: make modules-install
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.10
+        with:
+          version: 12
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: Frontend/packages/pnpm-lock.yaml
+
+      - name: Build the theme bundles
+        run: make assets
+
+      - name: Run the suite with the catalogue installed
+        run: make test
+
+  assets:
+    name: Assets (pnpm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.10
+        with:
+          version: 12
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: Frontend/packages/pnpm-lock.yaml
+
+      - name: Build every theme bundle
+        run: make assets
+
+  dist:
+    name: Dist artifact (clean clone)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: json, mbstring, pdo, pdo_sqlite, sqlite3
+          tools: composer:v2
+          coverage: none
+
+      - name: Build and smoke the artifact from a clean clone
+        run: make dist-check
+
+  security-audit:
+    name: Security audit (tracked tree)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Audit the tracked tree
+        run: make security-audit
+
+  dependency-audit:
+    name: Dependency audit (composer + pnpm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.10
+        with:
+          version: 12
+
+      - name: Audit both lockfiles
+        run: make dependency-audit

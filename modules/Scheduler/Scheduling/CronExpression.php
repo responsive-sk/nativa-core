@@ -1,0 +1,128 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace Modules\Scheduler\Scheduling;
+
+use DateTimeInterface;
+use Modules\Scheduler\Scheduling\Exceptions\InvalidCronExpressionException;
+
+/**
+ * Five-field cron matching (ported from Marko's `scheduler` package):
+ * `minute hour day-of-month month day-of-week`, with `*`, numbers, ranges
+ * (`a-b`), steps (`*\/n`, `a-b/n`), comma lists and the Sunday alias `7`.
+ *
+ * Day-of-month and day-of-week follow standard cron OR semantics: when both
+ * are restricted the day matches if EITHER matches; when one is `*` only
+ * the other is checked.
+ */
+final class CronExpression
+{
+    /**
+     * @throws InvalidCronExpressionException
+     */
+    public static function matches(string $expression, DateTimeInterface $time): bool
+    {
+        $parts = explode(' ', trim($expression));
+
+        if (5 !== count($parts)) {
+            throw InvalidCronExpressionException::wrongFieldCount($expression, count($parts));
+        }
+
+        [$minute, $hour, $dayOfMonth, $month, $dayOfWeek] = $parts;
+
+        // Validate all fields before parsing.
+        foreach ($parts as $field) {
+            self::assertFieldValid($field, $expression);
+        }
+
+        // Normalise DOW field: alias 7 → 0 (both represent Sunday).
+        $dayOfWeek = str_replace('7', '0', $dayOfWeek);
+
+        if (!self::matchField($minute, (int) $time->format('i'))) {
+            return false;
+        }
+
+        if (!self::matchField($hour, (int) $time->format('G'))) {
+            return false;
+        }
+
+        if (!self::matchField($month, (int) $time->format('n'))) {
+            return false;
+        }
+
+        $domRestricted = '*' !== $dayOfMonth;
+        $dowRestricted = '*' !== $dayOfWeek;
+
+        if ($domRestricted && $dowRestricted) {
+            return self::matchField($dayOfMonth, (int) $time->format('j'))
+                || self::matchField($dayOfWeek, (int) $time->format('w'));
+        }
+
+        return self::matchField($dayOfMonth, (int) $time->format('j'))
+            && self::matchField($dayOfWeek, (int) $time->format('w'));
+    }
+
+    /**
+     * @throws InvalidCronExpressionException
+     */
+    private static function assertFieldValid(string $field, string $expression): void
+    {
+        if (1 !== preg_match('/^[\d,\-\/\*]+$/', $field)) {
+            throw InvalidCronExpressionException::unparseableField($field, $expression);
+        }
+    }
+
+    private static function matchField(string $field, int $value): bool
+    {
+        if ('*' === $field) {
+            return true;
+        }
+
+        // Comma-separated list: each part may itself be a range or step.
+        if (str_contains($field, ',')) {
+            foreach (explode(',', $field) as $part) {
+                if (self::matchField($part, $value)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Step ranges: a-b/n or */n.
+        if (str_contains($field, '/')) {
+            [$range, $stepStr] = explode('/', $field, 2);
+            $step = (int) $stepStr;
+
+            if ($step <= 0) {
+                return false;
+            }
+
+            if ('*' === $range) {
+                return 0 === $value % $step;
+            }
+
+            // a-b/n: values starting from a, stepping by n up to b.
+            [$min, $max] = array_map('intval', explode('-', $range, 2));
+
+            for ($v = $min; $v <= $max; $v += $step) {
+                if ($v === $value) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Plain ranges: 1-5.
+        if (str_contains($field, '-')) {
+            [$min, $max] = array_map('intval', explode('-', $field, 2));
+
+            return $value >= $min && $value <= $max;
+        }
+
+        // Direct value.
+        return (int) $field === $value;
+    }
+}

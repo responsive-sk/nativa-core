@@ -1,0 +1,52 @@
+/**
+ * blog.css — blog index list, article view, TOC aside, tag cloud and the
+ * syntax highlight token palette (the vendored twin reads .tok-*; the
+ * completeness gate detects this file through them).
+ *
+ * From Modules/Griffe/assets/critical/griffe.css (`blog` section).
+ */
+
+.gr-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.gr-list a { color: var(--gr-ink); font-weight: 600; }
+.gr-list a:hover { color: var(--gr-accent); }
+
+.gr-article { max-width: 46rem; }
+.gr-article__body :is(h2, h3) { letter-spacing: -.01em; }
+.gr-article__body a { color: var(--gr-accent); }
+.gr-article__meta { color: var(--gr-muted); }
+.gr-article pre {
+    background: var(--gr-ink);
+    color: var(--gr-ink-inv);
+    padding: 1rem 1.25rem;
+    border-radius: var(--gr-radius);
+    overflow-x: auto;
+}
+.gr-article code { font-size: .9em; }
+
+.gr-toc { border: 1px solid var(--gr-line); border-radius: var(--gr-radius); padding: 1rem 1.25rem; }
+.gr-toc__title { font-weight: 700; margin: 0 0 .5rem; }
+.gr-toc__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.gr-toc__link { color: var(--gr-muted); text-decoration: none; }
+.gr-toc__link:hover, .gr-toc__link--active { color: var(--gr-accent); }
+.gr-toc__item--sub { padding-left: 1rem; }
+
+.gr-cloud { display: flex; flex-wrap: wrap; gap: .5rem; }
+.gr-chip {
+    border: 1px solid var(--gr-line);
+    border-radius: 999px;
+    padding: .3rem .9rem;
+    text-decoration: none;
+    color: var(--gr-ink);
+    font-size: .9rem;
+}
+.gr-chip:hover { border-color: var(--gr-accent); color: var(--gr-accent); }
+.gr-chip--active { background: var(--gr-ink); color: var(--gr-paper); border-color: var(--gr-ink); }
+
+/* Syntax highlight markers (vendored twin reads .tok-*; the completeness
+   gate detects this file through them). */
+.gr-article pre .tok-keyword { color: #c084fc; }
+.gr-article pre .tok-string { color: #86efac; }
+.gr-article pre .tok-comment { color: #8b8fa3; font-style: italic; }
+.gr-article pre .tok-number { color: #fbbf24; }
+.gr-article pre .tok-function { color: #7dd3fc; }
+.gr-article pre .tok-operator { color: #f472b6; }

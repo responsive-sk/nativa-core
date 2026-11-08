@@ -1,0 +1,84 @@
+# Apache configuration for Nativa PHP Starter
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # HTTP -> HTTPS redirect (audit D-4). Plain HTTP is redirected unless the
+    # request already arrived over HTTPS or a TLS-terminating proxy declares
+    # it as HTTPS via X-Forwarded-Proto (the documented Docker/proxy setup
+    # terminates TLS outside Apache, so %{HTTPS} alone would be off there).
+    # The dev server (php -S) ignores .htaccess, so local development is
+    # unaffected.
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !^https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+    # Serve existing files (assets, etc.) directly
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route everything else through index.php
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Security headers for static responses
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Text compression for HTML/CSS/JS/JSON/SVG responses
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+# Long-lived caching for hashed build assets (main-*.css / main-*.js are
+# content-hashed by Vite, so they are immutable — safe to cache for a year).
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
+
+# Static image caching (30 days — local images are not content-hashed).
+# The hero image itself is served from Cloudinary with its own long-lived
+# immutable headers; this covers any other self-hosted image assets.
+<IfModule mod_expires.c>
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(svg|webp|png|jpe?g|gif)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+</IfModule>
+
+# Web fonts (1 year, immutable — self-hosted woff2 never changes; a new font
+# ships under a new URL). font-display:swap keeps text visible meanwhile.
+<IfModule mod_expires.c>
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(woff2?|ttf|otf|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
+
+# Protect hidden files
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Disable directory listing
+Options -Indexes

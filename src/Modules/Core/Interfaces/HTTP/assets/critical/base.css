@@ -1,0 +1,37 @@
+:root { --st-bg: #0f172a; --st-ink: #e2e8f0; --st-muted: #94a3b8;
+        --st-accent: #3b82f6; --st-accent-strong: #2563eb; --st-accent-soft: #60a5fa;
+        --st-accent-hover: #2b68f4; --st-error-ink: #f87171;
+        --st-border: #334155; --st-surface: #1e293b; --st-code-bg: #1e293b; --st-tag-bg: rgba(59,130,246,.16); --st-header-h: 60px; }
+:root[data-theme="light"] { --st-bg: #ffffff; --st-ink: #1a2233; --st-muted: #5b6472;
+        --st-accent: #2563eb; --st-accent-strong: #1d4ed8; --st-accent-soft: #1d4ed8;
+        --st-accent-hover: #2563eb; --st-error-ink: #b91c1c;
+        --st-border: #e2e5ea; --st-surface: #f8fafc; --st-code-bg: #f3f4f6; --st-tag-bg: #eff6ff; }
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) { --st-bg: #ffffff; --st-ink: #1a2233; --st-muted: #5b6472;
+            --st-accent: #2563eb; --st-accent-strong: #1d4ed8; --st-accent-soft: #1d4ed8;
+            --st-accent-hover: #2563eb; --st-error-ink: #b91c1c;
+            --st-border: #e2e5ea; --st-surface: #f8fafc; --st-code-bg: #f3f4f6; --st-tag-bg: #eff6ff; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+       background: var(--st-bg); color: var(--st-ink); line-height: 1.6; }
+.st-header { border-bottom: 1px solid var(--st-border); }
+.st-header__inner { max-width: 1080px; margin: 0 auto; padding: 14px 24px;
+                    display: flex; align-items: center; gap: 24px; }
+@supports not ((gap: 1px) and (inset: 0)) { .st-header__inner { gap: 0; } .st-header__inner > * { margin-right: 24px; } }
+.st-header__brand { font-weight: 700; font-size: 18px; color: var(--st-ink); text-decoration: none; }
+.st-main { max-width: 1080px; margin: 0 auto; padding: 48px 24px; }
+.st-hero { text-align: center; padding: 56px 0 48px; }
+.st-hero__title { font-size: 40px; line-height: 1.15; margin: 0 0 16px; }
+.st-hero__subtitle { font-size: 17px; color: var(--st-muted); max-width: 640px; margin: 0 auto; }
+.st-hero__link { display: inline-block; margin-top: 24px; padding: 10px 18px; font-size: 14px;
+                 font-weight: 600; color: #ffffff; background: var(--st-accent-strong); border-radius: 6px;
+                 text-decoration: none; transition: background 150ms ease; }
+.st-hero__link:hover { background: var(--st-accent-hover); }
+.st-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+@supports not ((gap: 1px) and (inset: 0)) { .st-grid { gap: 0; margin-left: -20px; }
+        .st-grid > * { margin-left: 20px; margin-top: 20px; } }
+.st-features { margin-top: 48px; }
+.st-card { border: 1px solid var(--st-border); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
+.st-card__title { margin: 0 0 8px; font-size: 16px; }
+.st-card__text { margin: 0; font-size: 14px; color: var(--st-muted); }

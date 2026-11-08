@@ -1,0 +1,24 @@
+
+html,
+body {
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: var(--font-main), sans-serif;
+  font-size: var(--font-size);
+  line-height: var(--font-line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px;
+}
+
+@media (orientation: portrait) {
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+}

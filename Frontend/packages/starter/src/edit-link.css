@@ -1,0 +1,30 @@
+/*
+ * edit-link.css — the owner-edit affordance on the public article page.
+ *
+ * Per-theme, not a shared base section: the class exists only on the starter
+ * article surface, and the base stylesheet is duplicated byte-for-byte into
+ * the other four packages (FrontendPackageParityTest). Keeping this out of
+ * base/article.css is what lets that guard stay a one-line diff check instead
+ * of shipping a dead rule in four themes.
+ *
+ * Rendered only when the kernel resolved ownership and handed the theme a URL
+ * (PageContext::$editUrl) — a visitor who would only get a 403 never sees it.
+ * The colour is --st-accent-soft, the token already contracted for WCAG AA on
+ * --st-surface, so this adds no new colour for BuildCssAuditTest to audit.
+ */
+
+.st-article__edit {
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+
+.st-article__edit-link {
+  color: var(--st-accent-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.st-article__edit-link:hover,
+.st-article__edit-link:focus-visible {
+  text-decoration-thickness: 2px;
+}

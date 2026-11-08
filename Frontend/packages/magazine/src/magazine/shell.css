@@ -1,0 +1,104 @@
+/* ── Container ── */
+.mag-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 var(--space-4, 16px); }
+@media (min-width: 769px) {
+  .mag-container { padding: 0 32px; }
+}
+
+/* ── Header ── */
+.mag-header { position: sticky; top: 0; z-index: 100; background: var(--st-bg);
+              border-bottom: 1px solid var(--st-border); }
+.mag-header__inner { display: flex; align-items: center; height: var(--mag-header-h); gap: 20px; }
+@supports not ((gap: 1px) and (inset: 0)) { .mag-header__inner { gap: 0; } .mag-header__inner > * { margin-right: 20px; } }
+.mag-header__left { flex-shrink: 0; }
+.mag-header__logo { display: flex; align-items: center; gap: 8px; color: var(--st-ink);
+                    text-decoration: none; font-size: 1.1rem; font-weight: 600; }
+@supports not ((gap: 1px) and (inset: 0)) { .mag-header__logo { gap: 0; } .mag-header__logo span { margin-left: 8px; } }
+.mag-header__logo svg { color: var(--mag-accent); flex-shrink: 0; }
+.mag-header__nav { display: none; align-items: center; gap: 22px; /* the single push-right: logo left, nav + action cluster right */ margin-left: auto; }
+@supports not ((gap: 1px) and (inset: 0)) { .mag-header__nav { gap: 0; } .mag-header__nav .mag-header__link { margin-left: 22px; } }
+@media (min-width: 900px) { .mag-header__nav { display: flex; } }
+.mag-header__link { color: var(--st-muted); text-decoration: none; font-size: 0.95rem; font-weight: 500;
+                    transition: color 150ms ease; }
+.mag-header__link:hover { color: var(--mag-accent-soft); }
+.mag-header__link.active { color: var(--mag-accent-soft); font-weight: 600; }
+.mag-header__right { display: flex; align-items: center; gap: 8px; margin-left: 0; flex-shrink: 0; }
+@supports not ((gap: 1px) and (inset: 0)) { .mag-header__right { gap: 0; } .mag-header__right > * { margin-left: 8px; } }
+/* Navbar actions — the shared right-side action cluster (minimal theme
+   contract): theme toggle, sign-in/admin, locale switcher, mobile toggle. */
+.navbar__actions { align-items: center; gap: 0.5rem; margin-left: 0; display: flex; }
+@supports not ((gap: 1px) and (inset: 0)) { .navbar__actions { gap: 0; } .navbar__actions > * + * { margin-left: 0.5rem; } }
+
+/* Sign-in / admin link — icon + label, matches the search trigger shape */
+.mag-login-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px;
+                 background: transparent; border: 1px solid var(--st-border); border-radius: 8px;
+                 color: var(--st-muted); text-decoration: none; font-size: 0.85rem; font-weight: 500;
+                 transition: all 150ms ease; }
+@supports not ((gap: 1px) and (inset: 0)) { .mag-login-btn { gap: 0; } .mag-login-btn .mag-login-btn__text { margin-left: 6px; } }
+.mag-login-btn:hover { color: var(--mag-accent-soft); border-color: var(--mag-accent); }
+.mag-login-btn svg { flex-shrink: 0; }
+
+/* Search — a real GET form: the input expands on focus, and the magnifier
+   button submits it. Native submission, so Enter works without JS. */
+.mag-search { display: flex; align-items: center; gap: 6px; }
+@supports not ((gap: 1px) and (inset: 0)) { .mag-search { gap: 0; } .mag-search__input { margin-right: 6px; } }
+/* Below the desktop breakpoint the collapsed-on-focus input is unusable:
+   there is no hover to expand it and tapping the magnifier would submit an
+   empty query. It stays open and takes the free space instead. */
+@media (max-width: 899px) {
+  .mag-search { flex: 1 1 auto; min-width: 0; }
+  .mag-search__input { flex: 1 1 auto; min-width: 0; width: auto; padding: 8px 10px;
+                       border-color: var(--st-border); border-radius: 8px;
+                       background: var(--st-surface); }
+}
+/* Reclaim the login button's label before the search field gets squeezed. */
+@media (max-width: 559px) {
+  .mag-login-btn__text { display: none; }
+  .mag-login-btn { padding: 0 8px; }
+}
+.mag-search__label { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.mag-search__input { width: 0; padding: 0; border: 1px solid transparent; background: transparent;
+                      color: var(--st-ink); font-family: inherit; font-size: 0.875rem;
+                      transition: width 150ms ease, padding 150ms ease, border-color 150ms ease; }
+.mag-search__input:focus { width: 168px; padding: 8px 10px; border-color: var(--st-border);
+                            border-radius: 8px; background: var(--st-surface); outline: none; }
+.mag-search__input:focus-visible { border-color: var(--mag-accent); }
+.mag-search-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+                  background: transparent; border: 1px solid var(--st-border); border-radius: 8px;
+                  color: var(--st-muted); cursor: pointer; transition: all 150ms ease; text-decoration: none; }
+/* The visible text label is for screen readers only; aria-label already
+   names the button, so the text is hidden from everyone. */
+.mag-search-btn__text { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.mag-search-btn:hover { color: var(--mag-accent-soft); border-color: var(--mag-accent); }
+
+/* Theme switcher — reuses the starter data-theme-toggle contract */
+.mag-theme-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+                 background: transparent; border: 1px solid var(--st-border); border-radius: 8px;
+                 color: var(--st-muted); cursor: pointer; transition: all 150ms ease; }
+.mag-theme-btn:hover { color: var(--mag-accent-soft); border-color: var(--mag-accent); }
+.mag-theme-btn svg { display: block; width: 16px; height: 16px; }
+
+/* Mobile menu — meatball (three full dots), sized like its neighbours in the
+   action cluster so the masthead stays aligned */
+.mag-mobile-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+                  background: transparent; border: 1px solid var(--st-border); border-radius: 8px;
+                  color: var(--st-muted); cursor: pointer; transition: all 150ms ease; }
+.mag-mobile-btn:hover { color: var(--mag-accent-soft); border-color: var(--mag-accent); }
+.mag-mobile-btn svg { display: block; width: 20px; height: 20px; }
+@media (min-width: 900px) { .mag-mobile-btn { display: none; } }
+.mag-mobile-menu { display: none; position: absolute; top: var(--mag-header-h); left: 0; right: 0;
+                   background: var(--st-bg); border-bottom: 1px solid var(--st-border); padding: 16px; }
+.mag-mobile-menu.is-open { display: block; }
+.mag-mobile-nav { display: flex; flex-direction: column; gap: 8px; }
+@supports not ((gap: 1px) and (inset: 0)) { .mag-mobile-nav { gap: 0; } .mag-mobile-nav a { margin-top: 8px; } }
+.mag-mobile-link { display: block; padding: 9px 0; color: var(--st-ink); text-decoration: none;
+                   font-size: 1rem; font-weight: 500; }
+.mag-mobile-link.active { color: var(--mag-accent-soft); }
+
+/* Below 900px the desktop nav (which carries margin-left:auto) is hidden, so
+   nothing would push the action cluster — burger last — to the right edge.
+   The cluster also stops shrinking so the search field has room to open.
+   Declared last on purpose: the element also carries the shared
+   `.navbar__actions` class, whose `margin-left:0` would otherwise win on
+   source order at equal specificity. */
+@media (max-width: 899px) { .mag-header__right { margin-left: auto; flex: 1 1 auto; min-width: 0; } }
+

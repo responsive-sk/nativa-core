@@ -1,0 +1,27 @@
+.st-blog-feed { font-size: 13px; color: var(--st-muted); margin: -20px 0 32px; }
+.st-blog-feed__link { color: var(--st-accent); text-decoration: none; font-weight: 600; }
+.st-blog-feed__link:hover { text-decoration: underline; }
+.st-comments { max-width: 720px; margin-top: 48px; padding-top: 24px;
+               border-top: 1px solid var(--st-border); }
+.st-comments__title { font-size: 20px; line-height: 1.3; margin: 0 0 16px; }
+.st-comments__count { color: var(--st-muted); font-weight: 400; }
+.st-comments__list { list-style: none; margin: 0 0 24px; padding: 0; }
+.st-comments__item { padding: 16px 0; border-bottom: 1px solid var(--st-border); }
+.st-comments__meta { font-size: 13px; font-weight: 600; color: var(--st-muted); margin-bottom: 6px; }
+.st-comments__body { font-size: 15px; line-height: 1.6; }
+.st-comments__empty { color: var(--st-muted); font-size: 14px; }
+.st-comments__form { display: grid; gap: 10px; max-width: 520px; }
+@supports not ((gap: 1px) and (inset: 0)) { .st-comments__form { gap: 0; } .st-comments__form > * { margin-bottom: 10px; } }
+.st-comments__label { font-size: 13px; font-weight: 600; color: var(--st-ink); }
+.st-comments__input, .st-comments__textarea { width: 100%; padding: 9px 12px; font-size: 14px;
+    font-family: inherit; color: var(--st-ink); background: var(--st-surface);
+    border: 1px solid var(--st-border); border-radius: 6px; }
+.st-comments__input:focus, .st-comments__textarea:focus { outline: none; border-color: var(--st-accent); }
+.st-comments__textarea { resize: vertical; min-height: 110px; }
+.st-comments__button { justify-self: start; padding: 9px 16px; font-size: 14px; font-weight: 600;
+                       color: #ffffff; background: var(--st-accent-strong); border: 0; border-radius: 6px;
+                       cursor: pointer; }
+.st-comments__button:hover { background: var(--st-accent-hover); }
+.st-comments__identity { font-size: 13px; color: var(--st-muted); margin: 0; }
+.st-comments__error { background: rgba(239,68,68,.12); color: var(--st-error-ink); border-radius: 6px;
+                      padding: 8px 12px; font-size: 13px; margin: 0 0 12px; }

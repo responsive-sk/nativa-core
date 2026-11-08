@@ -1,0 +1,97 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via Modules\Core\Application\Services\View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <?php echo $localeInput . "\n"; ?>
+    <div class="m-card"><div class="m-form">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" value="<?php echo $titleValue; ?>" required autofocus>
+
+        <label for="slug">Slug (used as <code>{{form:slug}}</code> and in the URL)</label>
+        <input type="text" id="slug" name="slug" value="<?php echo $slugValue; ?>" placeholder="contact">
+
+        <label for="intro">Intro</label>
+        <textarea id="intro" name="intro" rows="2" maxlength="500"><?php echo $introValue; ?></textarea>
+
+        <label for="success_message">Success message</label>
+        <input type="text" id="success_message" name="success_message" value="<?php echo $successValue; ?>" maxlength="300" placeholder="Thank you, your message was sent.">
+
+        <label class="m-check" for="published">
+            <input type="checkbox" id="published" name="published" value="1" <?php echo $publishedChecked; ?>>
+            Published
+        </label>
+    </div></div>
+
+    <div class="m-card">
+        <h2 style="font-size:14px;font-weight:600;margin:0 0 12px;">Fields</h2>
+        <div id="forms-fields">
+<?php foreach ($rows as $row): ?>
+            <fieldset class="forms-row" data-form-row>
+                <legend>Field <?php echo $row['index'] + 1; ?></legend>
+                <?php if ('' !== $row['error']): ?>
+                <p class="m-note m-note-err"><?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($row['error']); ?></p>
+                <?php endif; ?>
+                <div class="m-form">
+                    <label>Key</label>
+                    <input type="text" name="fields[<?php echo $row['index']; ?>][key]" value="<?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($row['key']); ?>" placeholder="name" maxlength="40">
+                    <label>Label</label>
+                    <input type="text" name="fields[<?php echo $row['index']; ?>][label]" value="<?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($row['label']); ?>" placeholder="Your name" maxlength="120">
+                    <label>Type</label>
+                    <select name="fields[<?php echo $row['index']; ?>][type]">
+<?php foreach (Modules\Forms\Domain\Model\FormFieldType::tokens() as $type): ?>
+                        <option value="<?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($type); ?>" <?php echo $row['type'] === $type ? 'selected' : ''; ?>><?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($type); ?></option>
+<?php endforeach; ?>
+                    </select>
+                    <label>Max length (text, e-mail, textarea)</label>
+                    <input type="number" name="fields[<?php echo $row['index']; ?>][max]" value="<?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($row['max']); ?>" min="1" max="5000" placeholder="500">
+                    <label>Options, one per line (select and radio only)</label>
+                    <textarea name="fields[<?php echo $row['index']; ?>][options]" rows="3" placeholder="Sales&#10;Support"><?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($row['options']); ?></textarea>
+                    <label class="m-check">
+                        <input type="checkbox" name="fields[<?php echo $row['index']; ?>][required]" value="1" <?php echo $row['required']; ?>>
+                        Required
+                    </label>
+                    <label class="m-check">
+                        <input type="checkbox" name="fields[<?php echo $row['index']; ?>][show_results]" value="1" <?php echo $row['show_results']; ?>>
+                        Show results (select and radio only)
+                    </label>
+                </div>
+                <button type="button" class="m-btn m-btn-ghost" data-form-remove>Remove field</button>
+            </fieldset>
+<?php endforeach; ?>
+        </div>
+        <template id="forms-row-template">
+            <fieldset class="forms-row" data-form-row>
+                <legend>New field</legend>
+                <div class="m-form">
+                    <label>Key</label>
+                    <input type="text" data-name="key" placeholder="name" maxlength="40">
+                    <label>Label</label>
+                    <input type="text" data-name="label" placeholder="Your name" maxlength="120">
+                    <label>Type</label>
+                    <select data-name="type">
+<?php foreach (Modules\Forms\Domain\Model\FormFieldType::tokens() as $type): ?>
+                        <option value="<?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($type); ?>"><?php echo Modules\Cardboard\Interfaces\HTTP\AdminLayout::e($type); ?></option>
+<?php endforeach; ?>
+                    </select>
+                    <label>Max length (text, e-mail, textarea)</label>
+                    <input type="number" data-name="max" min="1" max="5000" placeholder="500">
+                    <label>Options, one per line (select and radio only)</label>
+                    <textarea data-name="options" rows="3" placeholder="Sales&#10;Support"></textarea>
+                    <label class="m-check"><input type="checkbox" data-name="required" value="1"> Required</label>
+                    <label class="m-check"><input type="checkbox" data-name="show_results" value="1"> Show results (select and radio only)</label>
+                </div>
+                <button type="button" class="m-btn m-btn-ghost" data-form-remove>Remove field</button>
+            </fieldset>
+        </template>
+        <button type="button" class="m-btn m-btn-primary" id="forms-add-field">Add field</button>
+        <button type="submit" class="m-btn m-btn-primary">Save form</button>
+    </div>

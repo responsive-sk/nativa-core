@@ -1,0 +1,11 @@
+{
+  "src/griffe.ts": {
+    "file": "assets/griffe-DVCO19PG.js",
+    "name": "griffe",
+    "src": "src/griffe.ts",
+    "isEntry": true,
+    "css": [
+      "assets/griffe-KiqZ3wI6.css"
+    ]
+  }
+}

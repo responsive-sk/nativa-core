@@ -1,0 +1,34 @@
+parameters:
+    level: 9
+    # The kernel scope only. Installed module slices (src/Modules/<Name> outside
+    # Core/Database) are operator state — gitignored, never committed — so
+    # analysing them would make the gate's result depend on which modules this
+    # checkout happens to have installed. The catalogue (modules/) is text the
+    # kernel does not run until module:add copies it; its verification is
+    # module:show's closure scan, not PHPStan.
+    paths:
+        - src/Modules/Core
+        - src/Modules/Database
+        # The kernel's module tooling: committed kernel code bin/cms ships,
+        # so level 9 must keep covering it — excluding it would silently
+        # drop 26 KB of shipped code from the gate.
+        - src/Modules/Tooling
+        - src/Themes
+        - src/composition.php
+        - src/http.php
+        - public/index.php
+        - bin/cms
+        - tests/
+    # src/init.php defines APP_BASE_PATH and loads the autoloaders, so
+    # analysed files resolve runtime constants and class metadata exactly
+    # as the application would. `src/composition.php` joins the paths because
+    # both delivery entry points call its `wire_module_handlers()`: a function
+    # this kernel file owns that nothing analysed is "Class not found" for — the
+    # error would name the CALLER (src/http.php, bin/cms), never the file that
+    # has to be added here.
+    bootstrapFiles:
+        - src/init.php
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # MiddlewareRegistry::scanFile() uses array &$found by-ref pattern
+        - '#Method Modules\\Core\\Interfaces\\HTTP\\Middleware\\MiddlewareRegistry::scanFile\(\) has parameter \$found with no value type specified in iterable type array\.#'

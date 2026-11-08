@@ -1,0 +1,54 @@
+.documentation h1 {
+  margin-top: 0;
+  font-size: 2.488rem;
+}
+
+.documentation h2 {
+  font-size: 2.074rem;
+}
+
+.documentation h3 {
+  font-size: 1.728rem;
+}
+
+.documentation h4 {
+  font-size: 1.44rem;
+}
+
+.documentation h5 {
+  font-size: 1.2rem;
+}
+
+.documentation h1 .heading-permalink,
+.documentation h2 .heading-permalink,
+.documentation h3 .heading-permalink,
+.documentation h4 .heading-permalink,
+.documentation h5 .heading-permalink,
+.documentation h6 .heading-permalink {
+  opacity: .1;
+  transition: .2s ease;
+  transform: scale(1);
+}
+
+.documentation h1:hover .heading-permalink,
+.documentation h2:hover .heading-permalink,
+.documentation h3:hover .heading-permalink,
+.documentation h4:hover .heading-permalink,
+.documentation h5:hover .heading-permalink,
+.documentation h6:hover .heading-permalink {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.documentation a:not(.heading-permalink) {
+  color: var(--color-text-brand);
+}
+
+.documentation img,
+.documentation video {
+  display: inline-block;
+  max-width: 100%;
+  width: 100%;
+  border: solid 5px var(--color-border);
+  margin: 1em 0;
+}

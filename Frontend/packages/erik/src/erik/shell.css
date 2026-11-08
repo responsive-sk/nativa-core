@@ -1,0 +1,331 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+body {
+  background: var(--er-bg);
+  color: var(--er-ink);
+  font-family: 'Gilroy', 'Gilroy Fallback', system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--er-accent-soft);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--er-focus);
+  outline-offset: 3px;
+}
+
+.er-container {
+  margin: 0 auto;
+  max-width: var(--er-container);
+  padding: 0 1.25rem;
+}
+
+.er-header {
+  border-bottom: 1px solid var(--er-border);
+}
+
+.er-header__inner {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  margin: 0 auto;
+  max-width: var(--er-container);
+  min-height: 4rem;
+  padding: 0 1.25rem;
+}
+
+.er-header__brand {
+  color: var(--er-ink);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.er-header__utilities {
+  align-items: center;
+  display: flex;
+  gap: .75rem;
+  margin-left: auto;
+}
+
+.er-nav {
+  align-items: center;
+  border: 0;
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+  padding: 0;
+}
+
+.er-nav__link,
+.er-login-btn,
+.er-locale__link,
+.er-footer__link {
+  color: var(--er-muted);
+  text-decoration: none;
+}
+
+.er-locale.m-pubswitch__track {
+  align-items: center;
+  background: var(--er-surface-raised);
+  border: 1px solid var(--er-border);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: .25rem;
+  padding: .2rem;
+}
+
+.er-locale.m-pubswitch__track .er-locale__link {
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  padding: .25rem .5rem;
+}
+
+.er-locale.m-pubswitch__track .er-locale__link--active {
+  background: var(--er-accent-strong);
+  color: var(--er-accent-ink);
+}
+
+.er-nav__link--active,
+.er-nav__link:hover,
+.er-locale__link--active,
+.er-footer__link:hover {
+  color: var(--er-accent-soft);
+}
+
+/* Theme toggle — the same pill-track idiom as the locale switcher: two
+   segments (Light | Dark), the active one highlighted. The active state
+   follows the data-theme attribute the sync init script + shared toggle
+   handler keep on <html>, so the track renders server-side-correct on
+   first paint and flips live with the existing data-theme-toggle JS. */
+.er-theme-toggle {
+  align-items: center;
+  background: var(--er-surface-raised);
+  border: 1px solid var(--er-border);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: .25rem;
+  padding: .2rem;
+}
+
+.er-theme-toggle__opt {
+  border-radius: 999px;
+  color: var(--er-muted);
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1;
+  padding: .25rem .55rem;
+  text-transform: uppercase;
+}
+
+.er-theme-toggle__opt--light,
+.er-theme-toggle__opt--dark {
+  display: block;
+}
+
+:root[data-theme="light"] .er-theme-toggle__opt--light,
+:root[data-theme="dark"] .er-theme-toggle__opt--dark {
+  background: var(--er-accent-strong);
+  color: var(--er-accent-ink);
+}
+
+:root:not([data-theme]) .er-theme-toggle__opt--dark {
+  background: var(--er-accent-strong);
+  color: var(--er-accent-ink);
+}
+
+.er-nav__toggle-input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.er-nav__toggle {
+  cursor: pointer;
+  display: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: .5rem;
+}
+
+/* The checkbox itself stays focusable and named (aria-label) — this ring
+   surfaces its focus to the visible hamburger the label activates. */
+.er-nav__toggle-input:focus-visible ~ .er-nav__toggle {
+  outline: 2px solid var(--er-accent-strong);
+  outline-offset: 2px;
+}
+
+.er-footer__inner {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: var(--er-container);
+}
+
+.er-nav {
+  align-items: center;
+  border-bottom: 1px solid var(--er-border);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+}
+
+.er-footer {
+  border-top: 1px solid var(--er-border);
+  color: var(--er-muted);
+  margin-top: 4rem;
+  padding: 2rem 1.25rem;
+}
+
+/* FrontendLayout keeps the shared checkbox markup; constrain it in Erik so
+   the SVG cannot stretch when the starter stylesheet is not loaded. */
+.erik-shell .st-nav__toggle-input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.erik-shell .st-nav__toggle {
+  align-items: center;
+  cursor: pointer;
+  display: none;
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
+}
+
+.erik-shell .st-nav__toggle-icon {
+  display: block;
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+.erik-shell .st-nav__toggle-icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.erik-shell .st-nav__toggle-icon--close,
+.erik-shell .st-nav__overlay {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .er-header__inner {
+    flex-wrap: wrap;
+    padding-bottom: .75rem;
+    padding-top: .75rem;
+  }
+
+  .er-nav__toggle {
+    display: block;
+    order: 2;
+  }
+
+  .er-nav {
+    display: none;
+    flex-basis: 100%;
+    margin-left: 0;
+    order: 3;
+  }
+
+  .er-nav__toggle-input:checked ~ .er-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .er-header__utilities {
+    margin-left: auto;
+    order: 1;
+  }
+
+  .er-footer__inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .er-hero {
+    padding-bottom: 4rem;
+    padding-top: 4rem;
+    min-height: calc(100vh - 4rem);
+  }
+
+  .er-hero__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .er-hero__actions .er-button {
+    text-align: center;
+  }
+
+  .er-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .er-news-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .er-feature-card:first-child { border-radius: var(--er-radius) var(--er-radius) 0 0; }
+  .er-feature-card:last-child { border-radius: 0 0 var(--er-radius) var(--er-radius); }
+
+  .er-comparison__head,
+  .er-comparison__row {
+    gap: .5rem;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .er-comparison__head span:last-child,
+  .er-comparison__row span:last-child { display: none; }
+
+  .er-closing-cta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .erik-shell .st-nav__toggle {
+    display: inline-flex;
+  }
+
+  .erik-shell .st-nav__toggle-input:checked ~ .st-nav__toggle .st-nav__toggle-icon--open {
+    display: none;
+  }
+
+  .erik-shell .st-nav__toggle-input:checked ~ .st-nav__toggle .st-nav__toggle-icon--close {
+    display: block;
+  }
+}
+
+@supports not (gap: 1rem) {
+  .er-nav > * + * {
+    margin-left: 1rem;
+  }
+
+  .er-search > * + * {
+    margin-left: .75rem;
+  }
+}

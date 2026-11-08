@@ -1,0 +1,204 @@
+#:schema https://mago.carthage.software/1.58.2/schema.json
+#
+# =============================================================================
+# mago.toml — the Mago spike, informational only.
+# =============================================================================
+# One rule from this file IS a gate: `make mago-guard` runs the perimeter below
+# on every pull request, with no exception list. Everything else here is
+# informational — `phpstan` (level 9), `php-cs-fixer`
+# and `rector` stay the analysis and style gates, and `make mago-spike` measures
+# this tree with a written-down configuration instead of whatever flags were
+# typed that day.
+# `docs/mago-evaluation.md` holds the numbers this file produced and the
+# adoption decision; `tests/Architecture/MagoScopeContractTest.php` keeps the
+# scope below at `phpstan.neon`'s paths plus `modules/` (and nothing else),
+# because a spike that measures a narrower tree is a spike that answers a
+# different question.
+#
+# Pinning `version` to a major is deliberate: a 2.x config schema change must
+# fail loudly here rather than quietly alter what the report means.
+# =============================================================================
+
+version = "1"
+php-version = "8.5"
+
+[source]
+# `phpstan.neon`'s `paths`, entry for entry, plus `modules/`. `src/Modules/<Name>`
+# outside Core/Database/Tooling is operator state (gitignored, present only where
+# someone ran `bin/cms module:add`), so it is excluded by omission: naming only
+# the kernel keeps the verdict independent of what this checkout installed.
+paths = [
+    "src/Modules/Core",
+    "src/Modules/Database",
+    "src/Modules/Tooling",
+    "src/Themes",
+    "src/composition.php",
+    "src/http.php",
+    "public/index.php",
+    "bin/cms",
+    "tests",
+    # The committed catalogue: the module code `bin/cms module:add` copies into
+    # an install. It is shipped code that `phpstan.neon` deliberately leaves out
+    # (its comment says why), so lint and analyze are the only scope it gets.
+    "modules",
+]
+
+# Dependencies Mago parses so it can resolve symbols, but never analyses, lints
+# or formats. Without it the analyzer reports PHPUnit's own classes as missing:
+# measured 2026-10-22 on the kernel scope, 603 issues (403 errors) without this
+# line against 372 (189 errors) with it.
+#
+# `src/init.php` is deliberately NOT listed, and that is a finding rather than
+# an oversight: including it turns all 53 `non-existent-constant` reports for
+# `APP_BASE_PATH` into 53 `mixed-operand` reports, because Mago does not infer
+# a type for `define()`d constants. 189 errors become 184 — the class changes,
+# the problem does not. See docs/mago-evaluation.md.
+includes = ["vendor"]
+
+# `storage` and `public/dist` are runtime/build artifacts and `Frontend` holds no
+# PHP. `modules/` is NOT here: lint and analyze read the catalogue (see `paths`),
+# because a finding there is a finding in code an install runs. Only the
+# formatter keeps away from it — `[formatter] excludes` below — for the reason
+# `.php-cs-fixer.dist.php` gives: the catalogue is a verbatim import that the
+# next module update re-imports, so a rewrite becomes a merge.
+excludes = ["storage", "public/dist", "Frontend"]
+
+[formatter]
+# Reformatting the catalogue would turn the next module re-import into a merge;
+# `.php-cs-fixer.dist.php` excludes the same directory for the same reason.
+excludes = ["modules"]
+
+[linter]
+minimum-fail-level = "error"
+# Everything under `modules/` is linted except the theme catalogue. That tree is
+# a byte-verified mirror of `nativa-themes` — `bin/build/sync-themes.sh --check`
+# fails on a changed byte — so a finding there cannot be fixed here without
+# turning the next sync into a conflict. Measured 2026-10-27, it holds 5 such
+# findings (readable-literal on 18_000/42_500-style budget constants); they are
+# upstream's to fix. Analyze still reads it: its count is informational.
+excludes = ["modules/Themes"]
+
+# -----------------------------------------------------------------------------
+# Curated rule set — correctness kept, taste and convention switched off.
+#
+# Default preset measured 570 findings on this tree (164 error / 330 warning /
+# 76 help). Most of that is either a style opinion `php-cs-fixer` already owns,
+# or a rule that argues against a convention this codebase holds on purpose.
+# Every disabled rule carries its reason; nothing is off "because the number was
+# big".
+# -----------------------------------------------------------------------------
+
+[linter.rules]
+# 241 findings, all of them "pass this literal as a named argument". Call style
+# is `.php-cs-fixer.dist.php`'s job, and adding names at ~240 call sites is a
+# refactor nobody asked for.
+literal-named-argument = { enabled = false }
+
+# 51 findings. `@` is this tree's documented idiom for best-effort filesystem
+# work — e.g. `@mkdir()` in FileSessionHandler, where the return value is
+# already checked. The rule is not wrong in general; it is wrong here.
+no-error-control-operator = { enabled = false }
+
+# 36 findings at the default threshold of 15. Complexity is a review
+# conversation, not a gate: the two longest methods here (Router::dispatch,
+# MarkdownRenderer) are long for reasons their docblocks state.
+cyclomatic-complexity = { enabled = false }
+
+# 34 findings. The rule prefers `!== null` over `isset()`; both appear in this
+# tree, the second one where a key is genuinely optional. No defect was found in
+# the 34, so it stays off until one is.
+no-isset = { enabled = false }
+
+# Structural metrics and design opinions: 28 + 22 + 19 + 22 + 5 + 4 findings.
+# They describe shape, and shape here is guarded by KernelShapeTest and
+# docs/kernel-shape.md, not by a linter threshold.
+kan-defect = { enabled = false }
+too-many-methods = { enabled = false }
+excessive-parameter-list = { enabled = false }
+halstead = { enabled = false }
+no-boolean-flag-parameter = { enabled = false }
+
+# Pure style, already governed by `.php-cs-fixer.dist.php`: 27 + 23 + 22 + 18 +
+# 6 + 1 findings.
+no-else-clause = { enabled = false }
+prefer-early-continue = { enabled = false }
+no-shorthand-ternary = { enabled = false }
+function-name = { enabled = false }
+inline-variable-return = { enabled = false }
+no-nested-ternary = { enabled = false }
+
+# Modernisation and micro-optimisation, not correctness: 7 + 3 + 1 findings.
+prefer-first-class-callable = { enabled = false }
+prefer-static-closure = { enabled = false }
+single-class-per-file = { enabled = false }
+
+# Kept on purpose — correctness, security and readability. Measured at 0
+# findings on 2026-10-22: every one of the 22 they used to report is fixed in
+# the code, and none of the rules is disabled.
+#   Code fixes (16): explicit-octal (5 implicit `0755`-style literals →
+#   `0o755`), assert-description (1 `assert()` without a message),
+#   no-empty-catch-clause (3 — the two test refusals are asserted now, the WAL
+#   pragma logs its failure), no-ini-set (5 bootstrap/`error_log` sites, each
+#   carrying `@mago-expect lint:no-ini-set` and its reason), sensitive-parameter
+#   (1 — `CsrfMiddleware::verify()`'s `$token` is marked), no-unsafe-finally
+#   (1 — the test records its cleanup failure and rethrows).
+#   False positives (6): no-insecure-comparison (4) read a `token_get_all()`
+#   stream element named `$token` as a credential — renamed to `$element`, which
+#   is what it is; no-literal-password (2) read a CSRF FIXTURE as a password —
+#   `@mago-expect lint:no-literal-password` with the reason, because the literal
+#   is the assertion.
+# A security rule silenced because this tree happens to trip it would be the one
+# suppression that matters; the COUNT is gated instead — `make mago-lint` fails
+# on ANY finding, and `unfulfilled-expect` counts as one, so a pragma cannot
+# outlive its code. The triage of all 22 is in
+# docs/mago-evaluation.md.
+
+# -----------------------------------------------------------------------------
+# Architectural guard — the kernel's one written-down dependency rule.
+#
+# The model is a namespace WHITELIST: the moment one rule exists, every
+# namespace that has no rule is a violation (measured: `glob()` in a test read
+# as `Tests\Architecture\glob`, PHPUnit classes as illegal dependencies). So the
+# scope below is pinned to the kernel slice with `excludes`, and each kernel
+# namespace permits exactly its siblings, the theme tree the kernel renders for,
+# and `@global`.
+#
+# `KernelCouplingTest` guards the same sentence in PHP, and both catch the same
+# mutation — a `use Modules\Blog\…` typed into a Core file, named with the same
+# file and line. Guard resolves more than the test can: it also sees inline
+# FQCNs and `::class` constants, which is how its first run found the 8
+# `Modules\Outbox\…` reaches in AuthMiddleware/RateLimitMiddleware that the
+# `use`-line scanner never counted. Those were fixed at the source rather than
+# baselined — the kernel now raises its two security facts through
+# `Modules\Core\Domain\Contracts\SecurityEventSink`, the Outbox module
+# implements it, and the composition root wires it. The gate therefore runs with
+# NO exception list: an empty report is the claim, and the recorded decision is
+# in docs/mago-evaluation.md.
+# -----------------------------------------------------------------------------
+
+[guard]
+mode = "default"
+# Kernel slice only: `tests`/`public`/`bin` are consumers of the rule, not
+# subjects of it, `src/Themes` is a tree the kernel renders for (permitted
+# above), and the two composition roots name modules on purpose. `modules/` is
+# out because the perimeter below states a constraint on the KERNEL: modules are
+# the other side of it, and the model is a whitelist, so a module namespace
+# without a rule would report every one of its edges as a violation.
+excludes = ["tests", "public", "bin", "src/Themes", "src/composition.php", "src/http.php", "modules"]
+
+[guard.perimeter]
+
+[[guard.perimeter.rules]]
+namespace = 'Modules\Core'
+permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Themes\**', '@global']
+reason = 'The contract kernel may not see a module: modules are installed on top of it.'
+
+[[guard.perimeter.rules]]
+namespace = 'Modules\Database'
+permit = ['Modules\Database\**', 'Modules\Core\**', 'Modules\Tooling\**', 'Themes\**', '@global']
+reason = 'The concrete runtime sits on the kernel contracts; a module is still off limits.'
+
+[[guard.perimeter.rules]]
+namespace = 'Modules\Tooling'
+permit = ['Modules\Tooling\**', 'Modules\Core\**', 'Modules\Database\**', 'Themes\**', '@global']
+reason = 'The module tooling reads the kernel and the catalogue, never a module class.'

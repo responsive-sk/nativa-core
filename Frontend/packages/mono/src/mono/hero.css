@@ -1,0 +1,7 @@
+/**
+ * hero.css — hero, features, stats, CTA, container, home-page intro.
+ *
+ * From Modules/Mono/assets/critical/mono.css (vendored snapshot section).
+ */
+
+.mo-home-page{background-color:var(--color-bg);min-height:100vh}.mo-home-page__intro{padding:var(--space-8);text-align:center}

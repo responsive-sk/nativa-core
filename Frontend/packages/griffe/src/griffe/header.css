@@ -1,0 +1,133 @@
+/**
+ * header.css — sticky text-nav header with hide-on-scroll, theme toggle,
+ * locale links and the checkbox hamburger (Mono meatball idiom:
+ * input → menu → label order).
+ *
+ * From Modules/Griffe/assets/critical/griffe.css (`header` section).
+ */
+
+.gr-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--gr-paper);
+    background: color-mix(in srgb, var(--gr-paper) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--gr-line);
+    transition: transform .35s var(--gr-ease);
+}
+
+.gr-header--hidden { transform: translateY(-100%); }
+
+.gr-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 4.25rem;
+}
+
+.gr-header__brand {
+    font-weight: 800;
+    font-size: 1.35rem;
+    letter-spacing: -.02em;
+    color: var(--gr-ink);
+    text-decoration: none;
+}
+
+.gr-nav { display: flex; align-items: center; gap: 1.5rem; }
+
+/* btn--link idiom: plain text, underline slides in on hover/focus. */
+.gr-nav__link {
+    position: relative;
+    color: var(--gr-ink);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: .95rem;
+    padding-block: .25rem;
+}
+
+.gr-nav__link::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: var(--gr-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .25s var(--gr-ease);
+}
+
+.gr-nav__link:hover::after,
+.gr-nav__link:focus-visible::after,
+.gr-nav__link[aria-current="page"]::after { transform: scaleX(1); }
+
+.gr-header__actions { display: flex; align-items: center; gap: .5rem; }
+
+.gr-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem; height: 2.5rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--gr-ink);
+    cursor: pointer;
+}
+
+.gr-icon-btn:hover { border-color: var(--gr-line); }
+
+/* Shared dark/light toggle: sun shows in dark mode, moon in light mode. */
+.gr-theme-toggle__sun { display: none; }
+[data-theme="dark"] .gr-theme-toggle__sun { display: block; }
+[data-theme="dark"] .gr-theme-toggle__moon { display: none; }
+
+.gr-locale { display: flex; gap: .25rem; }
+.gr-locale__link {
+    color: var(--gr-muted);
+    text-decoration: none;
+    font-size: .85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: .25rem .4rem;
+}
+.gr-locale__link[aria-current="true"] { color: var(--gr-accent); }
+
+/* Checkbox hamburger (Mono meatball idiom): input → menu → label order. */
+.gr-nav__toggle-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.gr-nav__toggle { display: none; }
+.gr-nav__toggle-icon--close { display: none; }
+
+/* Second closed-state glyph, off by default: the meatball is this theme's own
+   and `auto` must keep it. `--burger` on the label swaps which one shows; the
+   open state hides EITHER closed glyph and shows the shared close icon. */
+.gr-nav__toggle-icon--burger { display: none; }
+.gr-nav__toggle--burger .gr-nav__toggle-icon--meatball { display: none; }
+.gr-nav__toggle--burger .gr-nav__toggle-icon--burger { display: inline-flex; }
+.gr-nav__toggle-input:checked ~ .gr-header__inner .gr-nav__toggle-icon--meatball,
+.gr-nav__toggle-input:checked ~ .gr-header__inner .gr-nav__toggle-icon--burger { display: none; }
+.gr-nav__toggle-input:checked ~ .gr-header__inner .gr-nav__toggle-icon--close { display: block; }
+
+@media (max-width: 768px) {
+    .gr-nav {
+        display: none;
+        position: absolute;
+        top: 100%; left: 0; right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        background: var(--gr-paper);
+        border-bottom: 1px solid var(--gr-line);
+        padding: .5rem 1.25rem 1rem;
+    }
+    .gr-nav__link { padding: .75rem 0; border-top: 1px solid var(--gr-line); }
+    .gr-nav__link::after { display: none; }
+    .gr-nav__toggle { display: inline-flex; }
+    .gr-nav__toggle-input:checked ~ .gr-header__inner .gr-nav { display: flex; }
+}

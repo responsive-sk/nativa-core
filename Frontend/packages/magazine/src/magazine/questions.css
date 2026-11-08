@@ -1,0 +1,207 @@
+/*
+ * questions.css — GENERATED, do not edit.
+ * Source: Frontend/packages/starter/src/questions.css
+ * Regenerate: node bin/generate/generate-questions-css.mjs
+ * Prefix: mag-
+ */
+
+/*
+ * questions.css — the reader-questions block on an article or a page.
+ *
+ * The markup comes from `QuestionBlockRenderer` in the Questions module,
+ * which builds every class from the ACTIVE THEME'S PREFIX — so questions on a
+ * magazine article render under `mag-`, on erik under `er-`, never under the
+ * starter prefix. This file therefore has to exist per theme, exactly like
+ * `comments.css` and `form.css`, and one canonical source generates the rest
+ * (`node bin/generate/generate-questions-css.mjs`).
+ *
+ * A block only ONE theme styles is a block the other five readers never see:
+ * nothing in the DOM says a class exists, a rule that matches nothing is not
+ * an error, and the parity guard cannot help if the generator never ran.
+ *
+ * NOTE FOR THE GENERATOR: this comment deliberately names no concrete theme
+ * prefix. `bin/generate/generate-questions-css.mjs` swaps the starter prefix
+ * textually, so a literal starter class name here would be rewritten into
+ * nonsense in the copies.
+ *
+ * Palette indirection: the rules below never name a theme token directly,
+ * they name the locals declared in the palette block. A theme copy swaps that
+ * block and inherits everything else.
+ *
+ * Chrome 70 baseline:
+ *   - No @layer.
+ *   - flex/grid `gap` ships an @supports not (gap) margin fallback.
+ */
+
+:root {
+  /* --- palette (generated) --- */
+  --questions-ink: var(--st-ink);
+  --questions-muted: var(--st-muted);
+  --questions-border: var(--st-border);
+  --questions-surface: var(--st-surface);
+  --questions-accent: var(--mag-accent-soft);
+  --questions-accent-bg: var(--mag-accent-strong);
+  --questions-accent-hover: var(--mag-accent-hover);
+  --questions-error-bg: rgba(239, 68, 68, 0.12);
+  --questions-error-ink: var(--st-error-ink);
+  --questions-sent-bg: var(--mag-tag-bg);
+  --questions-accent-ink: #ffffff;
+  --questions-radius: 4px;
+  /* Full width, not 720px: magazine runs a sidebar layout and this block
+     spans the content column. */
+  --questions-width: none;
+  --questions-form-width: 520px;
+  /* --- end palette --- */
+}
+
+.mag-questions {
+  max-width: var(--questions-width);
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--questions-border);
+}
+
+.mag-questions__title {
+  font-size: 20px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+
+.mag-questions__count {
+  color: var(--questions-muted);
+  font-weight: 400;
+}
+
+.mag-questions__hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--questions-muted);
+  margin: 0;
+}
+
+.mag-questions__list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+}
+
+.mag-questions__item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--questions-border);
+}
+
+.mag-questions__meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--questions-muted);
+  margin-bottom: 6px;
+}
+
+/* The reader's own words are DATA, never markup — the renderer escapes them,
+   and this keeps the question visually distinct from the attempt below it
+   without relying on a `<strong>` alone to carry the difference. */
+.mag-questions__body,
+.mag-questions__answer {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.mag-questions__answer {
+  color: var(--questions-muted);
+  margin-top: 6px;
+}
+
+.mag-questions__empty {
+  color: var(--questions-muted);
+  font-size: 14px;
+}
+
+/* The PRG confirmation. It is painted only when the `question-sent` marker is
+   present — a redirect nobody renders is a silent no-op, and a reader who
+   cannot tell their question arrived will ask again. */
+.mag-questions__sent {
+  background: var(--questions-sent-bg);
+  color: var(--questions-ink);
+  border-left: 3px solid var(--questions-accent);
+  border-radius: var(--questions-radius);
+  padding: 10px 14px;
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+.mag-questions__form {
+  display: grid;
+  gap: 10px;
+  max-width: var(--questions-form-width);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .mag-questions__form {
+    gap: 0;
+  }
+
+  .mag-questions__form > * {
+    margin-bottom: 10px;
+  }
+}
+
+.mag-questions__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--questions-ink);
+}
+
+.mag-questions__input,
+.mag-questions__textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--questions-ink);
+  background: var(--questions-surface);
+  border: 1px solid var(--questions-border);
+  border-radius: var(--questions-radius);
+}
+
+.mag-questions__input:focus,
+.mag-questions__textarea:focus {
+  outline: none;
+  border-color: var(--questions-accent);
+}
+
+.mag-questions__textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.mag-questions__button {
+  justify-self: start;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--questions-accent-ink);
+  background: var(--questions-accent-bg);
+  border: 0;
+  border-radius: var(--questions-radius);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.mag-questions__button:hover {
+  background: var(--questions-accent-hover);
+}
+
+.mag-questions__error {
+  background: var(--questions-error-bg);
+  color: var(--questions-error-ink);
+  border-radius: var(--questions-radius);
+  padding: 8px 12px;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+/* The honeypot: `hidden` is what actually hides it, this only keeps a bot that
+   strips attributes from finding a field it should not fill. */
+.mag-questions__hp {
+  display: none;
+}

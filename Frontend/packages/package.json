@@ -1,0 +1,25 @@
+{
+  "name": "@nativa/frontend",
+  "version": "0.1.0",
+  "description": "Nativa frontend workspace — one pnpm package per theme (starter, erik, moonshine, magazine, minimal).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @nativa/theme-starter run dev",
+    "build": "pnpm -r --sequential run build",
+    "build:starter": "pnpm --filter @nativa/theme-starter run build",
+    "build:erik": "pnpm --filter @nativa/theme-erik run build",
+    "build:moonshine": "pnpm --filter @nativa/theme-moonshine run build",
+    "build:magazine": "pnpm --filter @nativa/theme-magazine run build",
+    "build:minimal": "pnpm --filter @nativa/theme-minimal run build",
+    "build:griffe": "pnpm --filter @nativa/theme-griffe run build",
+    "build:mono": "pnpm --filter @nativa/theme-mono run build",
+    "build:boson": "pnpm --filter @nativa/theme-boson run build",
+    "typecheck": "tsc -p tsconfig.build.json && pnpm -r run typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^5.8.0",
+    "vite": "^8.2.4"
+  }
+}

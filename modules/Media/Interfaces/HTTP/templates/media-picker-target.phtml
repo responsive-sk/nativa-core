@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via Modules\Core\Application\Services\View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <label for="<?php echo $name; ?>"><?php echo $escapedLabel; ?></label>
+    <div style="display:flex;gap:8px;align-items:start;">
+        <input type="text" id="<?php echo $name; ?>" name="<?php echo $name; ?>" value="<?php echo $escapedValue; ?>" style="flex:1;" placeholder="https://...">
+        <button type="button" class="m-btn m-btn-ghost" data-action="open-media-picker" data-target="<?php echo $name; ?>" style="white-space:nowrap;font-size:12px;">Pick from Media</button>
+    </div>
+    <div id="image-preview" style="margin-top:8px;display:none;">
+        <img id="image-preview-img" src="" alt="Preview" style="max-width:200px;max-height:120px;border-radius:8px;border:1px solid var(--cba-border);">
+    </div>
+    <script nonce="__CSP_NONCE_PLACEHOLDER__">
+    (function(){
+        var img=document.getElementById('<?php echo $name; ?>');
+        var prev=document.getElementById('image-preview');
+        var prevImg=document.getElementById('image-preview-img');
+        if(img&&prev&&prevImg){
+            if(img.value){prevImg.src=img.value;prev.style.display='block'}
+            img.addEventListener('input',function(){
+                if(img.value){prevImg.src=img.value;prev.style.display='block'}
+                else{prev.style.display='none'}
+            });
+        }
+    })();
+    </script>

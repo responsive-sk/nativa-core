@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via Modules\Core\Application\Services\View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <div class="m-card">
+        <h2 class="m-heading">Quick actions</h2>
+        <div class="m-filter-bar">
+            <a class="m-btn m-btn-primary" href="<?php echo $url('mark.users.create'); ?>">New user</a>
+            <a class="m-btn m-btn-primary" href="<?php echo $url('articles.create'); ?>">New article</a>
+            <a class="m-btn m-btn-primary" href="<?php echo $url('pages.create'); ?>">New page</a>
+            <a class="m-btn m-btn-primary" href="<?php echo $url('media.upload'); ?>">Upload media</a>
+            <a class="m-btn m-btn-primary" href="<?php echo $url('mark.settings'); ?>">Settings</a>
+        </div>
+    </div>

@@ -1,0 +1,54 @@
+.st-blog-index { max-width: 1080px; }
+.st-blog-index__title { font-size: 32px; line-height: 1.2; margin: 0 0 8px; }
+.st-blog-index__subtitle { font-size: 15px; color: var(--st-muted); margin: 0 0 32px; }
+.st-blog-index__card { border: 1px solid var(--st-border); border-radius: 8px; padding: 20px 24px; }
+.st-blog-index__card-image { display: block; width: calc(100% + 48px); max-width: none; height: auto;
+                             margin: -20px -24px 16px; border-radius: 8px 8px 0 0;
+                             border-bottom: 1px solid var(--st-border); }
+.st-blog-index__card-title { margin: 0 0 4px; font-size: 19px; line-height: 1.3; }
+.st-blog-index__card-title a { color: var(--st-ink); text-decoration: none; }
+.st-blog-index__card-title a:hover { color: var(--st-accent); }
+.st-blog-index__card-meta { font-size: 13px; color: var(--st-muted); margin: 0 0 8px; }
+.st-blog-index__card-text { margin: 0 0 12px; font-size: 14px; color: var(--st-muted); }
+.st-blog-index__tags { margin: 0; }
+.st-blog-index__empty { color: var(--st-muted); }
+.st-author-avatar { border-radius: 50%; vertical-align: middle; object-fit: cover; }
+.st-author-link { color: var(--st-muted); text-decoration: none; white-space: nowrap; }
+.st-author-link:hover { color: var(--st-accent); }
+.st-author { display: flex; align-items: center; gap: 20px; margin-bottom: 40px;
+             padding-bottom: 24px; border-bottom: 1px solid var(--st-border); }
+@supports not ((gap: 1px) and (inset: 0)) { .st-author { gap: 0; } .st-author > * { margin-right: 20px; } }
+.st-author__name { font-size: 28px; line-height: 1.2; margin: 0 0 4px; }
+.st-author__meta { font-size: 14px; color: var(--st-muted); margin: 0; }
+.st-article { max-width: 720px; }
+.st-article__header { margin-bottom: 32px; }
+.st-article__cover { display: block; width: calc(100% + 48px); max-width: none; height: auto;
+                     margin: 0 -24px 24px; border-radius: 8px 8px 0 0; }
+.st-article__title { font-size: 32px; line-height: 1.2; margin: 0 0 8px; }
+.st-article__meta { font-size: 13px; color: var(--st-muted); }
+.st-article h2 { font-size: 24px; line-height: 1.3; margin: 40px 0 12px; }
+.st-article h3 { font-size: 19px; line-height: 1.3; margin: 28px 0 10px; }
+.st-article p { margin: 0 0 16px; }
+.st-article a { color: var(--st-accent); text-decoration: underline; text-underline-offset: 2px; }
+.st-article code { background: var(--st-code-bg); border-radius: 4px; padding: 2px 6px; font-size: .9em;
+                   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.st-article pre { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 16px 20px;
+                  overflow-x: auto; margin: 0 0 16px; white-space: pre !important; }
+.st-article pre code { background: none; padding: 0; color: inherit; font-size: .9em;
+                       white-space: pre !important; display: block !important; }
+.st-article ul, .st-article ol { margin: 0 0 16px; padding-left: 24px; }
+.st-article li { margin-bottom: 6px; }
+.st-article table { border-collapse: collapse; width: 100%; margin: 0 0 16px; font-size: 14px; }
+.st-article th, .st-article td { border: 1px solid var(--st-border); padding: 8px 12px;
+                                  text-align: left; vertical-align: top; }
+.st-article th { background: var(--st-surface); font-weight: 600; }
+.st-article blockquote { border-left: 3px solid var(--st-accent); margin: 0 0 16px;
+                         padding: 4px 16px; color: var(--st-muted); }
+.st-article hr { border: 0; border-top: 1px solid var(--st-border); margin: 32px 0; }
+.st-article__tags { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--st-border); }
+.st-article__tag { display: inline-block; background: var(--st-tag-bg); color: var(--st-accent-soft);
+                   border-radius: 999px; padding: 3px 10px; font-size: 12px; margin-right: 8px; }
+.st-blog-index__badge { display: inline-block; margin: 0 0 8px; padding: 2px 9px; font-size: 11px;
+                         font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+                         color: var(--st-accent-soft); background: var(--st-tag-bg);
+                         border: 1px solid rgba(59,130,246,.35); border-radius: 999px; }

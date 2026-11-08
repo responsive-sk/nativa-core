@@ -1,0 +1,134 @@
+/* Self-hosted fonts for better performance and privacy */
+
+/* The font URLs carry a content hash because public/.htaccess serves
+ * /fonts/*.woff2 as immutable for a year: a repaired subset has to ship as a
+ * new URL, not as new bytes behind the old one. `inter-400-0c9c05bd.woff2` is
+ * the repaired build (254 glyphs, its cmap carries č, š, ž, ľ, ť, ň, ô); the
+ * unhashed `inter-400.woff2` is the Latin-only subset, and behind it every
+ * Slovak glyph in body copy fell back to a system face. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  src: url('/fonts/inter-400-0c9c05bd.woff2') format('woff2');
+}
+
+/*@font-face {*/
+/*  font-family: 'Inter';*/
+/*  font-style: normal;*/
+/*  font-weight: 500;*/
+/*  font-display: optional;*/
+/*  src: url('/fonts/inter-500.woff2') format('woff2');*/
+/*  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;*/
+/*}*/
+
+/*@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  src: url('/fonts/inter-600.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}*/
+
+/*@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  src: url('/fonts/inter-700.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}*/
+
+/* Roboto Condensed Font Family H2 > display type. The repaired file is the
+ * one heading glyphs need: the headings read "Časť I > ...", so a Latin-only
+ * subset loses the very first letter of every heading on the page. */
+@font-face {
+  font-family: 'Roboto Condensed';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/roboto-condensed-400-99aca383.woff2') format('woff2');
+}
+
+/*@font-face {
+  font-family: 'Roboto Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/roboto-condensed-500.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}*/
+
+/*@font-face {*/
+/*  font-family: 'Roboto Condensed';*/
+/*  font-style: normal;*/
+/*  font-weight: 600;*/
+/*  font-display: swap;*/
+/*  src: url('/fonts/roboto-condensed-600.woff2') format('woff2');*/
+/*  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;*/
+/*}*/
+
+/*@font-face {
+  font-family: 'Roboto Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/roboto-condensed-700.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}*/
+
+/* JetBrains Mono Font Family */
+/*@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-500.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}*/
+
+/* Metric-matched fallbacks (CLS). `font-display: swap` paints text at once in
+ * the local face and swaps the webfont in later, so the fallback has to
+ * occupy the same box or the swap moves the line it sits on. These two faces
+ * are the ones Boson ships, recomputed against the woff2 files this sheet
+ * actually loads:
+ *
+ *   size-adjust       = (webfont avg/upm) / (fallback avg/upm)
+ *   ascent-override   = (webfont ascent/upm) / size-adjust
+ *   descent-override  = (|webfont descent|/upm) / size-adjust
+ *   line-gap-override = (webfont lineGap/upm) / size-adjust
+ *
+ * `avg` is the average advance of
+ * `The quick brown fox jumps over the lazy dog 0123456789` and the fallback
+ * is the Arial-class local() face below (Liberation Sans measures the same as
+ * Arial). Both pairs come out at the numbers Boson ships, because they are
+ * the same font files: Inter 107.60%, Roboto Condensed 88.61%.
+ */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial'), local('Liberation Sans'), local('Helvetica Neue'), local('Helvetica');
+  size-adjust: 107.6%;
+  ascent-override: 90.03%;
+  descent-override: 22.42%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Roboto Condensed Fallback';
+  src: local('Arial'), local('Liberation Sans'), local('Helvetica Neue'), local('Helvetica');
+  size-adjust: 88.61%;
+  ascent-override: 104.7%;
+  descent-override: 27.55%;
+  line-gap-override: 0%;
+}

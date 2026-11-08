@@ -1,0 +1,34 @@
+/*
+ * minimal/index.css — minimal theme entry (ordered @import chain).
+ *
+ * The minimal theme is a third option for the public frontend (settings
+ * theme = 'minimal', preview with ?style=minimal). It is a light-first
+ * blocky editorial layout with an amber accent, ported from the source
+ * nativa-php-starter-kit minimal theme: system font stack, .minimal-*
+ * BEM contract, checkbox mobile menu, card grids. The neutral shell reuses
+ * the starter palette tokens (--st-*) so both data-theme modes work out of
+ * the box; amber accent tokens (--min-*) add the identity.
+ *
+ * Amber #d97706 fails WCAG AA with white text (3.1:1), so text-bearing
+ * accents use darker/lighter amber variants that clear 4.5:1 in both
+ * themes (enforced by BuildCssAuditTest):
+ *   --min-accent        decorative (icons, borders, eyebrow)
+ *   --min-accent-strong button/CTA bg — white text >= 4.5:1
+ *   --min-accent-hover  button hover bg — white text >= 4.5:1
+ *   --min-accent-soft   link/tag text on surface — >= 4.5:1
+ *
+ * Chrome 70 baseline:
+ *   - No @layer blocks.
+ *   - flex/grid `gap` rules ship @supports not (gap) margin fallbacks.
+ *   - System stacks only — no font files to load.
+ *
+ * Import order IS the cascade: the starter base first, then the theme
+ * sections in the original minimal.css order (theme-section-split — the
+ * built output must stay byte-identical).
+ */
+
+@import '../base/index.css';
+@import './tokens.css';
+@import './shell.css';
+@import './content.css';
+@import './article.css';

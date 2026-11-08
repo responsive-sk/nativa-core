@@ -1,0 +1,88 @@
+/* ── Container ── */
+.minimal-container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+@media (max-width: 640px) { .minimal-container { padding: 0 1rem; } }
+
+/* ── Header ── */
+.minimal-header { position: sticky; top: 0; z-index: 100; background: var(--st-bg);
+                  border-bottom: 1px solid var(--st-border); }
+.minimal-header__inner { display: flex; align-items: center; justify-content: space-between;
+                         max-width: 1100px; height: 56px; margin: 0 auto; padding: 0 1.5rem; }
+@supports not ((gap: 1px) and (inset: 0)) { .minimal-header__inner { display: block; }
+  .minimal-header__inner:after { content: ""; clear: both; display: table; }
+  .minimal-header__brand { float: left; } .minimal-header__nav-wrap { float: right; } }
+@media (max-width: 640px) { .minimal-header__inner { padding: 0 1rem; } }
+.minimal-header__brand { display: flex; align-items: center; gap: 0.5rem; color: var(--st-ink);
+                         text-decoration: none; font-size: 1.05rem; font-weight: 600; }
+@supports not ((gap: 1px) and (inset: 0)) { .minimal-header__brand { gap: 0; }
+  .minimal-header__brand span { margin-left: 0.5rem; } }
+.minimal-header__brand svg { color: var(--min-accent); flex-shrink: 0; }
+
+/* Navbar actions cluster — nav + lang + theme + login + mobile toggle.
+   Same .navbar__actions contract as the magazine header. */
+.navbar__actions { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+@supports not ((gap: 1px) and (inset: 0)) { .navbar__actions { gap: 0; }
+  .navbar__actions > * + * { margin-left: 0.5rem; } }
+
+.minimal-header__nav { display: flex; align-items: center; gap: 1.25rem; }
+@supports not ((gap: 1px) and (inset: 0)) { .minimal-header__nav { gap: 0; }
+  .minimal-header__nav .minimal-header__link { margin-left: 1.25rem; } }
+.minimal-header__link { color: var(--st-muted); font-size: 0.9rem; font-weight: 500;
+                        text-decoration: none; transition: color 150ms ease; }
+.minimal-header__link:hover { color: var(--min-accent-soft); }
+.minimal-header__link.active { color: var(--min-accent-soft); font-weight: 600; }
+@media (max-width: 767px) { .minimal-header__nav { display: none; } }
+
+/* Theme toggle — reuse the starter button shape (navbar cluster neutralises
+   the starter's own margin-left:auto). */
+.navbar__actions .st-theme-toggle { margin-left: 0; }
+
+/* Sign-in / admin link — icon + label, matches the header button shape. */
+.minimal-login-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px;
+                     padding: 0 10px; background: transparent; border: 1px solid var(--st-border);
+                     border-radius: 6px; color: var(--st-muted); text-decoration: none;
+                     font-size: 0.75rem; font-weight: 600; transition: color 150ms ease, border-color 150ms ease; }
+@supports not ((gap: 1px) and (inset: 0)) { .minimal-login-btn { gap: 0; }
+  .minimal-login-btn .minimal-login-btn__text { margin-left: 6px; } }
+.minimal-login-btn:hover { color: var(--min-accent-soft); border-color: var(--min-accent); }
+.minimal-login-btn svg { flex-shrink: 0; }
+
+/* Mobile menu toggle — visually hidden checkbox + label hamburger. */
+.minimal-menu-toggle__input { position: absolute; opacity: 0; width: 0; height: 0;
+                              pointer-events: none; }
+.minimal-header__toggle { display: none; align-items: center; justify-content: center;
+                          width: 34px; height: 34px; padding: 0; color: var(--st-muted);
+                          background: transparent; border: 1px solid var(--st-border);
+                          border-radius: 6px; cursor: pointer; }
+.minimal-header__toggle:hover { color: var(--min-accent-soft); border-color: var(--min-accent); }
+/* The checkbox itself stays focusable and named (aria-label) — this ring
+   surfaces its focus to the visible hamburger the label activates. */
+.minimal-menu-toggle__input:focus-visible ~ .navbar__actions .minimal-header__toggle {
+  color: var(--min-accent-soft); border-color: var(--min-accent); outline: 2px solid var(--min-accent-strong);
+  outline-offset: 2px; }
+.minimal-header__toggle-icon--close { display: none; }
+#minimal-menu-toggle:checked ~ .navbar__actions .minimal-header__toggle-icon--open { display: none; }
+#minimal-menu-toggle:checked ~ .navbar__actions .minimal-header__toggle-icon--close { display: block; }
+@media (max-width: 767px) { .minimal-header__toggle { display: inline-flex; } }
+.minimal-header__overlay { display: none; }
+@media (max-width: 767px) {
+  #minimal-menu-toggle:checked ~ .navbar__actions .minimal-header__nav {
+    display: flex; flex-direction: column; align-items: stretch; gap: 0;
+    position: fixed; top: 56px; left: 0; right: 0; z-index: 100;
+    background: var(--st-bg); border-bottom: 1px solid var(--st-border);
+    padding: 0.75rem 1.5rem 1rem; }
+  #minimal-menu-toggle:checked ~ .navbar__actions .minimal-header__nav .minimal-header__link {
+    display: block; padding: 0.625rem 0; font-size: 1rem; color: var(--st-ink);
+    border-bottom: 1px solid var(--st-border); }
+  #minimal-menu-toggle:checked ~ .navbar__actions .minimal-header__nav .minimal-header__link.active {
+    color: var(--min-accent-soft); }
+  #minimal-menu-toggle:checked ~ .minimal-header__overlay { display: block; position: fixed;
+    top: 56px; left: 0; right: 0; bottom: 0; z-index: 99; background: rgba(2, 6, 23, 0.55);
+    cursor: default; }
+}
+
+/* ── Main / footer ── */
+.minimal-main { flex: 1; padding: 2rem 0; }
+.minimal-footer { border-top: 1px solid var(--st-border); margin-top: auto; padding: 1.5rem 0; }
+.minimal-footer__inner { text-align: center; max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+.minimal-footer__text { color: var(--st-muted); font-size: 0.85rem; margin: 0; }
+

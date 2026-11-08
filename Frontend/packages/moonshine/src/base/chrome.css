@@ -1,0 +1,454 @@
+/* Header */
+.st-header {
+  border-bottom: 1px solid var(--st-border);
+}
+
+.st-header__inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+/* gap fallback (Chrome < 84): margin-based spacing */
+@supports not ((gap: 1px) and (inset: 0)) {
+  .st-header__inner {
+    gap: 0;
+  }
+
+  .st-header__inner > * {
+    margin-right: 24px;
+  }
+}
+
+.st-header__brand {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--st-ink);
+  text-decoration: none;
+}
+
+.st-nav {
+  display: flex;
+  gap: 18px;
+  /* The single push-right in the starter header: brand stays left, the
+     nav + locale switcher + actions cluster align right. */
+  margin-left: auto;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .st-nav {
+    gap: 0;
+  }
+
+  .st-nav__link {
+    margin-right: 18px;
+  }
+}
+
+.st-nav__link {
+  color: var(--st-muted);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.st-nav__link--active {
+  color: var(--st-accent);
+  font-weight: 600;
+}
+
+/* Language switcher (sk / en) — locale-prefixed links in the header.
+   Follows the nav (which owns the push-right), so no auto margin here. */
+.st-locale {
+  display: flex;
+  gap: 6px;
+  margin-left: 0;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .st-locale {
+    gap: 0;
+  }
+
+  .st-locale__link {
+    margin-left: 6px;
+  }
+}
+
+.st-locale__link {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--st-muted);
+  text-decoration: none;
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.st-locale__link:hover {
+  color: var(--st-accent);
+  border-color: var(--st-border);
+}
+
+.st-locale__link--active {
+  color: var(--st-accent-soft);
+  border-color: var(--st-accent);
+  background: var(--st-tag-bg);
+}
+
+/* Theme toggle (light/dark) — minimal icon button in the header */
+.st-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--st-border);
+  border-radius: 6px;
+  color: var(--st-muted);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.st-theme-toggle:hover {
+  color: var(--st-accent);
+  border-color: var(--st-accent);
+}
+
+.st-theme-toggle:focus-visible {
+  outline: 2px solid var(--st-accent);
+  outline-offset: 2px;
+}
+
+.st-theme-toggle__icon--sun,
+.st-theme-toggle__icon--moon {
+  display: none;
+  line-height: 1;
+}
+.st-theme-toggle__icon svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
+:root[data-theme="dark"] .st-theme-toggle__icon--sun {
+  display: block;
+}
+
+:root[data-theme="light"] .st-theme-toggle__icon--moon {
+  display: block;
+}
+
+/* Navbar actions — the shared right-side action cluster (minimal theme
+   contract): theme toggle + sign-in/admin link. The theme toggle's own
+   margin-left:auto is neutralised here. In the starter header the cluster
+   follows the nav (the nav owns the push-right), so no auto margin; the
+   magazine/minimal files keep margin-left:auto for their own headers. */
+.navbar__actions {
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0;
+  display: flex;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .navbar__actions {
+    gap: 0;
+  }
+
+  .navbar__actions > * + * {
+    margin-left: 0.5rem;
+  }
+}
+
+.navbar__actions .st-theme-toggle {
+  margin-left: 0;
+}
+
+/* Sign-in / admin link — icon + label, matches the theme toggle shape */
+.st-login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 9px;
+  background: transparent;
+  border: 1px solid var(--st-border);
+  border-radius: 6px;
+  color: var(--st-muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .st-login-btn {
+    gap: 0;
+  }
+
+  .st-login-btn .st-login-btn__text {
+    margin-left: 6px;
+  }
+}
+
+.st-login-btn:hover {
+  color: var(--st-accent);
+  border-color: var(--st-accent);
+}
+
+.st-login-btn svg {
+  flex-shrink: 0;
+}
+
+/* ── CSS-only Mobile Nav (port of the nativa-php-starter-kit pattern) ─────
+   Zero-JS hamburger: a visually hidden checkbox (#st-nav-toggle) drives the
+   menu purely via sibling selectors — the label toggles it, :checked shows a
+   fixed overlay panel under the header, and an invisible overlay label closes
+   it on outside click. The functional ID is the BEM exception required by the
+   label for=/~ selector contract (mirrors the reference kit). */
+.st-nav__toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.st-nav__toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--st-border);
+  border-radius: 6px;
+  color: var(--st-muted);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.st-nav__toggle:hover {
+  color: var(--st-accent);
+  border-color: var(--st-accent);
+}
+
+.st-nav__toggle-icon {
+  line-height: 1;
+}
+
+.st-nav__toggle-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.st-nav__toggle-icon--close {
+  display: none;
+}
+
+/* Icon swap — open ↔ close when the menu is checked */
+#st-nav-toggle:checked ~ .st-nav__toggle .st-nav__toggle-icon--open {
+  display: none;
+}
+
+#st-nav-toggle:checked ~ .st-nav__toggle .st-nav__toggle-icon--close {
+  display: block;
+}
+
+/* Invisible backdrop — tapping outside the panel closes the menu */
+.st-nav__overlay {
+  display: none;
+}
+
+#st-nav-toggle:checked ~ .st-nav__overlay {
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 98;
+  background: rgba(2, 6, 23, 0.55);
+  cursor: default;
+}
+
+@media (max-width: 767px) {
+  .st-header {
+    position: relative;
+    z-index: 99; /* stays above the overlay so the hamburger can close the menu */
+  }
+
+  .st-header__inner {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .st-nav {
+    display: none;
+  }
+
+  .st-nav__toggle {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  .st-locale {
+    margin-left: auto;
+  }
+
+  /* Keyboard focus ring — the visually hidden checkbox is the focusable
+     element; the ring renders on its visible label sibling (Chrome 70
+     baseline uses :focus, modern browsers prefer :focus-visible). */
+  #st-nav-toggle:focus ~ .st-nav__toggle {
+    outline: 2px solid var(--st-accent);
+    outline-offset: 2px;
+  }
+
+  @supports selector(:focus-visible) {
+    #st-nav-toggle:focus-visible ~ .st-nav__toggle {
+      outline: 2px solid var(--st-accent);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Open menu: fixed panel under the header, scrollable, stacked links.
+     top: var(--st-header-h) couples to the header height (tokens in :root) —
+     keep it in sync when header padding/font sizes change.
+     pointer-events: none lets clicks on the panel background fall through to
+     the overlay label below (z-index 98), so tapping outside a link closes
+     the menu; links opt back in with pointer-events: auto. Trade-off: the
+     panel itself is not a touch-scroll target (swipes over the full-width
+     links still scroll it) — fine for short menus, revisit if it grows. */
+  #st-nav-toggle:checked ~ .st-nav {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: var(--st-header-h);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin-left: 0; /* neutralise the desktop push-right on the fixed panel */
+    z-index: 100;
+    background: var(--st-bg);
+    padding: 8px 24px 32px;
+    overflow-y: auto;
+    align-items: stretch;
+    pointer-events: none;
+  }
+
+  #st-nav-toggle:checked ~ .st-nav .st-nav__link {
+    display: block;
+    padding: 13px 0;
+    font-size: 16px;
+    color: var(--st-ink);
+    border-bottom: 1px solid var(--st-border);
+    pointer-events: auto;
+  }
+
+  #st-nav-toggle:checked ~ .st-nav .st-nav__link--active {
+    color: var(--st-accent);
+  }
+
+  /* Nested dropdown groups degrade to a static indented list */
+  #st-nav-toggle:checked ~ .st-nav .st-nav__item {
+    position: static;
+  }
+
+  #st-nav-toggle:checked ~ .st-nav .st-nav__sub {
+    display: block;
+    position: static;
+    min-width: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 4px 0 10px 18px;
+  }
+
+  #st-nav-toggle:checked ~ .st-nav .st-nav__sub .st-nav__link {
+    border-bottom: 0;
+    padding: 9px 0;
+    font-size: 14px;
+    color: var(--st-muted);
+  }
+
+  /* Login + theme toggle → bottom bar inside mobile nav */
+  .navbar__actions {
+    display: none;
+  }
+
+  #st-nav-toggle:checked ~ .navbar__actions {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 101;
+    background: var(--st-bg);
+    padding: 12px 24px;
+    border-top: 1px solid var(--st-border);
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+/* Gap fallback (Chrome < 84) for the tighter mobile header row */
+@supports not ((gap: 1px) and (inset: 0)) {
+  @media (max-width: 767px) {
+    .st-header__inner {
+      gap: 0;
+    }
+
+    .st-header__inner > * {
+      margin-right: 12px;
+    }
+  }
+}
+
+/* Nav dropdown groups (DB-driven menu, MenuService) */
+.st-nav__item {
+  position: relative;
+}
+
+.st-nav__sub {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--st-bg);
+  border: 1px solid var(--st-border);
+  border-radius: 8px;
+  padding: 6px 0;
+  min-width: 160px;
+  list-style: none;
+  margin: 0;
+  box-shadow: 0 8px 20px rgba(26, 34, 51, 0.12);
+  z-index: 10;
+}
+
+.st-nav__item:hover .st-nav__sub,
+.st-nav__item:focus-within .st-nav__sub {
+  display: block;
+}
+
+.st-nav__sub .st-nav__link {
+  display: block;
+  padding: 6px 14px;
+  white-space: nowrap;
+}
+
+.st-nav__sub .st-nav__link:hover {
+  color: var(--st-ink);
+  background: var(--st-surface);
+}

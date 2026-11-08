@@ -1,0 +1,161 @@
+/* On this page — desktop sidebar + mobile floating TOC (article detail) */
+.st-article-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 720px) minmax(0, 240px);
+  gap: 40px;
+  justify-content: center;
+  align-items: start;
+}
+
+/* gap fallback (Chrome < 84): margin-based spacing */
+@supports not ((gap: 1px) and (inset: 0)) {
+  .st-article-layout {
+    gap: 0;
+  }
+
+  .st-article-layout > .st-article {
+    margin-right: 40px;
+  }
+}
+
+.st-article-toc {
+  position: sticky;
+  top: 24px;
+  font-size: 14px;
+}
+
+.st-article-toc__title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--st-muted);
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--st-border);
+}
+
+.st-article-toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.st-article-toc__item--sub {
+  padding-left: 14px;
+}
+
+.st-article-toc__link {
+  display: block;
+  padding: 5px 0;
+  color: var(--st-muted);
+  text-decoration: none;
+  transition: color 150ms ease;
+  line-height: 1.4;
+}
+
+.st-article-toc__link:hover {
+  color: var(--st-ink);
+}
+
+.st-article-toc__link:focus-visible {
+  outline: 2px solid var(--st-accent);
+  outline-offset: 2px;
+}
+
+/* Scrollspy — the section currently in view (toggled by toc-scrollspy.ts) */
+.st-article-toc__link--active {
+  color: var(--st-accent);
+}
+
+/* Mobile floating button — hidden on desktop */
+.st-toc-fab {
+  display: none;
+}
+
+@media (max-width: 959px) {
+  .st-article-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* gap fallback inside the media query */
+  @supports not ((gap: 1px) and (inset: 0)) {
+    .st-article-layout > .st-article {
+      margin-right: 0;
+    }
+  }
+
+  .st-article-toc {
+    display: none;
+  }
+
+  .st-toc-fab {
+    display: block;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 900;
+  }
+
+  .st-toc-fab__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--st-surface);
+    border: 1px solid var(--st-border);
+    border-radius: 999px;
+    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.35);
+    color: var(--st-ink);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  /* gap fallback inside the toggle */
+  @supports not ((gap: 1px) and (inset: 0)) {
+    .st-toc-fab__toggle {
+      gap: 0;
+    }
+
+    .st-toc-fab__toggle span {
+      margin-left: 8px;
+    }
+  }
+
+  .st-toc-fab__toggle:hover,
+  .st-toc-fab__toggle.open {
+    color: var(--st-accent-soft);
+    border-color: var(--st-accent);
+  }
+
+  .st-toc-fab__toggle:focus-visible {
+    outline: 2px solid var(--st-accent);
+    outline-offset: 2px;
+  }
+
+  .st-toc-fab__toggle svg {
+    display: block;
+  }
+
+  .st-toc-fab__panel {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    min-width: 220px;
+    max-width: 280px;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 14px 18px;
+    background: var(--st-surface);
+    border: 1px solid var(--st-border);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.4);
+  }
+
+  .st-toc-fab__panel.open {
+    display: block;
+  }
+}

@@ -1,0 +1,105 @@
+/* ── Code blocks: surface, language badge, copy button, syntax highlighting ──
+ *
+ * Loaded LAST in `index.css` on purpose. `.ms-article__content pre` in
+ * `article.css` uses the same specificity, and that file loads earlier, so
+ * declaring these properties here — after it — is what lets them apply.
+ * `article.css` is at the 600-line cap enforced by ThemeFileSizeTest (whose
+ * baseline list is empty by policy), so it cannot absorb this block itself.
+ *
+ * Two things were broken here before this file existed:
+ *
+ * 1. `code-highlight.ts` runs in every theme and tags tokens with `.tok-*`,
+ *    but the shared base scopes its `.tok-*`, `.copy-btn` and `data-lang`
+ *    rules to `.st-article` — a selector this theme never renders, because
+ *    its body is `.ms-article__content`. The markup was produced and then
+ *    never styled, so code blocks read as plain text. `base/*.css` is
+ *    byte-pinned across packages by FrontendPackageParityTest, hence the
+ *    moonshine-prefixed copies below.
+ *
+ * 2. This theme's block surface was `--m-surface-2`, which is near-white in
+ *    light mode. The starter token palette is built for a DARK block, so
+ *    activating it as-is put every token between 1.3:1 and 2.4:1 on a light
+ *    background. The surface is therefore pinned to the same fixed dark value
+ *    the other three themes use (starter and magazine `#0f172a`, erik
+ *    `#0d1526`) — the "dark block in both colour modes" decision erik's
+ *    article.css already documents — with the ink set alongside it so the
+ *    contrast is explicit rather than inherited.
+ */
+
+.ms-article__content pre {
+    background: #0f172a;
+    border: 1px solid var(--m-border);
+    color: #e2e8f0;
+    line-height: 1.6;
+    margin: 0 0 var(--m-sp-4);
+    overflow-x: auto;
+    padding: var(--m-sp-4);
+    position: relative;
+    white-space: pre !important;
+}
+
+.ms-article__content pre code {
+    background: none;
+    color: inherit;
+    font-size: inherit;
+    padding: 0;
+    white-space: pre !important;
+}
+
+/* Language badge — the renderer emits data-lang on every fenced block. */
+.ms-article__content pre[data-lang] {
+    padding-left: 52px;
+}
+
+.ms-article__content pre[data-lang]::before {
+    background: #1e293b;
+    border-radius: 4px;
+    color: #64748b;
+    content: attr(data-lang);
+    font-size: 11px;
+    font-weight: 600;
+    left: 8px;
+    letter-spacing: .05em;
+    padding: 2px 8px;
+    pointer-events: none;
+    position: absolute;
+    text-transform: uppercase;
+    top: 4px;
+    z-index: 1;
+}
+
+.ms-article__content pre .copy-btn {
+    align-items: center;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0;
+    padding: 4px 10px;
+    position: absolute;
+    right: 8px;
+    top: 4px;
+    transition: opacity .15s, color .15s, border-color .15s;
+    z-index: 2;
+}
+
+.ms-article__content pre:hover .copy-btn { opacity: 1; }
+.ms-article__content pre .copy-btn:hover { color: #e2e8f0; border-color: #475569; }
+.ms-article__content pre .copy-btn.copied { color: #4ade80; border-color: #4ade80; }
+
+.ms-article__content .tok-keyword { color: #c084fc; }
+.ms-article__content .tok-string { color: #86efac; }
+.ms-article__content .tok-number { color: #fbbf24; }
+.ms-article__content .tok-comment { color: #94a3b8; font-style: italic; }
+.ms-article__content .tok-function { color: #60a5fa; }
+.ms-article__content .tok-variable { color: #f472b6; }
+.ms-article__content .tok-type { color: #2dd4bf; }
+.ms-article__content .tok-operator { color: #f472b6; }
+.ms-article__content .tok-property { color: #7dd3fc; }
+.ms-article__content .tok-tag { color: #f87171; }
+.ms-article__content .tok-attr { color: #fbbf24; }
+.ms-article__content .tok-punctuation { color: #94a3b8; }

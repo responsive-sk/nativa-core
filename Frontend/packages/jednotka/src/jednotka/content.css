@@ -1,0 +1,261 @@
+/*
+ * content.css — the prose column and the article page.
+ *
+ * The article column is fluid to the viewport beside its sidebar — wider
+ * than a lone unit (`--je-measure`, 34rem), set against the numbered rail.
+ * `--je-article` (44rem) now caps only the comment block. Everything
+ * inside is hairlined rather than boxed, so the article reads
+ * as a page in a document rather than as a card in a feed.
+ */
+
+/*
+ * The page band. It runs the FULL viewport width — a 52rem cap here made
+ * the content sit in the left two thirds of a wide screen while the
+ * masthead rule and the footer rule ran past it on both sides, so the
+ * page had three different widths and none of them agreed. Width is the
+ * grid's job (see .je-blog-index__layout); the measure of the PROSE is a
+ * separate, typographic decision made by --je-measure.
+ */
+.je-main {
+  margin: 0 var(--je-gutter);
+  counter-reset: unit;
+}
+
+.je-shell .je-main {
+  padding-top: var(--je-space-5);
+}
+
+/* ── The numbered rail ─────────────────────────────────────────
+ * Every top-level region is a "unit" and carries its number. CSS
+ * counters rather than markup, so inserting a section renumbers the
+ * page instead of desynchronising hardcoded numerals.
+ *
+ * The number is drawn ON THE CONTENT EDGE — the exact x the masthead's
+ * own "00" sits at, so every unit number in the document is one vertical
+ * column of digits. It used to hang one GUTTER to the left of the text,
+ * which put it 24px outside the header's number: two columns of the same
+ * digits, neither agreeing with the other (moving the HEADER out to the
+ * gutter instead was tried and rejected from the other side — too far
+ * left). The unit's own top band is the room for the number, so nothing
+ * is pushed sideways and nothing is covered: a unit whose first content
+ * starts at its very top — the article's cover — carries a `padding-top`
+ * to open that band. 11px of two digits fits inside 28px with room to
+ * spare (measured: the glyph box ends at 25.3px). */
+
+.je-unit {
+  position: relative;
+}
+
+.je-unit::before {
+  content: counter(unit, decimal-leading-zero);
+  counter-increment: unit;
+  position: absolute;
+  top: 0.4rem;
+  left: 0;
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-micro);
+  color: var(--je-accent);
+  letter-spacing: var(--je-track-label);
+}
+
+/* ── Article ─────────────────────────────────────────────────── */
+
+.je-article {
+  /* No max-width: the article column is fluid to the viewport (the sidebar
+     takes the rail). The unit number is painted at this box's own left edge, 6.4px down —
+     and the cover (or the title, when there is no cover) starts at exactly
+     that corner, so without a top band "01" lands ON it. 48px — the same
+     token the feature sections band their number with, so a reader's eye
+     finds the digits at the same distance below the rule on every surface. */
+  padding-top: var(--je-space-5);
+}
+
+.je-article__header {
+  padding-bottom: var(--je-space-3);
+  margin-bottom: var(--je-space-4);
+  border-bottom: 1px solid var(--je-rule);
+}
+
+.je-article__title {
+  margin-bottom: var(--je-space-2);
+}
+
+.je-article__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-label);
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+  color: var(--je-muted);
+}
+
+.je-article__meta > * {
+  margin-right: var(--je-space-2);
+}
+
+.je-article__views {
+  color: var(--je-muted);
+}
+
+.je-article__cover {
+  margin: 0 0 var(--je-space-4);
+  border: 1px solid var(--je-rule);
+}
+
+.je-article__cover img {
+  width: 100%;
+}
+
+.je-article__tags {
+  display: flex;
+  flex-wrap: wrap;
+  margin: var(--je-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.je-article__tag {
+  display: inline-block;
+  margin: 0 var(--je-space-2) var(--je-space-2) 0;
+  padding: 0.15rem var(--je-space-2);
+  background: var(--je-tag-bg);
+  border: 0;
+  border-radius: var(--je-radius);
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+  color: var(--je-accent-soft);
+}
+
+.je-article__tag:hover,
+.je-article__tag:focus-visible {
+  background: var(--je-ink);
+  color: var(--je-bg);
+}
+
+/* ── Prose ───────────────────────────────────────────────────── */
+
+.je-prose {
+  font-size: var(--je-size-body);
+  line-height: var(--je-leading-body);
+}
+
+.je-prose h2 {
+  margin-top: var(--je-space-5);
+  padding-top: var(--je-space-3);
+  border-top: 1px solid var(--je-rule);
+}
+
+.je-prose h3 {
+  margin-top: var(--je-space-4);
+}
+
+.je-prose h2:hover .je-anchor,
+.je-prose h3:hover .je-anchor {
+  opacity: 1;
+}
+
+/* Heading anchors are present but quiet — the document numbers itself, so
+   it does not need shouting about every section. */
+.je-anchor {
+  margin-left: var(--je-space-2);
+  opacity: 0;
+  color: var(--je-accent);
+  font-family: var(--je-font-mono);
+  font-weight: 400;
+}
+
+.je-prose ul,
+.je-prose ol {
+  padding-left: var(--je-space-4);
+}
+
+.je-prose li {
+  margin-bottom: var(--je-space-1);
+}
+
+.je-prose img {
+  border: 1px solid var(--je-rule);
+}
+
+/* The code surface is the one place the theme goes solid: an ink block
+   reads as the one inset panel in a document that is otherwise paper. */
+.je-prose pre {
+  position: relative;
+  border-radius: var(--je-radius);
+}
+
+/* The copy control is appended to the block by `code-highlight.ts` in every
+   theme, but the shared `.st-article pre .copy-btn` rule belongs to
+   `base/*.css` — byte-pinned starter bytes that this theme never ships. With
+   no rule of its own the button rendered in the BROWSER's own chrome: a 2px
+   black outset border and a grey face, the loudest line on a page whose
+   whole thesis is hairlines. Boxed control, boxed-control answer — a quiet
+   chip on the block's own ground, revealed on hover and on focus (a control
+   that appears only on hover does not exist to a keyboard). */
+.je-prose pre .copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--je-edge);
+  border-radius: var(--je-radius);
+  background: var(--je-code-bg);
+  color: var(--je-muted);
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.je-prose pre:hover .copy-btn,
+.je-prose pre .copy-btn:focus-visible {
+  opacity: 1;
+}
+
+.je-prose pre .copy-btn:hover,
+.je-prose pre .copy-btn.copied {
+  color: var(--je-accent-soft);
+  border-color: var(--je-accent-soft);
+}
+
+/* Syntax tokens. They read from --je-tok-*, which follows --je-code-bg —
+   the ground this block is painted on. Both are ink in both modes, so the
+   palette is declared once and the light override has nothing to say. A
+   hex written here would be correct only until someone lightened the
+   ground, which is exactly what happened: paper code chips inside the
+   editor's dark preview, with a pale palette on top of them. */
+.tok-keyword { color: var(--je-tok-keyword); }
+.tok-string { color: var(--je-tok-string); }
+.tok-comment { color: var(--je-tok-comment); }
+.tok-number { color: var(--je-tok-number); }
+.tok-function { color: var(--je-tok-function); }
+
+/* ── The comment block belongs to the reading column ──────────
+ *
+ * comments.css is GENERATED from starter's copy (prefix-stamped), and it
+ * carries starter's measure: --comments-width: 720px. This theme's prose
+ * column is 34rem = 544px, so the comments sat 176px to the RIGHT of the
+ * text they belong to — the one place on the article page where the left
+ * edge did not line up with the column.
+ *
+ * The override lives here, in the theme's OWN stylesheet, and not in the
+ * generated file: editing a generated copy would be undone by the next
+ * `node bin/generate/generate-comments-css.mjs`, and widening the shared measure
+ * would move every other theme's comments too. The comments stay capped at
+ * `--je-article` while the prose runs fluid: a 900px comment form is not
+ * readability, it is a stretched input.
+ *
+ * Two classes, not one, and that is not decoration: comments.css is
+ * imported AFTER this stylesheet and both rules have the same specificity,
+ * so the generated `max-width` simply won. A one-class override of a later
+ * rule is a no rule. */
+.je-main .je-comments {
+  max-width: var(--je-article);
+}

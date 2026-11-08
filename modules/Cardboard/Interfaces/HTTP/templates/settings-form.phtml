@@ -1,0 +1,116 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via Modules\Core\Application\Services\View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <?php echo $errorHtml . "\n"; ?>
+    <div class="m-tabs" id="settings-tabs">
+        <?php echo $settingsTabs . "\n"; ?>
+
+        <div class="m-tab-panel m-tab-panel--active" id="panel-general" data-tab-panel="general">
+            <div class="m-card">
+                <h2 class="m-heading">Site settings</h2>
+                <form class="m-form" method="POST" action="<?php echo $url('mark.settings.site'); ?>">
+                    <?php echo $csrf . "\n"; ?>
+                    <label for="site_name">Site name</label>
+                    <input type="text" id="site_name" name="site_name" value="<?php echo $siteName; ?>">
+                    <label for="site_description">Site description</label>
+                    <input type="text" id="site_description" name="site_description" value="<?php echo $siteDescription; ?>">
+                    <label for="admin_email">Admin email</label>
+                    <input type="email" id="admin_email" name="admin_email" value="<?php echo $adminEmail; ?>">
+                    <label for="timezone">Timezone</label>
+                    <input type="text" id="timezone" name="timezone" value="<?php echo $timezone; ?>">
+                    <label for="locale">Locale</label>
+                    <input type="text" id="locale" name="locale" value="<?php echo $locale; ?>">
+                    <label for="admin_layout">Admin layout</label>
+                    <?php echo $layoutSelect . "\n"; ?>
+                    <p class="m-muted m-hint m-hint--tight">Sidebar: fixed left panel. Compact: horizontal top navigation.</p>
+                    <label for="theme">Public theme</label>
+                    <?php echo $themeSelect . "\n"; ?>
+                    <p class="m-muted m-hint m-hint--tight">Applies to all public pages. Saved pages are flushed on change.</p>
+                    <div class="m-check">
+                        <input type="checkbox" id="registration_enabled" name="registration_enabled" value="1"<?php echo $regChecked; ?>>
+                        <label for="registration_enabled">Public registration enabled</label>
+                    </div>
+                    <div><button class="m-btn m-btn-primary" type="submit">Save settings</button></div>
+                </form>
+            </div>
+        </div>
+
+        <div class="m-tab-panel" id="panel-design" data-tab-panel="design">
+            <div class="m-card">
+                <h2 class="m-heading">Design tokens</h2>
+                <?php echo $tokenTable . "\n"; ?>
+                <form class="m-form m-form--after-table" method="POST" action="<?php echo $url('mark.settings.tokens'); ?>">
+                    <?php echo $csrf . "\n"; ?>
+                    <div class="m-form-grid m-form-grid--tokens">
+                        <input type="text" name="token_key" placeholder="token name" required>
+                        <input type="text" name="token_value" placeholder="token value" required>
+                    </div>
+                    <div><button class="m-btn m-btn-primary" type="submit">Add token</button></div>
+                </form>
+            </div>
+            <?php echo $themeSettingsCard . "\n"; ?>
+        </div>
+
+        <div class="m-tab-panel" id="panel-cache" data-tab-panel="cache">
+            <div class="m-card">
+                <h2 class="m-heading">Page Cache</h2>
+                <p class="m-muted m-card-intro">File-based cache in <code>storage/cache/pages/</code> served when the rate limit is exceeded. Cached pages expire after 5 minutes.</p>
+                <form method="POST" action="<?php echo $url('mark.settings.flush-cache'); ?>">
+                    <?php echo $csrf . "\n"; ?>
+                    <button class="m-btn m-btn-error" data-confirm="Flush all cached pages?">Flush Page Cache</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="m-tab-panel" id="panel-nav" data-tab-panel="nav">
+            <div class="m-card">
+                <h2 class="m-heading">Navigation (header)</h2>
+                <?php echo $navTable . "\n"; ?>
+                <form class="m-form m-form--after-table" method="POST" action="<?php echo $url('mark.settings.nav'); ?>">
+                    <?php echo $csrf . "\n"; ?>
+                    <div class="m-form-grid">
+                        <input type="text" name="label" placeholder="Label" required>
+                        <input type="text" name="href" placeholder="/path or https://…" required class="m-form-grid__wide">
+                        <input type="number" name="sort_order" placeholder="Sort" value="0">
+                    </div>
+                    <div><button class="m-btn m-btn-primary" type="submit">Add nav item</button></div>
+                </form>
+            </div>
+        </div>
+
+        <div class="m-tab-panel" id="panel-admin-nav" data-tab-panel="admin-nav">
+            <div class="m-card m-card--scroll-x">
+                <h2 class="m-heading">Admin panel navigation</h2>
+                <p class="m-muted m-card-intro">Manage which pages appear in the admin sidebar/top bar, their order, and visibility. Changes apply immediately.</p>
+                <?php echo $adminNavTable . "\n"; ?>
+                <form class="m-form m-form--after-table" method="POST" action="<?php echo $url('mark.settings.admin-nav'); ?>">
+                    <?php echo $csrf . "\n"; ?>
+                    <div class="m-form-grid m-form-grid--nav">
+                        <input type="text" name="label" placeholder="Label" required>
+                        <input type="text" name="href" placeholder="/mark/path" required class="m-form-grid__wide">
+                        <select name="icon" class="m-form-grid__icon"><?php echo $iconOptions; ?></select>
+                        <input type="number" name="sort_order" placeholder="Sort" value="0">
+                    </div>
+                    <div class="m-actions-row">
+                        <label for="parent_item_id" class="m-field-label">Parent (for groups)</label>
+                        <select name="parent_item_id" id="parent_item_id"><?php echo $parentOptions; ?></select>
+                    </div>
+                    <div class="m-actions-row"><button class="m-btn m-btn-primary" type="submit">Add admin nav item</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php $settingsTableScript = Modules\Core\Application\Services\View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/settings-table.js'); ?>
+    <script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $settingsTableScript; ?></script>
+    <?php $settingsTabsScript = Modules\Core\Application\Services\View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/settings-tabs.js'); ?>
+    <script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $settingsTabsScript; ?></script>

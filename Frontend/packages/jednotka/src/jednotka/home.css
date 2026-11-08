@@ -1,0 +1,438 @@
+/*
+ * home.css — the homepage, the blog index and the listing chrome.
+ *
+ * The index is a document section: a numbered rail, a rule under the title,
+ * then the grid. There is no featured hero panel and no sidebar, because in
+ * this theme content is laid out top to bottom like a sheet rather than
+ * framed like a magazine.
+ */
+
+/* 48px, not 28: this padding is the BAND the unit number is painted into
+   (the number is absolutely positioned at the section's own left edge,
+   6.4px down). 28px left 2.7px of air under the digits — measured, which is
+   how tight it looked. */
+.je-blog-index {
+  padding-top: var(--je-space-5);
+}
+
+.je-blog-index__header {
+  padding-bottom: var(--je-space-3);
+  margin-bottom: var(--je-space-4);
+  border-bottom: 1px solid var(--je-rule);
+}
+
+.je-blog-index__title {
+  margin: 0 0 var(--je-space-2);
+}
+
+.je-blog-index__subtitle {
+  margin: 0;
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-label);
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+  color: var(--je-muted);
+}
+
+/*
+ * The index grid: a wide reading column and a narrow outer rail.
+ *
+ * This is the printed-manual shape — text on the wide side, notes and
+ * references in a thin outer column — not the magazine shape (both columns
+ * shouting) and not starter's (sidebar only because the sidebar existed
+ * first). The rail collapses to a full-width band under the content on
+ * narrow screens, and a surface that renders no rail simply occupies the
+ * first track alone, which is what grid is for.
+ */
+.je-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+}
+
+@supports (gap: 2.5rem) {
+  .je-grid {
+    gap: 0 2.5rem;
+  }
+}
+
+.je-blog-index__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+}
+
+@supports (gap: 2.5rem) {
+  .je-blog-index__layout {
+    gap: 0 2.5rem;
+  }
+}
+
+.je-blog-index__main {
+  min-width: 0;
+}
+
+/* ── Search ──────────────────────────────────────────────────── */
+
+.je-blog-search {
+  margin: 0 0 var(--je-space-4);
+}
+
+.je-blog-search__form {
+  display: flex;
+  align-items: stretch;
+  max-width: var(--je-measure);
+}
+
+.je-blog-search__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--je-space-2) var(--je-space-3);
+  border: 1px solid var(--je-edge);
+  border-right: 0;
+  border-radius: var(--je-radius) 0 0 var(--je-radius);
+  background: var(--je-surface);
+  color: var(--je-ink);
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-small);
+}
+
+.je-blog-search__submit {
+  padding: var(--je-space-2) var(--je-space-3);
+  border: 1px solid var(--je-edge);
+  border-radius: 0 var(--je-radius) var(--je-radius) 0;
+  background: var(--je-ink);
+  color: var(--je-bg);
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-label);
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+  cursor: pointer;
+}
+
+.je-blog-search__submit:hover,
+.je-blog-search__submit:focus-visible {
+  background: var(--je-accent-strong);
+  border-color: var(--je-accent-strong);
+  color: var(--je-on-accent);
+}
+
+.je-blog-search__input::-ms-input-placeholder {
+  color: var(--je-muted);
+}
+
+.je-blog-search__input::placeholder {
+  color: var(--je-muted);
+  opacity: 1;
+}
+
+/* ── Pagination ────────────────────────────────────────────────
+ * The markup is emitted by `Sections/Support.php` as `je-blog-pagination*`
+ * — a flat nav of `__link` (prev/next) and `__page > a` (numbers). The block
+ * that used to live here was `.je-pagination` with `__list` / `__item` /
+ * `__ellipsis`, a structure no template in this theme ever rendered, so the
+ * pager on /blog (and on every tag, category and author listing) came out as
+ * bare unstyled links: dead CSS on one side, an unstyled control on the
+ * other. The rule names follow the MARKUP; a stylesheet cannot style a
+ * component it does not name. */
+
+.je-blog-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--je-space-2);
+  margin: var(--je-space-5) 0 0;
+  padding-top: var(--je-space-3);
+  border-top: 1px solid var(--je-rule);
+}
+
+/* gap fallback (Chrome < 84): margin on the siblings instead. */
+@supports not ((gap: 1px) and (inset: 0)) {
+  .je-blog-pagination {
+    gap: 0;
+  }
+
+  .je-blog-pagination > * + * {
+    margin-left: var(--je-space-2);
+  }
+}
+
+.je-blog-pagination__link,
+.je-blog-pagination__page a {
+  display: inline-block;
+  min-width: 2.25rem;
+  padding: var(--je-space-2);
+  border: 1px solid var(--je-edge);
+  border-radius: var(--je-radius);
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-label);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+  text-decoration: none;
+  color: var(--je-ink);
+}
+
+.je-blog-pagination__link:hover,
+.je-blog-pagination__link:focus-visible,
+.je-blog-pagination__page a:hover,
+.je-blog-pagination__page a:focus-visible {
+  /* Boxed control → the ink/paper inversion, the same answer the chips and
+     the locale switcher give. `border-color` (all four sides) rather than
+     `border-bottom-color`: the box owns its own edge, so the global
+     `a:hover` accent hairline must not appear inside it. */
+  background: var(--je-ink);
+  border-color: var(--je-ink);
+  color: var(--je-bg);
+}
+
+.je-blog-pagination__page--current a {
+  background: var(--je-accent-strong);
+  border-color: var(--je-accent-strong);
+  color: var(--je-on-accent);
+}
+
+.je-blog-pagination__page--current a:hover,
+.je-blog-pagination__page--current a:focus-visible {
+  /* The page you are ON is a stamp, not a control: it does not flinch. */
+  background: var(--je-accent-strong);
+  border-color: var(--je-accent-strong);
+  color: var(--je-on-accent);
+}
+
+@media (max-width: 61.99em) {
+  /* Below this the outer rail is not worth a column of its own: it becomes a
+     full-measure band under the content. */
+  .je-blog-index__layout,
+  .je-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Hero ──────────────────────────────────────────────────────
+ * erik's COMPOSITION — eyebrow, a card carrying title + description +
+ * actions, and a visual layered BEHIND the text — in this theme's paper.
+ * The plate fades in from the bottom of the section behind a mask instead
+ * of covering the whole band: the sentence still owns the first reading
+ * line, and the illustration reads as a printed plate under the text rather
+ * than as a second headline competing with it. */
+
+.je-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100vh - 4rem);
+  overflow: hidden;
+  /* Full-bleed: cancel the `.je-main` gutter so the band — plate, hairlines
+     and all — reaches BOTH viewport edges, then give that same gutter back
+     as PADDING, so the type keeps exactly the reading inset it has on every
+     other surface. The band bleeds; the words do not move. */
+  margin-right: calc(-1 * var(--je-gutter));
+  margin-left: calc(-1 * var(--je-gutter));
+  padding: var(--je-space-6) var(--je-gutter) var(--je-space-5);
+  /* The band ends on the SAME hairline every other region ends on: a 2px
+     near-ink rule under a full-bleed band was the heaviest line on the
+     page, and this design claims hairlines, not ink bars. */
+  border-bottom: 1px solid var(--je-rule);
+}
+
+/* Every other unit STARTS at the content edge, so its number is a plain
+   `left: 0`. This one bleeds to the screen edge and gives its gutter back
+   as padding, so the same `0` would park "01" at x = 0 — a column of its
+   own, 24px left of the masthead's "00". The gutter goes back as an
+   OFFSET instead, landing "01" on the same x as every other unit number.
+   Measured on both viewports — this rule exists because `overflow: hidden`
+   would eat an out-of-range number without a trace. */
+.je-unit.je-hero::before {
+  left: var(--je-gutter);
+}
+
+.je-hero__unit {
+  position: relative;
+  z-index: 1;
+  margin-bottom: var(--je-space-3);
+}
+
+/* The text block sits ON the visual — z-index keeps it above the plate. */
+.je-hero__card {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.je-hero__title {
+  max-width: 18ch;
+  margin: 0 0 var(--je-space-3);
+  font-size: var(--je-size-h1);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.je-hero__subtitle {
+  max-width: 52ch;
+  margin: 0;
+  font-size: var(--je-size-lead);
+  color: var(--je-muted);
+}
+
+.je-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--je-space-2);
+  margin-top: var(--je-space-4);
+}
+
+/* gap fallback (Chrome < 84): margin on the siblings instead. */
+@supports not ((gap: 1px) and (inset: 0)) {
+  .je-hero__actions {
+    gap: 0;
+  }
+
+  .je-hero__actions > * + * {
+    margin-left: var(--je-space-2);
+  }
+}
+
+/* Boxed controls — the ink/paper inversion, the same answer the chips and
+   the pagination give; `border-color` so the global `a:hover` accent
+   hairline cannot appear inside the box. */
+.je-button {
+  display: inline-block;
+  padding: var(--je-space-2) var(--je-space-3);
+  border: 1px solid var(--je-edge);
+  border-radius: var(--je-radius);
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-label);
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+  text-decoration: none;
+  color: var(--je-ink);
+}
+
+.je-button:hover,
+.je-button:focus-visible {
+  background: var(--je-ink);
+  border-color: var(--je-ink);
+  color: var(--je-bg);
+}
+
+.je-button--primary {
+  background: var(--je-ink);
+  border-color: var(--je-ink);
+  color: var(--je-bg);
+}
+
+.je-button--primary:hover,
+.je-button--primary:focus-visible {
+  background: var(--je-accent-strong);
+  border-color: var(--je-accent-strong);
+  color: var(--je-on-accent);
+}
+
+.je-hero__visual {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 68%;
+  opacity: 0.55;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.45) 55%, rgba(0, 0, 0, 0.95) 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.45) 55%, rgba(0, 0, 0, 0.95) 100%);
+}
+
+/* No mask support: the plate would otherwise sit as a hard rectangle behind
+   the text — drop it to a whisper instead. */
+@supports not (mask-image: linear-gradient(0deg, #000, #000)) {
+  .je-hero__visual {
+    opacity: 0.2;
+  }
+}
+
+.je-hero__media {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  object-fit: cover;
+}
+
+/* ── Feature sections ────────────────────────────────────────── */
+
+.je-section {
+  padding: var(--je-space-5) 0;
+  border-bottom: 1px solid var(--je-rule);
+}
+
+.je-section__title {
+  margin: 0 0 var(--je-space-3);
+}
+
+.je-section__body {
+  max-width: var(--je-measure);
+}
+
+.je-section__link {
+  display: inline-block;
+  margin-top: var(--je-space-2);
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-label);
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+}
+
+/* ── Sidebar widgets ─────────────────────────────────────────── */
+
+.je-widget {
+  margin-top: var(--je-space-4);
+  padding-top: var(--je-space-3);
+  border-top: 1px solid var(--je-rule);
+}
+
+.je-widget__title {
+  margin: 0 0 var(--je-space-2);
+  font-size: var(--je-size-h3);
+}
+
+.je-widget__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.je-widget__item {
+  padding: var(--je-space-2) 0;
+  border-bottom: 1px solid var(--je-rule);
+  font-size: var(--je-size-small);
+}
+
+/* ── Author profile ──────────────────────────────────────────── */
+
+/* The author profile's unit is a BARE `.je-unit` with no padding of its
+   own, so this header's top padding IS the band the unit number is painted
+   into — the same 48px every other unit bands its number with. */
+.je-author {
+  display: flex;
+  align-items: center;
+  padding-top: var(--je-space-5);
+  padding-bottom: var(--je-space-4);
+  border-bottom: 1px solid var(--je-rule);
+}
+
+.je-author__avatar {
+  margin-right: var(--je-space-3);
+}
+
+.je-author__name {
+  margin: 0 0 var(--je-space-1);
+}
+
+.je-author__meta {
+  margin: 0;
+  font-family: var(--je-font-mono);
+  font-size: var(--je-size-label);
+  text-transform: uppercase;
+  letter-spacing: var(--je-track-label);
+  color: var(--je-muted);
+}

@@ -1,0 +1,501 @@
+/* Erik critical CSS — the dark-first shell in one file, no build.
+   Inlined into <head> when no Vite manifest resolves (the honest answer for
+   a tree with no stylesheet build in it). The source ships none of the at-rules the inline loader strips
+   (see InlineCss) — not even named inside this comment, because the stripper used to be comment-blind. The
+   bytes are inlined into every document response.
+   The homepage rules below are a vendored subset of the nativa-minimal erik
+   package (tokens, content): every er-* class the home surface emits has a
+   rule here. The Gilroy faces and the hero WebP underlay are dropped (files
+   not vendored — system stack and gradient instead). */
+:root {
+    --er-bg: #0b1220;
+    --er-surface: #111c2e;
+    --er-surface-raised: #17243a;
+    --er-ink: #f3f7ff;
+    --er-muted: #aebbd0;
+    --er-border: #33445f;
+    --er-accent-strong: #d9f99d;
+    --er-accent-hover: #bef264;
+    --er-accent-soft: #d9f99d;
+    --er-accent-ink: #08111f;
+    --er-focus: #fbbf24;
+    --er-container: 72rem;
+    --er-radius: .5rem;
+    --er-shadow: 0 1rem 3rem rgba(0, 0, 0, .24);
+}
+[data-theme="light"] {
+    --er-bg: #f4f7fb;
+    --er-surface: #fff;
+    --er-surface-raised: #e8eef7;
+    --er-ink: #142033;
+    --er-muted: #53647b;
+    --er-border: #b6c4d8;
+    --er-accent-strong: #3f6212;
+    --er-accent-hover: #365314;
+    --er-accent-soft: #365314;
+    --er-accent-ink: #fff;
+    --er-focus: #92400e;
+}
+.er-container {
+    margin: 0 auto;
+    max-width: var(--er-container);
+    padding: 0 1.25rem;
+}
+.er-hero {
+    background: radial-gradient(circle at 85% 15%, rgba(217, 249, 157, .14), transparent 30%), linear-gradient(135deg, var(--er-surface), var(--er-bg));
+    border-bottom: 1px solid var(--er-border);
+    overflow: hidden;
+    padding-bottom: 6rem;
+    padding-top: 6rem;
+    min-height: calc(100vh - 4rem);
+    position: relative;
+}
+.er-hero .er-container {
+    position: relative;
+    z-index: 1;
+}
+.er-hero__visual {
+    color: var(--er-accent-soft);
+    inset: 0;
+    opacity: .9;
+    pointer-events: none;
+    position: absolute;
+}
+.er-hero__svg {
+    height: 100%;
+    object-fit: cover;
+    object-position: center right;
+    width: 100%;
+}
+.er-hero__title {
+    font-size: clamp(3rem, 8vw, 7rem);
+    letter-spacing: -.065em;
+    line-height: .94;
+    max-width: 10ch;
+}
+.er-hero__eyebrow, .er-section__eyebrow {
+    color: var(--er-accent-soft);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+.er-hero__desc {
+    color: var(--er-muted);
+    font-size: clamp(1.05rem, 2vw, 1.35rem);
+    max-width: 42rem;
+}
+.er-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin-top: 1.75rem;
+}
+.er-card {
+    background: var(--er-surface);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    box-shadow: var(--er-shadow);
+    padding: 1.25rem;
+}
+.er-button {
+    background: var(--er-accent-strong);
+    border: 0;
+    border-radius: var(--er-radius);
+    color: var(--er-accent-ink);
+    display: inline-block;
+    font-weight: 700;
+    padding: .65rem 1rem;
+    text-decoration: none;
+}
+.er-button:hover {
+    background: var(--er-accent-hover);
+}
+.er-button--primary:hover {
+    color: var(--er-accent-ink);
+}
+.er-button--outline {
+    background: transparent;
+    border: 1px solid var(--er-accent-soft);
+    color: var(--er-accent-soft);
+}
+.er-button:focus-visible, .er-news-card h3 a:focus-visible {
+    outline: 2px solid var(--er-focus);
+    outline-offset: 2px;
+}
+.er-section--features, .er-section--steps, .er-section--comparison, .er-section--news {
+    margin: 0 auto;
+    max-width: var(--er-container);
+    padding: 5rem 1.25rem;
+}
+.er-section + .er-section {
+    border-top: 1px solid var(--er-border);
+}
+.er-feature-grid {
+    display: grid;
+    gap: 1px;
+    grid-template-columns: repeat(3, 1fr);
+}
+.er-feature-card {
+    background: var(--er-surface);
+    border: 1px solid var(--er-border);
+    min-height: 15rem;
+    padding: 1.5rem;
+}
+.er-feature-card:first-child {
+    border-radius: var(--er-radius) 0 0 var(--er-radius);
+}
+.er-feature-card:last-child {
+    border-radius: 0 var(--er-radius) var(--er-radius) 0;
+}
+.er-feature-card__number, .er-step > span {
+    color: var(--er-accent-soft);
+    font-weight: 800;
+}
+.er-feature-card p, .er-step p, .er-closing-cta p {
+    color: var(--er-muted);
+}
+.er-steps {
+    border-top: 1px solid var(--er-border);
+}
+.er-step {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--er-border);
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: 3rem 1fr;
+    padding: 1.5rem 0;
+}
+.er-step h3 {
+    margin: 0;
+}
+.er-step p {
+    margin-bottom: 0;
+}
+.er-news-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.er-news-card {
+    background: var(--er-surface);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    overflow: hidden;
+}
+.er-news-card img, .er-news-card__placeholder {
+    aspect-ratio: 16 / 9;
+    background: var(--er-surface-raised);
+    display: block;
+    height: auto;
+    min-height: 10rem;
+    object-fit: contain;
+    width: 100%;
+}
+.er-news-card__body {
+    padding: 1.25rem;
+}
+.er-news-card__meta {
+    color: var(--er-accent-soft);
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.er-news-card h3 {
+    line-height: 1.1;
+    margin: .75rem 0;
+}
+.er-news-card h3 a {
+    color: var(--er-ink);
+    text-decoration: none;
+}
+.er-news-card__body > p:last-child {
+    color: var(--er-muted);
+}
+.er-proof {
+    background: var(--er-accent-strong);
+    color: var(--er-accent-ink);
+    margin: 0 auto 5rem;
+    max-width: var(--er-container);
+    padding: 2rem 1.25rem;
+}
+.er-proof__quote {
+    font-size: clamp(1.4rem, 3vw, 2.25rem);
+    letter-spacing: -.02em;
+    max-width: 32rem;
+}
+.er-proof__author {
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+.er-comparison {
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    overflow: hidden;
+}
+.er-comparison__head, .er-comparison__row {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    padding: 1rem 1.25rem;
+}
+.er-comparison__head {
+    background: var(--er-surface-raised);
+    color: var(--er-muted);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+.er-comparison__row {
+    border-top: 1px solid var(--er-border);
+}
+.er-comparison__row span:nth-child(2) {
+    color: var(--er-accent-soft);
+    font-weight: 700;
+}
+.er-closing-cta {
+    align-items: center;
+    background: var(--er-surface-raised);
+    display: flex;
+    gap: 2rem;
+    justify-content: space-between;
+    margin: 0 auto 4rem;
+    max-width: var(--er-container);
+    padding: 2rem 1.25rem;
+}
+.er-closing-cta h2 {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    letter-spacing: -.04em;
+    margin: 0;
+}
+.er-placeholder {
+    color: var(--er-muted);
+}
+@media (max-width: 760px) {
+    .er-hero {
+        min-height: calc(100vh - 4rem);
+        padding-bottom: 4rem;
+        padding-top: 4rem;
+    }
+    .er-hero__actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .er-hero__actions .er-button {
+        text-align: center;
+    }
+    .er-feature-grid {
+        grid-template-columns: 1fr;
+    }
+    .er-news-grid {
+        grid-template-columns: 1fr;
+    }
+    .er-feature-card:first-child {
+        border-radius: var(--er-radius) var(--er-radius) 0 0;
+    }
+    .er-feature-card:last-child {
+        border-radius: 0 0 var(--er-radius) var(--er-radius);
+    }
+    .er-comparison__head, .er-comparison__row {
+        gap: .5rem;
+        grid-template-columns: 1fr 1fr;
+    }
+    .er-comparison__head span:last-child, .er-comparison__row span:last-child {
+        display: none;
+    }
+    .er-closing-cta {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+.er-shell {
+    background: #0b0f1a;
+    color: #e2e8f0;
+    font-family: system-ui, sans-serif;
+}
+.er-header, .er-footer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+}
+.er-header__brand {
+    color: #f8fafc;
+    font-weight: 700;
+    text-decoration: none;
+}
+.er-nav__link, .er-locale__link {
+    color: #94a3b8;
+    text-decoration: none;
+}
+.er-nav__link[aria-current="page"] {
+    color: #f8fafc;
+}
+.er-main {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+.er-section__title {
+    font-size: 1.75rem;
+    margin: 0 0 1rem;
+}
+.er-list {
+    padding-left: 1.25rem;
+}
+.er-list a {
+    color: #7dd3fc;
+}
+.er-section__empty {
+    color: #64748b;
+}
+/* The blog's search control. Scoped to the content column rather than a class
+   of its own: two frozen theme bundles refuse a fallback class the build does
+   not style, and one shape for all three themes is the point of the rule. */
+main form[role="search"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: 0 0 1.5rem;
+    max-width: 32rem;
+}
+main form[role="search"] label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+main form[role="search"] input[name="q"] {
+    flex: 1 1 12rem;
+    min-width: 0;
+    padding: .6rem .75rem;
+    font: inherit;
+    color: var(--er-ink);
+    background: var(--er-surface);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+}
+main form[role="search"] input[name="q"]::placeholder {
+    color: var(--er-muted);
+}
+main form[role="search"] input[name="q"]:focus {
+    outline: none;
+    border-color: var(--er-accent-strong);
+}
+main form[role="search"] button {
+    flex: 0 0 auto;
+    font: inherit;
+}
+
+/* Article reading surface — the shape the built bundle gets from
+   src/erik/erik/article.css: prose beside a sticky "On this page" rail, body
+   copy bounded at 68ch, code and tables opting out so a wide sample is not
+   squashed. Without these rules a tree with no Vite manifest renders the rail
+   as a plain list under the article — markup without its rule, the failure the
+   Mono audit was written for. */
+.er-article-layout {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    margin: 0 auto;
+    max-width: var(--er-container);
+    padding: 3rem 1.25rem;
+}
+.er-article {
+    background: var(--er-surface);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    padding: clamp(1.25rem, 4vw, 3rem);
+}
+.er-article img {
+    height: auto;
+    max-width: 100%;
+}
+.er-article__body p, .er-article__body li, .er-article__body blockquote {
+    max-width: 68ch;
+}
+.er-article__body table {
+    border-collapse: collapse;
+    margin: 0 0 1rem;
+    width: 100%;
+}
+.er-article__body th, .er-article__body td {
+    border: 1px solid var(--er-border);
+    font-size: .875em;
+    padding: .5rem .75rem;
+    text-align: left;
+    vertical-align: top;
+}
+.er-article__body th {
+    background: var(--er-surface-raised);
+    font-weight: 600;
+}
+.er-article__body code {
+    background: var(--er-surface-raised);
+    border-radius: .25rem;
+    font-size: .9em;
+    padding: .1em .35em;
+}
+.er-article__body pre {
+    background: #0d1526;
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    color: #dbe4f3;
+    font-size: .875em;
+    line-height: 1.6;
+    margin: 0 0 1.25rem;
+    overflow-x: auto;
+    padding: 1rem 1.25rem;
+}
+.er-article__body pre code {
+    background: none;
+    color: inherit;
+    display: block;
+    font-size: inherit;
+    padding: 0;
+    white-space: pre;
+}
+.er-toc {
+    border-left: 2px solid var(--er-accent-strong);
+    height: max-content;
+    padding: 0 0 0 1rem;
+    position: sticky;
+    top: 1.5rem;
+}
+.er-toc__title {
+    color: var(--er-accent-soft);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    margin: 0 0 .75rem;
+    text-transform: uppercase;
+}
+.er-toc__nav {
+    display: grid;
+    gap: .5rem;
+}
+.er-toc__link {
+    color: var(--er-muted);
+    font-size: .85rem;
+    text-decoration: none;
+}
+.er-toc__link:hover, .er-toc__link--active {
+    color: var(--er-accent-soft);
+}
+.er-toc__link--active {
+    font-weight: 600;
+}
+@media (max-width: 760px) {
+    .er-article-layout {
+        display: block;
+    }
+    .er-toc {
+        margin-top: 1.5rem;
+        position: static;
+    }
+}

@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via Modules\Core\Application\Services\View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <form class="m-media-filters" method="GET" action="<?php echo $url('media.index'); ?>">
+        <?php echo $hiddenFields . "\n"; ?>
+        <div class="m-filter-bar m-filter-bar--flush"><?php echo $typeLinks; ?></div>
+        <span class="m-media-filters__sep">·</span>
+        <div class="m-filter-bar m-filter-bar--flush"><?php echo $sourcePills; ?></div>
+        <span class="m-media-filters__sep">·</span>
+        <?php echo $folderSelect . "\n"; ?>
+        <?php echo $catSelect . "\n"; ?>
+        <?php echo $sortSelect . "\n"; ?>
+        <?php echo $tagLinks . "\n"; ?>
+    </form>
