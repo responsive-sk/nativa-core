@@ -1,0 +1,12 @@
+# Only the two templates are offered: a bug and a proposal. A blank issue
+# tends to arrive without the commit hash or the surface, which is what a
+# triage needs first.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Report a vulnerability
+    url: https://github.com/responsive-sk/nativa-core/security/policy
+    about: Private channel, scope and what to expect — never a public issue.
+  - name: Contributing guide
+    url: https://github.com/responsive-sk/nativa-core/blob/master/CONTRIBUTING.md
+    about: Requirements, gates, the module rules and the commit format.
