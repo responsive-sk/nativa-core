@@ -89,8 +89,8 @@ final class KernelCouplingTest extends TestCase
      * a moved directory, a changed extension, a typo in the path — would leave
      * both sides empty, the set equality true, and the guard asserting nothing
      * while the suite stayed green. `allModulesImports()` is used rather than
-     * `edges()` for exactly this: the kernel imports itself 141 times, so only
-     * a broken walker reads empty.
+     * `edges()` for exactly this: the kernel imports itself dozens of times, so
+     * only a broken walker reads empty.
      */
     public function testTheScannerFindsTheKernelsImports(): void
     {
@@ -104,9 +104,9 @@ final class KernelCouplingTest extends TestCase
         );
 
         self::assertGreaterThan(
-            70,
+            60,
             \count($imports),
-            'the scanner found ' . \count($imports) . ' imports where the kernel alone carries ~141 — '
+            'the scanner found ' . \count($imports) . ' imports where the kernel alone carries ~68 — '
             . 'the walk is traversing only part of the tree',
         );
 

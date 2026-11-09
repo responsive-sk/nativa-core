@@ -7,6 +7,7 @@ namespace Modules\Core\Interfaces\HTTP\Actions;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
+use Modules\Core\Interfaces\HTTP\Router;
 
 /**
  * RobotsAction — robots.txt for cooperative crawlers, allow-whitelist style.
@@ -24,8 +25,12 @@ use Modules\Core\Interfaces\HTTP\Attributes\Route;
  * most-specific-rule-wins convention (Disallow: / vs Allow: /blog).
  */
 #[Route(path: '/robots.txt', method: 'GET', name: 'robots')]
-final class RobotsAction
+final readonly class RobotsAction
 {
+    public function __construct(private ?Router $router = null)
+    {
+    }
+
     public function handle(Request $request): Response
     {
         $content = 'User-agent: *' . "\n"
@@ -39,7 +44,7 @@ final class RobotsAction
             . 'Allow: /cookies' . "\n"
             . 'Allow: /storage/blog-images' . "\n"
             . 'Allow: /sitemap.xml' . "\n"
-            . 'Allow: /llms.txt' . "\n"
+            . (null === $this->router || $this->router->hasPath('/llms.txt') ? 'Allow: /llms.txt' . "\n" : '')
             . "\n"
             . 'Sitemap: ' . $request->absoluteUrl('/sitemap.xml') . "\n";
 
