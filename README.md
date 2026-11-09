@@ -7,7 +7,7 @@ overwritten by the next export. Change the source repository instead.
 
 ## What it is
 
-The kernel and the catalogue, with no site attached:
+The kernel and the Nativa theme, with no site attached:
 
 - `src/Modules/Core` and `src/Modules/Database`: routing, the request/response
   pair, middleware discovery, the migrator runner, the SQLite connection
@@ -16,15 +16,31 @@ The kernel and the catalogue, with no site attached:
   drives.
 - `src/Modules/KernelTheme` and `src/Themes/kernel`: the default presentation
   that needs no build.
-- `modules/`: 26 catalogued modules, six of them themes. This is a catalogue,
-  not a running set. `src/Modules/<Name>` (the installed copy) is gitignored.
-- `Frontend/packages/`: the pnpm workspace that builds the theme bundles.
-  `public/dist/griffe`, `public/dist/mono` and `public/dist/nativa` are
-  committed frozen builds; the
-  rest is built by `make assets`.
+- `modules/`: two catalogued modules — `Themes/Nativa` and `Settings`, the theme
+  vote. This is a catalogue, not a running set. `src/Modules/<Name>` (the
+  installed copy) is gitignored.
+- `Frontend/packages/`: the pnpm workspace that builds the Nativa bundle.
+  `public/dist/nativa` is a committed frozen build; `make assets` rebuilds it.
 
 The boundary rule is one sentence: a kernel file may not import a module, and a
 module may import the kernel. `make mago-guard` fails on the other direction.
+
+### Why only two modules
+
+The catalogue is a measurement, not a starting point. The source repository
+built this tree without a catalogue and added back only what a surface proved
+it needed. Every row is a module that could be added, with its measured cost:
+
+| Surface | Modules | Cost | Without it |
+|---|---|---|---|
+| Nativa on `/` | `Settings` | +14 files | `/` renders `KernelTheme` |
+| Slovak copy | `Settings`, `Locales` | +143 files | English kernel copy |
+| `/blog`, `/cookies` | `Blog`, `Pages` | +373 files | 404 |
+| `/mark` | `Users`, `Cardboard` | +209 files | 404 |
+
+`Settings` is kept because the theme vote is a kernel port with no kernel
+implementation; the rest are product surfaces, not dependencies of the theme.
+A module comes back only with a row here and a measurement behind it.
 
 ## Run it
 
@@ -34,22 +50,23 @@ php -S 127.0.0.1:8000 -t public
 
 `vendor/` is not needed. The runtime has zero Composer packages: `src/init.php`
 installs a PSR-4 fallback loader, and `composer install` is development tooling
-only. The first request, or `php bin/cms migrate`, builds the databases empty,
-so a fresh tree has no account and `/mark` answers 403. Create the first
-administrator:
-
-```sh
-php bin/cms user:admin                                  # admin@example.test / admin1234
-php bin/cms user:admin you@example.com 'your-password'
-```
+only. The first request, or `php bin/cms migrate`, builds the databases empty.
+The panel module is not shipped, so `/mark` answers 404; add `Users` and
+`Cardboard` to the catalogue first if you need it (each is a dependency the
+source repository measures, not a hidden default).
 
 ## Install a module
 
 ```sh
 php bin/cms module:list                       # what the catalogue carries
-php bin/cms module:add Blog                   # copies the closure into src/Modules/
-php bin/cms module:remove Blog --force        # removes it again
+php bin/cms module:add Settings               # copies the closure into src/Modules/
+php bin/cms module:remove Settings --force    # removes it again
 ```
+
+The catalogue is deliberately two entries: the theme and the module that votes
+it. A module that is not in `modules/` cannot be installed, and adding one back
+is a decision with a measured cost — the register in `docs/` of the source
+repository explains what each surface would cost.
 
 `modules/Themes/<Name>` holds the theme modules. The installed copy keeps the
 same grouped shape, `src/Modules/Themes/<Name>`, and the theme name the settings
@@ -58,12 +75,11 @@ store is the lower-case one.
 ## Build the themes
 
 ```sh
-make assets     # pnpm workspace → public/dist/<theme>
+make assets     # pnpm workspace → public/dist/nativa
 ```
 
 `make assets` needs pnpm and network access for the first install. A deployment
-does not: the two frozen bundles are committed, and the rest can be shipped from
-a build.
+does not: the frozen bundle is committed.
 
 ## Gates
 

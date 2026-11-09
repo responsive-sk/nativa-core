@@ -19,9 +19,8 @@ until it is lost, it is a fork nobody measures.
   the catalogue and is tracked. After editing a catalogue slice, reinstall it:
   `php bin/cms module:remove <Name> --force && php bin/cms module:add <Name>`.
 - A kernel file may not import a module. `make mago-guard` enforces it.
-- `public/dist/griffe`, `public/dist/mono` and `public/dist/nativa` are
-  committed frozen bundles.
-  Rebuild them with `make assets`; never hand-edit them.
+- `public/dist/nativa` is the committed frozen bundle.
+  Rebuild it with `make assets`; never hand-edit it.
 
 ## Commit messages
 

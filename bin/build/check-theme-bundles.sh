@@ -37,18 +37,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
-# Module name → Vite package / bundle directory. A new theme belongs here as
-# well as in `sync-themes.sh`'s allow-list: the two lists answer the same
-# question (which themes this tree has), one for the catalogue, one for the
-# build.
-THEMES=(
-    "Boson"
-    "Erik"
-    "Griffe"
-    "Jednotka"
-    "Mono"
-    "Nativa"
-)
+# Module name → Vite package / bundle directory. The list is read from the
+# catalogue, not kept here: this tree carries six themes and the export carries
+# one, and a hand-maintained constant made a third list (after the catalogue and
+# `sync-themes.sh`'s allow-list) that could silently disagree with both.
+THEMES=()
+while IFS= read -r theme_dir; do
+    THEMES+=("$(basename "$theme_dir")")
+done < <(find "$ROOT/modules/Themes" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort)
+
+[ ${#THEMES[@]} -gt 0 ] || fail "no theme module under modules/Themes; the bundle check would pass on an empty list"
 
 fail() {
     echo "check-theme-bundles: $*" >&2

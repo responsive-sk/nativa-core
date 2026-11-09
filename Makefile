@@ -1,4 +1,4 @@
-# Nativa Core — the kernel, the module catalogue and the theme builds.
+# Nativa Core — the kernel, the Nativa theme and the theme build.
 #
 # This file is GENERATED into the nativa-core repository from nativa-php-core.
 # `.nativa-core-export.json` names the commit it came from. A target that cannot run
@@ -79,7 +79,7 @@ assets: ## Build the theme bundles in-tree (pnpm workspace under Frontend/packag
 	}
 	cd Frontend/packages && pnpm install --frozen-lockfile && pnpm build
 	@bin/build/check-theme-bundles.sh
-	@echo "Built public/dist/<theme> from Frontend/packages (gitignored; the frozen griffe, mono and nativa bundles stay committed)."
+	@echo "Built public/dist/nativa from Frontend/packages (gitignored; the frozen nativa bundle stays committed)."
 
 ##@ Development
 dev: ## Start the local dev server (localhost:8000)
