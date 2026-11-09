@@ -43,7 +43,7 @@ declare(strict_types = 1);
  * in that process.
  */
 
-use Modules\Core\Application\Services\DiscoveryCache;
+use Discovery\DiscoveryCache;
 use Modules\Core\Application\Services\DisposalRegistry;
 use Modules\Core\Domain\Contracts\PageCacheReader;
 use Modules\Core\Domain\Contracts\SecurityEventSink;

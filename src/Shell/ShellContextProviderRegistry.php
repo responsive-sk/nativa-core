@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Shell;
 
-use Modules\Core\Application\Services\PreferenceVote;
+use Discovery\PreferenceVote;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 
 /**

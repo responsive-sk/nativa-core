@@ -726,7 +726,7 @@ function cmdQueuePrune(array $argv): void
  */
 function cmdDiscoveryClear(): void
 {
-    \Modules\Core\Application\Services\DiscoveryCache::clearCache();
+    \Discovery\DiscoveryCache::clearCache();
     out('Discovery cache cleared.');
 }
 
@@ -736,7 +736,7 @@ function cmdDiscoveryClear(): void
  */
 function cmdDiscoveryStatus(): void
 {
-    $status = \Modules\Core\Application\Services\DiscoveryCache::fromAppPaths()->status();
+    $status = \Discovery\DiscoveryCache::fromAppPaths()->status();
 
     out(sprintf('Exists:      %s', $status['exists'] ? 'yes' : 'no'));
     out(sprintf('Fresh:       %s', $status['fresh'] ? 'yes' : 'no'));

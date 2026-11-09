@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Application\Services;
+namespace Discovery;
 
 /**
  * PreferenceVote — one contention rule for every port registry.

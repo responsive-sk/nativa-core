@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Application\Services;
+namespace Discovery;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
 

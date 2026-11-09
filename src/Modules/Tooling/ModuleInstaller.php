@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Tooling;
 
-use Modules\Core\Application\Services\DiscoveryCache;
+use Discovery\DiscoveryCache;
 use Modules\Core\Infrastructure\Bootstrap\Bootstrapper;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use RuntimeException;
