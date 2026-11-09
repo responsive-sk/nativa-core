@@ -174,9 +174,14 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
     }
 
     /**
-     * The landing surface: an editorial hero (eyebrow, display title, lede,
-     * two actions) and the latest articles as a hairline card grid. No slider,
-     * no custom element — the same payload, one column, no build.
+     * The landing surface: an editorial hero and the latest articles as a
+     * hairline card grid.
+     *
+     * The hero is asymmetric on purpose — the display title holds the left
+     * two-thirds, the lede and the two actions answer from the right, with a
+     * hairline rule between them. That is the composition neither reference
+     * uses: Boson centres its hero in a fixed header's shadow, Griffe puts
+     * everything on a fullscreen slider. One payload, no custom element.
      */
     public function homepage(PageContext $context): string
     {
@@ -186,13 +191,16 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
         $cta = $context->copy['home.cta_start'] ?? $context->copy['cta'] ?? 'Read the blog';
         $blog = self::blogBase($context);
 
-        $hero = '<section class="na-hero"><div class="na-container">';
+        $hero = '<section class="na-hero"><div class="na-container na-hero__inner">'
+            . '<div class="na-hero__lead">';
 
         if ('' !== $eyebrow) {
             $hero .= '<p class="na-hero__eyebrow">' . self::e($eyebrow) . '</p>';
         }
 
-        $hero .= '<h1 class="na-hero__title">' . self::e($title) . '</h1>';
+        $hero .= '<h1 class="na-hero__title">' . self::e($title) . '</h1>'
+            . '</div>'
+            . '<div class="na-hero__aside">';
 
         if ('' !== $lede) {
             $hero .= '<p class="na-hero__lede">' . self::e($lede) . '</p>';
@@ -201,7 +209,7 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
         $hero .= '<div class="na-hero__actions">'
             . '<a class="na-btn" href="' . self::e($blog) . '">' . self::e($cta) . '</a>'
             . '<a class="na-btn na-btn--link" href="' . self::e(AdminRoutePolicy::prefix()) . '">Open admin</a>'
-            . '</div></div></section>';
+            . '</div></div></div></section>';
 
         $articles = [] !== $context->latestArticles ? $context->latestArticles : $context->articles;
 
@@ -460,6 +468,13 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
     }
 
     /**
+     * The card grid: numbered, hairline-separated, with a lead card once there
+     * are enough articles to fill a row.
+     *
+     * The number is the grid's own rhythm — it makes a list of unrelated
+     * titles read as an issue's contents — and it costs one span, not an
+     * image: the whole row grid stays text-first on a tree with no artwork.
+     *
      * @param array<array-key, mixed> $articles
      */
     private static function cards(array $articles, PageContext $context): string
@@ -471,20 +486,35 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
         }
 
         $base = self::blogBase($context);
+        $total = count($pairs);
         $cards = '';
+        $index = 0;
 
         foreach ($pairs as $pair) {
+            $index++;
             $href = $base . '/' . $pair['slug'];
+            // A lead card only when a second row exists to be led.
+            $lead = 1 === $index && $total >= 4 ? ' na-card--lead' : '';
 
-            $cards .= '<article class="na-card">';
+            $cards .= '<article class="na-card' . $lead . '">'
+                . '<span class="na-card__index">' . str_pad((string) $index, 2, '0', STR_PAD_LEFT) . '</span>';
+
+            if ('' !== $pair['meta']) {
+                $cards .= '<p class="na-card__meta">' . self::e($pair['meta']) . '</p>';
+            }
+
+            $cards .= '<h2 class="na-card__title"><a href="' . self::e($href) . '">'
+                . self::e($pair['title']) . '</a></h2>';
 
             if (null !== $pair['image']) {
                 $cards .= '<img class="na-card__image" loading="lazy" src="' . self::e($pair['image']) . '" alt="">';
             }
 
-            $cards .= '<h2 class="na-card__title"><a href="' . self::e($href) . '">'
-                . self::e($pair['title']) . '</a></h2>'
-                . '<a class="na-card__more" href="' . self::e($href) . '">Read →</a>'
+            if ('' !== $pair['excerpt']) {
+                $cards .= '<p class="na-card__excerpt">' . self::e($pair['excerpt']) . '</p>';
+            }
+
+            $cards .= '<a class="na-card__more" href="' . self::e($href) . '">Read →</a>'
                 . '</article>';
         }
 
@@ -492,12 +522,17 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
     }
 
     /**
-     * Slug + title are required; an image is opportunistic (`image`, `cover` or
-     * `coverImage`). No import, no coupling — one optional field off the shape
-     * the payload already carries.
+     * Slug + title are required; everything else is opportunistic — the same
+     * shape the payload already carries, read through `get_object_vars` and
+     * never by importing the module that produces it.
+     *
+     * `$meta` is the one-line date/category label under the number: the cards
+     * payload names them `date` and `category`, an entity may carry only one,
+     * and the join is skipped when neither is there rather than printing a
+     * separator with nothing around it.
      *
      * @param array<array-key, mixed> $articles
-     * @return list<array{slug: string, title: string, image: ?string}>
+     * @return list<array{slug: string, title: string, image: ?string, meta: string, excerpt: string}>
      */
     private static function pairs(array $articles): array
     {
@@ -512,14 +547,30 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
             $slug = $fields['slug'] ?? null;
             $title = $fields['title'] ?? null;
 
-            if (is_string($slug) && is_string($title)) {
-                $image = $fields['image'] ?? $fields['cover'] ?? $fields['coverImage'] ?? null;
-                $pairs[] = [
-                    'slug' => $slug,
-                    'title' => $title,
-                    'image' => is_string($image) && '' !== $image ? $image : null,
-                ];
+            if (!is_string($slug) || !is_string($title)) {
+                continue;
             }
+
+            $image = $fields['image'] ?? $fields['cover'] ?? $fields['coverImage'] ?? null;
+            $excerpt = $fields['excerpt'] ?? $fields['description'] ?? null;
+
+            $labels = [];
+
+            foreach (['date', 'category'] as $key) {
+                $value = $fields[$key] ?? null;
+
+                if (is_string($value) && '' !== $value) {
+                    $labels[] = $value;
+                }
+            }
+
+            $pairs[] = [
+                'slug' => $slug,
+                'title' => $title,
+                'image' => is_string($image) && '' !== $image ? $image : null,
+                'meta' => implode(' · ', $labels),
+                'excerpt' => is_string($excerpt) ? trim($excerpt) : '',
+            ];
         }
 
         return $pairs;
