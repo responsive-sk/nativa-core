@@ -96,6 +96,11 @@ final class PreferenceContentionTest extends TestCase
                         return null;
                     }
 
+                    public function siteDescription(): ?string
+                    {
+                        return null;
+                    }
+
                     public function theme(): ?string
                     {
                         return 'kernel';

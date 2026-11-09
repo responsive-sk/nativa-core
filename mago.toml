@@ -32,6 +32,7 @@ paths = [
     "src/Modules/Database",
     "src/Modules/Tooling",
     "src/Discovery",
+    "src/Seo",
     "src/Shell",
     "src/Themes",
     "src/View",
@@ -193,7 +194,7 @@ excludes = ["tests", "public", "bin", "src/Themes", "src/composition.php", "src/
 
 [[guard.perimeter.rules]]
 namespace = 'Modules\Core'
-permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Discovery\**', 'Shell\**', 'Themes\**', 'View\**', '@global']
+permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Discovery\**', 'Seo\**', 'Shell\**', 'Themes\**', 'View\**', '@global']
 reason = 'The contract kernel may not see a module: modules are installed on top of it.'
 
 [[guard.perimeter.rules]]
@@ -210,6 +211,11 @@ reason = 'The module tooling reads the kernel and the catalogue, never a module 
 namespace = 'Discovery'
 permit = ['Discovery\**', 'Modules\Core\**', '@global']
 reason = 'Discovery arbitrates providers and caches the route scan; it reads kernel paths and values, never a module.'
+
+[[guard.perimeter.rules]]
+namespace = 'Seo'
+permit = ['Seo\**', 'Modules\Core\**', '@global']
+reason = 'The SEO primitives build head markup and sitemap values from kernel paths; a module is on the contributing side of the port, never a dependency.'
 
 [[guard.perimeter.rules]]
 namespace = 'Shell'

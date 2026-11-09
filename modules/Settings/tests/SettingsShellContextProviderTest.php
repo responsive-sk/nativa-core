@@ -273,6 +273,79 @@ final class SettingsShellContextProviderTest extends TestCase
     }
 
     #[Test]
+    public function aStoredSiteDescriptionIsAnswered(): void
+    {
+        $this->storeSiteDescription('A small site with a readable runtime.');
+
+        $this->assertSame(
+            'A small site with a readable runtime.',
+            (new SettingsShellContextProvider())->siteDescription(),
+        );
+    }
+
+    #[Test]
+    public function aBlankSiteDescriptionAbstains(): void
+    {
+        $this->storeSiteDescription("   ");
+
+        $this->assertNull((new SettingsShellContextProvider())->siteDescription());
+    }
+
+    #[Test]
+    public function aMissingSiteDescriptionAbstains(): void
+    {
+        (new SettingsRepository($this->pdo))->delete('site_description');
+        SettingsServices::reset();
+
+        $this->assertNull((new SettingsShellContextProvider())->siteDescription());
+    }
+
+    #[Test]
+    public function theLayoutUsesTheStoredDescriptionWhenTheActionDoesNotSupplyOne(): void
+    {
+        $this->storeSiteDescription('Stored shell description');
+        ShellContextProviderRegistry::reset();
+
+        $html = FrontendLayout::render('T', 'C', theme: ThemeResolver::KERNEL_THEME);
+
+        $this->assertStringContainsString(
+            '<meta name="description" content="Stored shell description">',
+            $html,
+        );
+    }
+
+    #[Test]
+    public function anExplicitDescriptionWinsOverTheStoredOne(): void
+    {
+        $this->storeSiteDescription('Stored shell description');
+        ShellContextProviderRegistry::reset();
+
+        $html = FrontendLayout::render(
+            'T',
+            'C',
+            description: 'Page description',
+            theme: ThemeResolver::KERNEL_THEME,
+        );
+
+        $this->assertStringContainsString('<meta name="description" content="Page description">', $html);
+        $this->assertStringNotContainsString('Stored shell description', $html);
+    }
+
+    #[Test]
+    public function aBlankStoredDescriptionFallsBackToTheKernelLiteral(): void
+    {
+        $this->storeSiteDescription("   ");
+        ShellContextProviderRegistry::reset();
+
+        $html = FrontendLayout::render('T', 'C', theme: ThemeResolver::KERNEL_THEME);
+
+        $this->assertStringContainsString(
+            '<meta name="description" content="' . FrontendLayout::DEFAULT_DESCRIPTION . '">',
+            $html,
+        );
+    }
+
+    #[Test]
     public function aStoredLocaleIsAnswered(): void
     {
         $this->storeLocale('en_US');
@@ -523,6 +596,16 @@ final class SettingsShellContextProviderTest extends TestCase
     private function storeSiteName(string $value): void
     {
         (new SettingsRepository($this->pdo))->set('site_name', $value, 'general', false);
+        SettingsServices::reset();
+    }
+
+    /**
+     * Write the `site_description` key the way `saveSite()` does, then drop the
+     * cached service so the provider reads the new row.
+     */
+    private function storeSiteDescription(string $value): void
+    {
+        (new SettingsRepository($this->pdo))->set('site_description', $value, 'general', false);
         SettingsServices::reset();
     }
 

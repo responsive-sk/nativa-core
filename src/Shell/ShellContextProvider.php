@@ -41,6 +41,13 @@ interface ShellContextProvider
     public function siteName(): ?string;
 
     /**
+     * The site-wide meta description, or null when the provider has no
+     * opinion. A page's own description still wins; this is the fallback
+     * between that value and the kernel's literal floor.
+     */
+    public function siteDescription(): ?string;
+
+    /**
      * The active public theme name, or null to let the kernel use its own.
      *
      * Null is not "no theme": it means "no preference", and the kernel resolves

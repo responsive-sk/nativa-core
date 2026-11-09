@@ -29,7 +29,7 @@ use Modules\Core\Infrastructure\Paths\AppPaths;
  *
  * | Question | Rule |
  * |---|---|
- * | `siteName`, `theme`, `defaultLocale`, `activeLocale`, `htmlLang` | first non-null wins (priority, then discovery order) |
+ * | `siteName`, `siteDescription`, `theme`, `defaultLocale`, `activeLocale`, `htmlLang` | first non-null wins (priority, then discovery order) |
  * | `languages` | union, in provider order, de-duplicated |
  * | `copy` | union PER KEY — the first provider that holds a key wins it |
  * | `navigation` | first provider that returns a non-empty list for that slot |
@@ -106,6 +106,12 @@ final class ShellContextProviderRegistry
     public static function siteName(): ?string
     {
         return self::firstString(static fn (ShellContextProvider $p): ?string => $p->siteName(), 'siteName');
+    }
+
+    /** First provider that supplies a site-wide description, or null. */
+    public static function siteDescription(): ?string
+    {
+        return self::firstString(static fn (ShellContextProvider $p): ?string => $p->siteDescription(), 'siteDescription');
     }
 
     /** First provider that names a theme, or null — which means "use the kernel's". */

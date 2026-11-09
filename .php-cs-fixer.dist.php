@@ -12,7 +12,7 @@ use PhpCsFixer\Finder;
  * files) — scoped to the code THIS repo owns and may restyle:
  *
  *   - `src/Modules/Core` + `src/Modules/Database` (the kernel slice),
- *     `src/Discovery`, `src/Shell`, `src/Themes`, `src/View`, `bin`, `public`, `tests`, plus the HTTP composition root
+ *     `src/Discovery`, `src/Seo`, `src/Shell`, `src/Themes`, `src/View`, `bin`, `public`, `tests`, plus the HTTP composition root
  *     `src/http.php`. That is the same scope `phpstan.neon` analyses; `public/`
  *     is also the entry point `bin/build/extract-kernel.sh --check` compares.
  *     Upstream's finder covered all of `src/`; this tree's
@@ -35,6 +35,7 @@ $finder = Finder::create()
         __DIR__ . '/src/Modules/Core',
         __DIR__ . '/src/Modules/Database',
         __DIR__ . '/src/Discovery',
+        __DIR__ . '/src/Seo',
         __DIR__ . '/src/Shell',
         __DIR__ . '/src/Themes',
         __DIR__ . '/src/View',

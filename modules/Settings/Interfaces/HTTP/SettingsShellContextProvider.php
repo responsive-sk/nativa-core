@@ -97,6 +97,21 @@ final class SettingsShellContextProvider implements ShellContextProvider
     }
 
     /**
+     * The stored site-wide meta description. Blank abstains, like the name: a
+     * half-filled settings row must not turn the description tag empty.
+     */
+    public function siteDescription(): ?string
+    {
+        $stored = SettingsServices::settings()->get('site_description');
+
+        if (!is_string($stored) || '' === trim($stored)) {
+            return null;
+        }
+
+        return trim($stored);
+    }
+
+    /**
      * The stored public theme — the vote that makes the admin `<select>` real.
      *
      * Only a resolvable value is answered: the kernel whitelist or a discovered

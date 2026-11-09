@@ -181,6 +181,11 @@ final class ShellContextCopyMergeTest extends TestCase
                     return null;
                 }
 
+                public function siteDescription(): ?string
+                {
+                    return null;
+                }
+
                 public function theme(): ?string
                 {
                     return null;
@@ -249,6 +254,11 @@ final class ShellContextCopyMergeTest extends TestCase
             final class TempCopySecondShellContextProvider implements ShellContextProvider
             {
                 public function siteName(): ?string
+                {
+                    return null;
+                }
+
+                public function siteDescription(): ?string
                 {
                     return null;
                 }

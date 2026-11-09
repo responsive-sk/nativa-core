@@ -7,73 +7,111 @@ namespace Modules\Core\Interfaces\HTTP\Actions;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
+use Seo\SitemapContributorRegistry;
+use Seo\SitemapEntry;
 use Shell\ShellContextProviderRegistry;
 use Themes\FrontendLayout;
 
 /**
  * SitemapAction — XML sitemap (Google sitemap protocol 0.9) of the URLs the
- * KERNEL knows: home and the locale roots, with absolute URLs built from the
- * request (loopback-safe via Request::absoluteUrl).
+ * installed tree actually serves.
  *
- * What it does NOT list is the point. The article enumeration belonged to
- * Blog, the page enumeration to Pages, the author profiles to Blog's URL
- * shape, the blog index and the feeds to the module that serves them — four
- * `M` ledger rows, one per half this file used to enumerate. A kernel-only
- * tree serves no `/blog`, and a sitemap that advertises a 404 teaches a
- * crawler to find one. When those modules arrive they extend the sitemap
- * through their own contribution (a port, like every other kernel surface) —
- * until then the kernel lists what it serves and nothing else.
+ * The kernel contributes home and the locale roots it knows. Modules extend it
+ * through `Seo\SitemapContributor`: a module owns its published content and the
+ * URL shape that serves it, so the kernel never guesses a path that might be a
+ * 404. A contributor failure degrades to the kernel rows instead of a 500.
  *
  * All values are XML-escaped; output is deterministic per request.
  */
 #[Route(path: '/sitemap.xml', method: 'GET', name: 'sitemap')]
-final class SitemapAction
+final readonly class SitemapAction
 {
+    public function __construct(
+        private ?SitemapContributorRegistry $contributors = null,
+    ) {
+    }
+
     public function handle(Request $request): Response
     {
         $base = $request->absoluteUrl('');
+        $entries = $this->entries();
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
             . ' xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n"
-            . $this->entries($base)
+            . $this->render($base, $entries)
             . '</urlset>' . "\n";
 
         return Response::xml($xml, 'application/xml; charset=utf-8');
     }
 
     /**
-     * Home in every locale the shell port reports: the default owns the bare
-     * path, every other locale its short language prefix. A kernel with no
-     * locale provider lists only `/` — the pages it actually serves.
+     * Kernel rows first, then every contributor row, deduplicated by path.
+     * Sorting by path makes the response stable even when two contributors
+     * return the same set in a different order.
+     *
+     * @return list<SitemapEntry>
      */
-    private function entries(string $base): string
+    private function entries(): array
     {
+        $entries = [new SitemapEntry('/', 'weekly', '1.0')];
         $default = ShellContextProviderRegistry::defaultLocale();
-        $entries = $this->entry($base, '/', 'weekly', '1.0');
 
         foreach (ShellContextProviderRegistry::languages() as $locale) {
             if ($locale === $default) {
                 continue;
             }
 
-            $entries .= $this->entry(
-                $base,
+            $entries[] = new SitemapEntry(
                 '/' . strtolower(substr($locale, 0, 2)) . '/',
                 'weekly',
                 '1.0',
             );
         }
 
-        return $entries;
+        $registry = $this->contributors ?? SitemapContributorRegistry::fromModules();
+
+        foreach ($registry->entries() as $entry) {
+            $entries[] = $entry;
+        }
+
+        $unique = [];
+        $seen = [];
+
+        foreach ($entries as $entry) {
+            if (isset($seen[$entry->path])) {
+                error_log('[seo] duplicate sitemap path: ' . $entry->path);
+
+                continue;
+            }
+
+            $seen[$entry->path] = true;
+            $unique[] = $entry;
+        }
+
+        usort(
+            $unique,
+            static fn (SitemapEntry $a, SitemapEntry $b): int => $a->path <=> $b->path,
+        );
+
+        return $unique;
     }
 
-    private function entry(string $base, string $path, string $changefreq, string $priority): string
+    /**
+     * @param list<SitemapEntry> $entries
+     */
+    private function render(string $base, array $entries): string
     {
-        return '  <url>' . "\n"
-            . '    <loc>' . FrontendLayout::e($base . $path) . '</loc>' . "\n"
-            . '    <changefreq>' . $changefreq . '</changefreq>' . "\n"
-            . '    <priority>' . $priority . '</priority>' . "\n"
-            . '  </url>' . "\n";
+        $xml = '';
+
+        foreach ($entries as $entry) {
+            $xml .= '  <url>' . "\n"
+                . '    <loc>' . FrontendLayout::e($base . $entry->path) . '</loc>' . "\n"
+                . '    <changefreq>' . $entry->changefreq . '</changefreq>' . "\n"
+                . '    <priority>' . $entry->priority . '</priority>' . "\n"
+                . '  </url>' . "\n";
+        }
+
+        return $xml;
     }
 }

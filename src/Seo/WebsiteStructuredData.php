@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Application\Services;
+namespace Seo;
 
 /**
  * WebsiteStructuredData — the kernel home's Organization + WebSite JSON-LD.

@@ -38,6 +38,12 @@ final class FrontendLayout
     public const string DEFAULT_SITE_NAME = 'Nativa PHP Core';
 
     /**
+     * Last-resort meta description, used when neither the action nor the
+     * shell port supplies one. One literal for the same reason as the name.
+     */
+    public const string DEFAULT_DESCRIPTION = 'Nativa PHP Core — the kernel-only tree: zero-dependency runtime, attribute routing, a middleware pipeline, per-module SQLite connections and a theme that needs no build.';
+
+    /**
      * The shared public base critical-CSS chain, in cascade order — the
      * single source of truth every public theme's `criticalCss()` list
      * starts with (themes that layer their own sections append them after
@@ -91,8 +97,11 @@ final class FrontendLayout
      *                                                                   defaults to 'website'. Also drives twitter:card sizing.
      * @param string|null                             $ogImage           Optional absolute Open Graph / twitter image URL (self-hosted
      *                                                                   or the allowed Cloudinary cover origin). Omitted when null.
+     * @param string|null                             $description       Optional meta description. When null the shell
+     *                                                                   port's site description is used, then the kernel
+     *                                                                   fallback.
      * @param string|null                             $structuredData    Optional pre-encoded JSON-LD blob rendered in an
-     *                                                                   <script type="application/ld+json"> (WebsiteStructuredData).
+     *                                                                   <script type="application/ld+json"> (Seo\WebsiteStructuredData).
      * @param bool                                    $noindex           When true emits <meta name="robots" content="noindex, nofollow">
      *                                                                   (admin/debug/error/auth pages must not be indexed).
      * @param array{atom?: string, rss?: string}|null $feedLinks         RSS/Atom feed auto-discovery links for <head>.
@@ -106,7 +115,7 @@ final class FrontendLayout
         string $title,
         string $content,
         string $siteName = self::DEFAULT_SITE_NAME,
-        string $description = 'Nativa PHP Core — the kernel-only tree: zero-dependency runtime, attribute routing, a middleware pipeline, per-module SQLite connections and a theme that needs no build.',
+        ?string $description = null,
         string $currentPath = '/',
         ?array $localeLinks = null,
         ?string $lang = null,
@@ -129,6 +138,8 @@ final class FrontendLayout
 
         $titleEscaped = self::e($title);
         $siteNameEscaped = self::e($siteName);
+        $description ??= ShellContextProviderRegistry::siteDescription()
+            ?? self::DEFAULT_DESCRIPTION;
         $descriptionEscaped = self::e($description);        // Dynamic html lang from the resolved active locale (sk / en). An
         // explicit $lang overrides it — an action that knows the actual
         // content language passes it, even when the site default differs. With
