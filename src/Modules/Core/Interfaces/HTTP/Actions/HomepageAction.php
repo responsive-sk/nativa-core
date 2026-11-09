@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Core\Interfaces\HTTP\Actions;
 
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
-use Modules\Core\Application\Services\StructuredDataService;
+use Modules\Core\Application\Services\WebsiteStructuredData;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
@@ -70,15 +70,15 @@ final class HomepageAction
         $homeUrl = $request->absoluteUrl('/');
 
         // The home surface announces the site itself (Organization + WebSite,
-        // with a SearchAction), the same builder the page and article surfaces
-        // already use. The name is the port's answer, the URL the request's, so
-        // a kernel with nothing installed still emits a truthful block.
+        // with a SearchAction). The name is the port's answer, the URL the
+        // request's, so a kernel with nothing installed still emits a truthful
+        // block; Blog's article builders live with the module that owns them.
         return Response::html(FrontendLayout::render(
             $siteName,
             $content,
             currentPath: '/',
             canonicalUrl: $homeUrl,
-            structuredData: StructuredDataService::website($siteName, $homeUrl),
+            structuredData: WebsiteStructuredData::website($siteName, $homeUrl),
             theme: $theme,
         ));
     }

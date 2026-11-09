@@ -95,7 +95,7 @@ final class FrontendLayout
      * @param string|null                             $ogImage           Optional absolute Open Graph / twitter image URL (self-hosted
      *                                                                   or the allowed Cloudinary cover origin). Omitted when null.
      * @param string|null                             $structuredData    Optional pre-encoded JSON-LD blob rendered in an
-     *                                                                   <script type="application/ld+json"> (StructuredDataService).
+     *                                                                   <script type="application/ld+json"> (WebsiteStructuredData).
      * @param bool                                    $noindex           When true emits <meta name="robots" content="noindex, nofollow">
      *                                                                   (admin/debug/error/auth pages must not be indexed).
      * @param array{atom?: string, rss?: string}|null $feedLinks         RSS/Atom feed auto-discovery links for <head>.

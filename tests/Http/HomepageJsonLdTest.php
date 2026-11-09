@@ -12,8 +12,9 @@ use PHPUnit\Framework\TestCase;
 /**
  * HomepageJsonLdTest — the home surface announces the site itself.
  *
- * `StructuredDataService::website()` existed and every other indexed surface
- * used it, but `/` passed a canonical and nothing else: the reader's first page
+ * `WebsiteStructuredData::website()` exists and every other indexed surface
+ * uses a builder of its own, but `/` once passed a canonical and nothing else:
+ * the reader's first page
  * was the one page a rich-result crawler learnt least from. nativa-minimal's
  * home carried Organization + WebSite, and this tree's did not.
  *
