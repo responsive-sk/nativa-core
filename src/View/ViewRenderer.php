@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Application\Services\View;
+namespace View;
 
 /**
  * ViewRenderer — output-buffered include for PHP templates under src/.

@@ -32,6 +32,7 @@ paths = [
     "src/Modules/Database",
     "src/Modules/Tooling",
     "src/Themes",
+    "src/View",
     "src/composition.php",
     "src/http.php",
     "public/index.php",
@@ -190,15 +191,20 @@ excludes = ["tests", "public", "bin", "src/Themes", "src/composition.php", "src/
 
 [[guard.perimeter.rules]]
 namespace = 'Modules\Core'
-permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Themes\**', '@global']
+permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Themes\**', 'View\**', '@global']
 reason = 'The contract kernel may not see a module: modules are installed on top of it.'
 
 [[guard.perimeter.rules]]
 namespace = 'Modules\Database'
-permit = ['Modules\Database\**', 'Modules\Core\**', 'Modules\Tooling\**', 'Themes\**', '@global']
+permit = ['Modules\Database\**', 'Modules\Core\**', 'Modules\Tooling\**', 'Themes\**', 'View\**', '@global']
 reason = 'The concrete runtime sits on the kernel contracts; a module is still off limits.'
 
 [[guard.perimeter.rules]]
 namespace = 'Modules\Tooling'
-permit = ['Modules\Tooling\**', 'Modules\Core\**', 'Modules\Database\**', 'Themes\**', '@global']
+permit = ['Modules\Tooling\**', 'Modules\Core\**', 'Modules\Database\**', 'Themes\**', 'View\**', '@global']
 reason = 'The module tooling reads the kernel and the catalogue, never a module class.'
+
+[[guard.perimeter.rules]]
+namespace = 'View'
+permit = ['View\**', 'Modules\Core\**', '@global']
+reason = 'The view helpers resolve template and asset paths through the kernel; a module is off limits.'

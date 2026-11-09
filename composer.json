@@ -31,7 +31,8 @@
     "autoload": {
         "psr-4": {
             "Modules\\": "src/Modules/",
-            "Themes\\": "src/Themes/"
+            "Themes\\": "src/Themes/",
+            "View\\": "src/View/"
         }
     },
     "autoload-dev": {

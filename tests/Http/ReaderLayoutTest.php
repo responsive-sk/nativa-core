@@ -4,10 +4,10 @@ declare(strict_types = 1);
 
 namespace Tests\Http;
 
-use Modules\Core\Application\Services\View\InlineJs;
 use Modules\Core\Interfaces\HTTP\FrontendLayout;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use View\InlineJs;
 
 /**
  * ReaderLayoutTest — the one reading surface shared by `/docs` and

@@ -4,17 +4,17 @@ declare(strict_types = 1);
 
 namespace Modules\Core\Interfaces\HTTP;
 
-use Modules\Core\Application\Services\AssetManager;
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
-use Modules\Core\Application\Services\View\InlineCss;
-use Modules\Core\Application\Services\View\InlineJs;
 use Modules\Core\Domain\ShellNavItem;
 use Modules\Core\Infrastructure\Paths\AppPaths;
+use Themes\AssetManager;
 use Themes\ThemeKernel;
 use Themes\ThemeModule;
 use Themes\ThemeResolver;
 use Themes\ThemeSettings;
 use Themes\ThemeSettingValues;
+use View\InlineCss;
+use View\InlineJs;
 
 /**
  * FrontendLayout — shared public page shell (task 10.3).
