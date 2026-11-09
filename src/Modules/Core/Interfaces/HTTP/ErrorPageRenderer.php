@@ -6,6 +6,7 @@ namespace Modules\Core\Interfaces\HTTP;
 
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Kernel\Contracts\ErrorRendererInterface;
+use Themes\FrontendLayout;
 use Themes\ThemeKernel;
 use Themes\ThemeResolver;
 

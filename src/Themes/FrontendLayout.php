@@ -2,17 +2,12 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Interfaces\HTTP;
+namespace Themes;
 
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Domain\ShellNavItem;
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Themes\AssetManager;
-use Themes\ThemeKernel;
-use Themes\ThemeModule;
-use Themes\ThemeResolver;
-use Themes\ThemeSettings;
-use Themes\ThemeSettingValues;
+use Modules\Core\Interfaces\HTTP\ShellContext;
 use View\InlineCss;
 use View\InlineJs;
 
@@ -51,15 +46,15 @@ final class FrontendLayout
      * @var list<string>
      */
     public const array BASE_CRITICAL_CSS = [
-        'Modules/Core/Interfaces/HTTP/assets/critical/base.css',
-        'Modules/Core/Interfaces/HTTP/assets/critical/shell.css',
-        'Modules/Core/Interfaces/HTTP/assets/critical/nav.css',
-        'Modules/Core/Interfaces/HTTP/assets/critical/blog.css',
-        'Modules/Core/Interfaces/HTTP/assets/critical/blog-search.css',
-        'Modules/Core/Interfaces/HTTP/assets/critical/blog-comments.css',
-        'Modules/Core/Interfaces/HTTP/assets/critical/blog-toc.css',
-        'Modules/Core/Interfaces/HTTP/assets/critical/blog-members.css',
-        'Modules/Core/Interfaces/HTTP/assets/critical/home.css',
+        'Themes/assets/critical/base.css',
+        'Themes/assets/critical/shell.css',
+        'Themes/assets/critical/nav.css',
+        'Themes/assets/critical/blog.css',
+        'Themes/assets/critical/blog-search.css',
+        'Themes/assets/critical/blog-comments.css',
+        'Themes/assets/critical/blog-toc.css',
+        'Themes/assets/critical/blog-members.css',
+        'Themes/assets/critical/home.css',
     ];
     /**
      * Navigation data (header + footer) — the provider that owns the menu
@@ -382,7 +377,7 @@ final class FrontendLayout
     /** Shared theme-toggle handler — one copy referenced by every theme module. */
     private static function themeToggleScript(): string
     {
-        return InlineJs::file('Modules/Core/Interfaces/HTTP/assets/scripts/theme-toggle.js');
+        return InlineJs::file('Themes/assets/scripts/theme-toggle.js');
     }
 
     /**
@@ -635,7 +630,7 @@ final class FrontendLayout
     /**
      * Critical CSS — development fallback when the Vite build has not run.
      * The bytes live as real .css files under
-     * Modules/Core/Interfaces/HTTP/assets/critical/ and are inlined verbatim
+     * Themes/assets/critical/ and are inlined verbatim
      * via InlineCss (byte-parity guarded by CriticalCssByteParityTest).
      */
     public static function criticalCss(): string
@@ -886,7 +881,7 @@ final class FrontendLayout
      */
     private static function readerLayoutScript(): string
     {
-        $script = InlineJs::file('Modules/Core/Interfaces/HTTP/assets/scripts/docs-reader.js');
+        $script = InlineJs::file('Themes/assets/scripts/docs-reader.js');
 
         return '' !== $script
             ? '<script nonce="__CSP_NONCE_PLACEHOLDER__">' . "\n" . $script . "\n" . '</script>'

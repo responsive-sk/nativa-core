@@ -7,7 +7,7 @@ namespace Modules\Themes\Nativa\Tests;
 use Modules\Core\Domain\ShellNavItem;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Core\Interfaces\HTTP\FrontendLayout;
+use Themes\FrontendLayout;
 use Modules\Core\Interfaces\HTTP\PageContext;
 use Modules\Core\Interfaces\HTTP\ShellContext;
 use Themes\ThemeKernel;

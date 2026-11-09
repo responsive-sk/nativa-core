@@ -6,7 +6,7 @@ namespace Modules\Settings\Tests;
 
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Domain\ShellNavItem;
-use Modules\Core\Interfaces\HTTP\FrontendLayout;
+use Themes\FrontendLayout;
 use Themes\ThemeRegistry;
 use Themes\ThemeResolver;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;

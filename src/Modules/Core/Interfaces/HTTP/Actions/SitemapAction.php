@@ -8,7 +8,7 @@ use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
-use Modules\Core\Interfaces\HTTP\FrontendLayout;
+use Themes\FrontendLayout;
 
 /**
  * SitemapAction — XML sitemap (Google sitemap protocol 0.9) of the URLs the

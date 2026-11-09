@@ -5,10 +5,10 @@ declare(strict_types = 1);
 namespace Tests\Theme;
 
 use Modules\Core\Interfaces\HTTP\ErrorPageRenderer;
-use Modules\Core\Interfaces\HTTP\FrontendLayout;
 use Modules\KernelTheme\Theme\KernelTheme;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\FrontendLayout;
 use View\InlineCss;
 
 /**

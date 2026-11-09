@@ -5,10 +5,10 @@ declare(strict_types = 1);
 namespace Tests\Theme;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Core\Interfaces\HTTP\FrontendLayout;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Themes\AssetManager;
+use Themes\FrontendLayout;
 use Themes\ThemeRegistry;
 use Themes\ThemeResolver;
 

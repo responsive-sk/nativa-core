@@ -9,8 +9,8 @@ use Modules\Core\Application\Services\WebsiteStructuredData;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
-use Modules\Core\Interfaces\HTTP\FrontendLayout;
 use Modules\Core\Interfaces\HTTP\PageContext;
+use Themes\FrontendLayout;
 use Themes\ThemeKernel;
 use Themes\ThemeResolver;
 
