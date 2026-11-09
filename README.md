@@ -15,7 +15,7 @@ The kernel and the catalogue, with no site attached:
   drives.
 - `src/Modules/KernelTheme` and `src/Themes/kernel`: the default presentation
   that needs no build.
-- `modules/`: 26 catalogued modules, five of them themes. This is a catalogue,
+- `modules/`: 27 catalogued modules, six of them themes. This is a catalogue,
   not a running set. `src/Modules/<Name>` (the installed copy) is gitignored.
 - `Frontend/packages/`: the pnpm workspace that builds the theme bundles.
   `public/dist/griffe` and `public/dist/mono` are committed frozen builds; the

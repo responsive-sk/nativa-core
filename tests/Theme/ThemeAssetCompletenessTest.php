@@ -46,6 +46,7 @@ final class ThemeAssetCompletenessTest extends TestCase
      */
     private const array WITHOUT_HIGHLIGHT = [
         'kernel' => 'no JS by design: one hand-written CSS file, no build (KernelThemeTest pins it)',
+        'nativa' => 'the house theme ships one hand-written CSS file and no build yet, so it has no highlighter to bundle',
     ];
 
     #[Test]
@@ -191,31 +192,32 @@ final class ThemeAssetCompletenessTest extends TestCase
     /**
      * The theme module carries the capability itself when its shipped assets
      * (never its tests) name token styles or a highlight loader.
+     *
+     * The directory comes from the CLASS NAMESPACE, not from the first path
+     * segment of its file. Themes live in a group (`src/Modules/Themes/Griffe`),
+     * so reading one segment answers `Themes` — the whole group — and a theme
+     * with no styles of its own inherits whichever sibling happens to ship
+     * `tok-*`. Measured on `nativa`, which was credited with Griffe's markers
+     * and failed the stale-exemption assertion for a capability it does not
+     * have. `Modules\Themes\Griffe\Theme\GriffeTheme` drops the trailing
+     * `Theme` segment and leaves exactly the module's own directory.
      */
     private static function moduleShipsHighlight(object $theme): bool
     {
-        $file = (new \ReflectionClass($theme))->getFileName();
+        $segments = explode('\\', (new \ReflectionClass($theme))->getNamespaceName());
 
-        if (!is_string($file)) {
-            return false;
-        }
-
-        $marker = DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'Modules' . DIRECTORY_SEPARATOR;
-        $pos = strpos($file, $marker);
-
-        if (false === $pos) {
+        if ('Modules' !== array_shift($segments) || [] === $segments) {
             return false; // a kernel theme: out of scope, owned elsewhere
         }
 
-        $rest = substr($file, $pos + strlen($marker));
-        $module = strstr($rest, DIRECTORY_SEPARATOR, true);
+        array_pop($segments); // the class's own `Theme` namespaced directory
 
-        if (!is_string($module) || '' === $module) {
+        if ([] === $segments) {
             return false;
         }
 
         return self::dirShipsHighlightMarkers(
-            AppPaths::instance()->src('Modules' . DIRECTORY_SEPARATOR . $module),
+            AppPaths::instance()->src('Modules' . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $segments)),
         );
     }
 
