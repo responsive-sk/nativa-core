@@ -250,8 +250,20 @@ final class NameOwnershipContractTest extends TestCase
      * 'email'`, so the gate charged every place in the tree that spells either
      * word. The fix was the vocabulary, an enum whose cases own their tokens,
      * not the ceiling.
+     *
+     * 404 → 410 with the Nativa theme, six places and no new duplicate. Three
+     * are the theme's own name, once per method that answers with it (`name`,
+     * `bundle`, `jsKey`) — the same three Jednotka, Mono and Griffe spell,
+     * because a theme names itself rather than reading the resolver's default.
+     * One is the key that enters the theme in `WITHOUT_HIGHLIGHT`: a gate that
+     * exempts a theme has to name the theme it exempts, exactly as the `kernel`
+     * entry does. The last two spell `Blog` as a page heading — the theme's
+     * index heading and the test asserting it. That word is a module constant's
+     * value by coincidence, the way the renderer's `article` is, and a theme
+     * that imported the Blog module for the string would tie a presentation to
+     * a feature module it must render without.
      */
-    private const int MAX_LITERAL_PLACES = 404;
+    private const int MAX_LITERAL_PLACES = 410;
 
     /**
      * Rule 3 — measured 2026-10-17 on the tracked scope.
@@ -326,8 +338,15 @@ final class NameOwnershipContractTest extends TestCase
      * `RATE_LIMIT`/`RATE_WINDOW` own one fact each. Four of those names the
      * tree already held (`PATTERN` twice, `RATE_LIMIT`, `RATE_WINDOW`), which
      * is why the distinct-name count moved by eleven rather than fifteen.
+     *
+     * 287 with the Nativa theme: `JS_BUDGET` and `CSS_BUDGET` are the
+     * freeze-test idiom every bundle already spends on its own two numbers, and
+     * `THEME` is the name each theme test builds — Boson, Mono and
+     * DocsSearchTest already hold that spelling for the same fact. None of the
+     * three is a second name for a value that had one, which is why the
+     * distinct-name ceiling did not move with them.
      */
-    private const int MAX_DECLARATIONS = 284;
+    private const int MAX_DECLARATIONS = 287;
 
     /**
      * 203 → 204 with MAX_DECLARATIONS: `ModuleTreeState::IGNORED` is a name as

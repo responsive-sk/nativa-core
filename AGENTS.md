@@ -1,7 +1,8 @@
 # AGENTS.md
 
-This tree is **generated** by `bin/build/export-core.sh` in the private source
-repository. `.nativa-core-export.json` names the commit it came from.
+This tree is **generated** by `bin/build/export-core.sh` in
+[`responsive-sk/nativa-php-core`](https://github.com/responsive-sk/nativa-php-core).
+`.nativa-core-export.json` names the commit it came from.
 
 Do not edit a file here. A change belongs in the source repository, where the
 gates live; the next publish replaces this tree. An edit made here is lost and,

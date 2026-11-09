@@ -1,8 +1,9 @@
 # Nativa Core
 
-**This tree is generated.** Every file here is exported from a private source
-repository at a recorded commit; `.nativa-core-export.json` names that commit.
-A hand edit here is overwritten by the next export — send changes upstream.
+**This tree is generated.** Every file here is exported from
+[`responsive-sk/nativa-php-core`](https://github.com/responsive-sk/nativa-php-core)
+at a recorded commit; `.nativa-core-export.json` names it. A hand edit here is
+overwritten by the next export. Change the source repository instead.
 
 ## What it is
 
@@ -15,11 +16,12 @@ The kernel and the catalogue, with no site attached:
   drives.
 - `src/Modules/KernelTheme` and `src/Themes/kernel`: the default presentation
   that needs no build.
-- `modules/`: 27 catalogued modules, six of them themes. This is a catalogue,
+- `modules/`: 26 catalogued modules, six of them themes. This is a catalogue,
   not a running set. `src/Modules/<Name>` (the installed copy) is gitignored.
 - `Frontend/packages/`: the pnpm workspace that builds the theme bundles.
   `public/dist/griffe`, `public/dist/mono` and `public/dist/nativa` are
-  committed frozen builds; the rest is built by `make assets`.
+  committed frozen builds; the
+  rest is built by `make assets`.
 
 The boundary rule is one sentence: a kernel file may not import a module, and a
 module may import the kernel. `make mago-guard` fails on the other direction.
@@ -60,8 +62,8 @@ make assets     # pnpm workspace → public/dist/<theme>
 ```
 
 `make assets` needs pnpm and network access for the first install. A deployment
-does not: the frozen bundles are committed, and the rest can be shipped from a
-build.
+does not: the two frozen bundles are committed, and the rest can be shipped from
+a build.
 
 ## Gates
 
@@ -79,12 +81,6 @@ make dist-check           # a clean clone builds a green artifact
 `make core-export`, `make themes-check` and `make lekalo-check` do not exist
 here. They guard the source repository's relationship with a sibling checkout
 and its own model; the export carries neither.
-
-## Contributing
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md), including the one rule that changes
-how a pull request works here: this tree is generated. Participation is covered
-by [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## License
 

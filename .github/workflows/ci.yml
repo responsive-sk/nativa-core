@@ -195,7 +195,7 @@ jobs:
       # The catalogue's tests query the schema, they do not only name its
       # classes: installed and unmigrated, the suite answers `no such table:
       # settings` before it reaches a single assertion. The kernel-only job
-      # above needs no such step because the module tests skip there.
+      # above needs no such step because its module tests skip there.
       - name: Create the schema the catalogue declares
         run: php bin/cms migrate
 
