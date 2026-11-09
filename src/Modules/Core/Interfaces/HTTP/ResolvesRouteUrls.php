@@ -60,7 +60,12 @@ trait ResolvesRouteUrls
      */
     protected function hasRoute(string $name): bool
     {
-        return $this->router()->hasRouteName($name);
+        $router = $this->router();
+
+        // Name lookup lives on the kernel Router, not on the two-method
+        // contract (`match`, `url`): a test double that only answers those two
+        // cannot confirm a name, and hiding an action is the safe answer.
+        return $router instanceof Router && $router->hasRouteName($name);
     }
 
     /**
