@@ -208,6 +208,28 @@ final class Router implements RouterInterface
         return isset($this->nameIndex[$name]);
     }
 
+    /**
+     * Does a GET route serve this exact path?
+     *
+     * Used by site-level text surfaces before they advertise a module's URL:
+     * an installed module answers yes, a kernel-only tree answers no, and the
+     * surface omits the link instead of teaching a crawler a 404.
+     */
+    public function hasPath(string $path): bool
+    {
+        foreach ($this->routes as $entry) {
+            if (!in_array(strtoupper($entry['route']->method), ['GET', '*'], true)) {
+                continue;
+            }
+
+            if (null !== $this->matchPath($entry['route']->path, $path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function discover(): void
     {
         if ($this->useCache && '' !== $this->cacheFile && is_file($this->cacheFile)) {

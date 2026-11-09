@@ -7,6 +7,7 @@ namespace Modules\Core\Interfaces\HTTP\Actions;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
+use Modules\Core\Interfaces\HTTP\Router;
 
 /**
  * LlmsTxtAction — serves /llms.txt for LLM-friendly site overview.
@@ -16,7 +17,7 @@ use Modules\Core\Interfaces\HTTP\Attributes\Route;
  * key content sections in both locales.
  */
 #[Route(path: '/llms.txt', method: 'GET', name: 'llms-txt')]
-final class LlmsTxtAction
+final readonly class LlmsTxtAction
 {
     /**
      * llms.txt body — Markdown link placeholders like (/sk/blog), made
@@ -44,19 +45,27 @@ final class LlmsTxtAction
 
     /**
      * @var list<string> paths linked from TEMPLATE (Markdown placeholder form).
-     *                   Only routes the kernel serves: advertising a module's route here
+     *                   Only routes this tree serves: advertising a module's route here
      *                   would teach a crawler to find a 404 (same rule as the sitemap).
      */
     private const array LINKED_PATHS = [
         '/',
-        '/docs',
         '/sitemap.xml',
         '/robots.txt',
     ];
 
+    public function __construct(private ?Router $router = null)
+    {
+    }
+
     public function handle(Request $request): Response
     {
-        $content = $this->absolutizeLinks($request->absoluteUrl(''), self::TEMPLATE);
+        $paths = $this->linkedPaths();
+        $template = in_array('/docs', $paths, true)
+            ? self::TEMPLATE
+            : str_replace("- [Documentation](/docs): guides published in this deployment\n", '', self::TEMPLATE);
+
+        $content = $this->absolutizeLinks($request->absoluteUrl(''), $template, $paths);
 
         $response = new Response($content);
         $response->setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -65,17 +74,35 @@ final class LlmsTxtAction
     }
 
     /**
-     * Replace the Markdown link placeholders in TEMPLATE with absolute URLs.
+     * The fixed surfaces, plus docs only when the installed module routes it.
+     *
+     * @return list<string>
      */
-    private function absolutizeLinks(string $host, string $template): string
+    private function linkedPaths(): array
+    {
+        $paths = self::LINKED_PATHS;
+
+        if (null !== $this->router && $this->router->hasPath('/docs')) {
+            array_splice($paths, 1, 0, ['/docs']);
+        }
+
+        return $paths;
+    }
+
+    /**
+     * Replace the Markdown link placeholders in TEMPLATE with absolute URLs.
+     *
+     * @param list<string> $paths
+     */
+    private function absolutizeLinks(string $host, string $template, array $paths): string
     {
         $search = array_map(
             static fn (string $path): string => '(' . $path . ')',
-            self::LINKED_PATHS,
+            $paths,
         );
         $replace = array_map(
             static fn (string $path): string => '(' . $host . $path . ')',
-            self::LINKED_PATHS,
+            $paths,
         );
 
         return str_replace($search, $replace, $template);

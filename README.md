@@ -18,7 +18,8 @@ The kernel and the Nativa theme, with no site attached:
   that needs no build.
 - `modules/`: two catalogued modules — `Themes/Nativa` and `Settings`, the theme
   vote. This is a catalogue, not a running set. `src/Modules/<Name>` (the
-  installed copy) is gitignored.
+  installed copy) is gitignored. Docs is a module in the source repository and
+  is pruned here: this tree carries no guides, and `/docs` answers 404.
 - `Frontend/packages/`: the pnpm workspace that builds the Nativa bundle.
   `public/dist/nativa` is a committed frozen build; `make assets` rebuilds it.
 

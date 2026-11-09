@@ -45,6 +45,7 @@ final class KernelOnlyBootTest extends TestCase
     public static function surfaces(): iterable
     {
         $gated = null !== AuthProviderRegistry::first();
+        $docs = is_dir(APP_BASE_PATH . '/src/Modules/Docs') ? 200 : 404;
 
         yield 'homepage'   => ['GET', '/',            200];
 
@@ -52,7 +53,7 @@ final class KernelOnlyBootTest extends TestCase
 
         yield 'robots'     => ['GET', '/robots.txt',  200];
 
-        yield 'docs index' => ['GET', '/docs',        200];
+        yield 'docs index' => ['GET', '/docs',        $docs];
 
         yield 'unknown'    => ['GET', '/nope',        404];
 

@@ -151,7 +151,7 @@ final class Kernel
      * they hold the router. The parameter is optional in the action's own
      * signature — a test can build one by hand — and the Kernel fills it by
      * TYPE, the same way it recognises `RouterInterface` here. Every other
-     * optional parameter keeps its default (`?CloudinaryApi`, `?DocsCatalog`),
+     * optional parameter keeps its default (`?CloudinaryApi`),
      * so an action without a router is constructed exactly as before.
      *
      * @param class-string $actionClass

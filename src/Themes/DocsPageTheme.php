@@ -7,8 +7,8 @@ namespace Themes;
 /**
  * DocsPageTheme — the optional `/docs` surfaces a `ThemeModule` may compose.
  *
- * The docs routes live in the kernel (`DocsIndexAction`, `DocsPageAction`) and
- * used to render a generic list and article body in the theme's class PREFIX
+ * The docs routes live in the Docs module (`DocsIndexAction`, `DocsPageAction`)
+ * and used to render a generic list and article body in the theme's class PREFIX
  * alone — `{prefix}-section`, `{prefix}-section__title`, `{prefix}-article__body`.
  * A theme whose vocabulary has no `-section` block (boson's does not) therefore
  * served an unstyled document under a fully styled header, and the fix belongs
@@ -20,9 +20,9 @@ namespace Themes;
  * otherwise, so no installed theme changes behaviour by not answering.
  *
  * The actions keep everything a theme must not decide: the catalogue boundary
- * (`DocsCatalog`), the Markdown pipeline (`MarkdownRenderer` +
- * `MarkdownBlockContext`), the `lang`/`noindex` head flags and the
- * `FrontendLayout` wrapper. The theme receives a guide that has already been
+ * (`Modules\Docs\Application\Services\DocsCatalog`), the Markdown pipeline
+ * (`MarkdownRenderer` + `MarkdownBlockContext`), the `lang`/`noindex` head flags
+ * and the `FrontendLayout` wrapper. The theme receives a guide that has already been
  * resolved, rendered and escaped where escaping applies.
  */
 interface DocsPageTheme

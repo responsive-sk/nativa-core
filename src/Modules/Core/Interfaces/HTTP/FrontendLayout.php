@@ -78,27 +78,32 @@ final class FrontendLayout
     /**
      * Render the public page shell.
      *
-     * @param array<string, string>|null              $localeLinks    Optional explicit
-     *                                                                locale→URL map (e.g. article translations). When provided the locale
-     *                                                                switcher renders exactly these links (a missing locale = no link),
-     *                                                                instead of prefixing the current path for every available locale.
-     * @param array<string, string>|null              $hreflangLinks  Optional
-     *                                                                language code → absolute URL map for <link rel="alternate" hreflang>
-     *                                                                tags in <head> (SEO — translated pages announce their alternates;
-     *                                                                x-default points at the default locale version). Rendered only when
-     *                                                                provided — single-language pages emit nothing.
-     * @param string|null                             $canonicalUrl   Optional absolute canonical URL for <link rel="canonical">
-     *                                                                (SEO — the preferred version of a translated page, e.g. the
-     *                                                                default-locale SK article). Rendered only when provided.
-     * @param string|null                             $ogType         Optional Open Graph type ('website'|'article'|'profile');
-     *                                                                defaults to 'website'. Also drives twitter:card sizing.
-     * @param string|null                             $ogImage        Optional absolute Open Graph / twitter image URL (self-hosted
-     *                                                                or the allowed Cloudinary cover origin). Omitted when null.
-     * @param string|null                             $structuredData Optional pre-encoded JSON-LD blob rendered in an
-     *                                                                <script type="application/ld+json"> (StructuredDataService).
-     * @param bool                                    $noindex        When true emits <meta name="robots" content="noindex, nofollow">
-     *                                                                (admin/debug/error/auth pages must not be indexed).
-     * @param array{atom?: string, rss?: string}|null $feedLinks      RSS/Atom feed auto-discovery links for <head>.
+     * @param array<string, string>|null              $localeLinks       Optional explicit
+     *                                                                   locale→URL map (e.g. article translations). When provided the locale
+     *                                                                   switcher renders exactly these links (a missing locale = no link),
+     *                                                                   instead of prefixing the current path for every available locale.
+     * @param array<string, string>|null              $hreflangLinks     Optional
+     *                                                                   language code → absolute URL map for <link rel="alternate" hreflang>
+     *                                                                   tags in <head> (SEO — translated pages announce their alternates;
+     *                                                                   x-default points at the default locale version). Rendered only when
+     *                                                                   provided — single-language pages emit nothing.
+     * @param string|null                             $canonicalUrl      Optional absolute canonical URL for <link rel="canonical">
+     *                                                                   (SEO — the preferred version of a translated page, e.g. the
+     *                                                                   default-locale SK article). Rendered only when provided.
+     * @param string|null                             $ogType            Optional Open Graph type ('website'|'article'|'profile');
+     *                                                                   defaults to 'website'. Also drives twitter:card sizing.
+     * @param string|null                             $ogImage           Optional absolute Open Graph / twitter image URL (self-hosted
+     *                                                                   or the allowed Cloudinary cover origin). Omitted when null.
+     * @param string|null                             $structuredData    Optional pre-encoded JSON-LD blob rendered in an
+     *                                                                   <script type="application/ld+json"> (StructuredDataService).
+     * @param bool                                    $noindex           When true emits <meta name="robots" content="noindex, nofollow">
+     *                                                                   (admin/debug/error/auth pages must not be indexed).
+     * @param array{atom?: string, rss?: string}|null $feedLinks         RSS/Atom feed auto-discovery links for <head>.
+     * @param string|null                             $searchAction      Optional destination for the theme's
+     *                                                                   header search field. When set, the field's action (and its copy) is
+     *                                                                   rewritten on this page; when null, the theme's markup is untouched.
+     * @param string                                  $searchPlaceholder Copy for the rewritten field.
+     * @param string                                  $searchLabel       Label copy for the rewritten field.
      */
     public static function render(
         string $title,
@@ -116,6 +121,9 @@ final class FrontendLayout
         bool $noindex = false,
         ?array $feedLinks = null,
         ?string $theme = null,
+        ?string $searchAction = null,
+        string $searchPlaceholder = 'Search',
+        string $searchLabel = 'Search',
     ): string {
         // The site's own name comes first: a provider that knows it answers
         // through the port, and the caller's literal is the last resort (a
@@ -135,7 +143,12 @@ final class FrontendLayout
 
         $bundle = $themeModule->name();
         $jsKey = $themeModule->jsKey();
-        $pageChrome = self::routeSearch($themeModule->header($shellContext), $currentPath)
+        $pageChrome = self::routeSearch(
+            $themeModule->header($shellContext),
+            $searchAction,
+            $searchPlaceholder,
+            $searchLabel,
+        )
             . $themeModule->pageWrap($content)
             . $themeModule->footer($shellContext);
 
@@ -214,7 +227,7 @@ final class FrontendLayout
      * theme's: Boson ships a field in its header and a second behind the menu
      * toggle, while Jednotka, Erik, Griffe and Mono ship none at all. A kernel
      * that assumed every shell has one left those four themes with no way into
-     * `GET /docs?q=` from the page.
+     * a module's `?q=` surface from the page.
      *
      * The field is recognised by `name="q"`, the name every destination in this
      * tree consumes. A theme that names its input something else is read as "no
@@ -234,42 +247,61 @@ final class FrontendLayout
     }
 
     /**
-     * Point the shell's search field at the surface the reader is standing on.
+     * Point the shell's search field at the surface the caller names.
      *
      * The header's field is the THEME's markup, and a theme here is a byte-copy
      * of `nativa-themes` — `make themes-check` fails a hand edit, and the next
-     * `themes-sync` would overwrite it. Routing is the kernel's decision anyway:
-     * `/docs` answers `GET /docs?q=` since the guides learnt to search, so a
-     * reader on a guide who types into the header must land in the guides rather
-     * than in the blog's corpus, which never contained them.
+     * `themes-sync` would overwrite it. Routing is the caller's decision: a
+     * module that owns a `?q=` surface passes its own action and copy, so this
+     * method needs no knowledge of which module that is.
      *
-     * The rewrite runs on the theme's own output and matches exact attributes, so
-     * a theme whose markup differs is left alone rather than half-edited: a miss
-     * changes nothing, and the field keeps the destination it shipped with.
+     * The rewrite is scoped to the form carrying `name="q"` and matches exact
+     * copy, so a theme whose markup differs is left alone rather than
+     * half-edited: a miss changes nothing, and the field keeps the destination
+     * it shipped with.
      */
-    private static function routeSearch(string $header, string $currentPath): string
-    {
-        if (!str_starts_with($currentPath, '/docs')) {
+    private static function routeSearch(
+        string $header,
+        ?string $searchAction,
+        string $searchPlaceholder,
+        string $searchLabel,
+    ): string {
+        if (null === $searchAction) {
             return $header;
         }
 
-        return str_replace(
-            [
-                'action="/blog"',
-                'placeholder="Search articles"',
-                '>Search articles</label>',
-                'placeholder="Search"',
-                '>Search</label>',
-            ],
-            [
-                'action="/docs"',
-                'placeholder="Search guides"',
-                '>Search guides</label>',
-                'placeholder="Search guides"',
-                '>Search guides</label>',
-            ],
+        return preg_replace_callback(
+            '#<form\b[^>]*>.*?</form>#is',
+            static function (array $match) use ($searchAction, $searchPlaceholder, $searchLabel): string {
+                if (!str_contains($match[0], 'name="q"')) {
+                    return $match[0];
+                }
+
+                $form = preg_replace(
+                    '/(<form\b[^>]*\baction=")[^"]*(")/i',
+                    '${1}' . self::e($searchAction) . '${2}',
+                    $match[0],
+                    1,
+                ) ?? $match[0];
+
+                return str_replace(
+                    [
+                        'placeholder="Search articles"',
+                        '>Search articles</label>',
+                        'placeholder="Search"',
+                        '>Search</label>',
+                    ],
+                    [
+                        'placeholder="' . self::e($searchPlaceholder) . '"',
+                        '>' . self::e($searchLabel) . '</label>',
+                        'placeholder="' . self::e($searchPlaceholder) . '"',
+                        '>' . self::e($searchLabel) . '</label>',
+                    ],
+                    $form,
+                );
+            },
             $header,
-        );
+        ) ?? $header;
     }
 
     /** Noindex robots meta — admin/debug/error/auth pages must not be indexed. */
@@ -726,7 +758,7 @@ final class FrontendLayout
      * Why it lives here rather than in a theme: the themes are a copy of
      * `nativa-themes` and a hand edit there is drift the gate reports
      * (`make themes-check`), while the surfaces that need the layout are the
-     * kernel's own (`/docs`) and a module's (`/blog/<slug>`). A rule five themes
+     * a docs module's (`/docs`) and a blog module's (`/blog/<slug>`). A rule five themes
      * must each carry — and a sixth silently misses — belongs on the calling
      * side, once.
      *

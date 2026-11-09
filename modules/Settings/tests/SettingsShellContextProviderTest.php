@@ -133,9 +133,9 @@ final class SettingsShellContextProviderTest extends TestCase
         $provider = new SettingsShellContextProvider();
 
         $this->assertSame(
-            ['Docs'],
+            [],
             self::labels($provider->navigation('footer', '/')),
-            'The footer slot must answer the rows seeded for it.',
+            'The footer slot must answer only rows seeded for it; docs belongs to a module.',
         );
 
         $this->assertSame([], $provider->navigation('sidebar', '/'), 'A slot with no rows is the port\'s no-menu answer.');
@@ -151,7 +151,7 @@ final class SettingsShellContextProviderTest extends TestCase
     public function theSeedAdvertisesNoRouteTheKernelDoesNotServe(): void
     {
         $this->assertSame(
-            ['/', '/blog', '/docs', '/mark'],
+            ['/', '/blog', '/mark'],
             $this->seededPublicHrefs(),
             'A seeded menu item points at a path this tree does not serve.',
         );

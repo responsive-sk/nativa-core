@@ -413,7 +413,15 @@ else
     check /            200
     check /sitemap.xml 200
     check /robots.txt  200
-    check /docs        200
+
+    # Docs is a module: a source dist that installed it serves /docs, an export
+    # that pruned the module does not. The status follows the slice, not a guess.
+    if [ -d "$DIST_DIR/src/Modules/Docs" ]; then
+        check /docs 200
+    else
+        check /docs 404
+    fi
+
     check /nope        404
 
     # Static art a page DEPENDS on, not just the routes. `favicon.svg` is linked

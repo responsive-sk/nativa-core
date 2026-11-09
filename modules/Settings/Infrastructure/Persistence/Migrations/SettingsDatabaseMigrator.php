@@ -25,9 +25,10 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
      * fresh install, the seed used to ship `Privacy -> /privacy` and
      * `Cookies -> /cookies`, and neither path exists in this tree (both 404).
      * A navbar that offers a dead end is the same defect the shell provider
-     * filters admin links for, so the footer seeds the one site-level route the
-     * kernel owns, `/docs`. A deployment that has its own legal pages adds
-     * them in `/mark` (Navigation) — the seed is a starting point, not a policy.
+     * filters admin links for. The footer seeds no route: `/docs` belongs to
+     * the Docs module, and a module's link is added in `/mark` (Navigation) by
+     * the deployment that installs it — the seed is a starting point, not a
+     * policy.
      *
      * @var list<array{0: string, 1: string, 2: string, 3: int, 4?: string}>
      */
@@ -35,7 +36,6 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
         ['Home', '/', 'header', 10],
         ['Articles', '/blog', 'header', 15],
         ['Admin', '/mark', 'header', 20],
-        ['Docs', '/docs', 'footer', 10],
         // Admin panel navigation (location = 'admin') — label, href, location, sort, icon
         ['Dashboard', '/mark', 'admin', 10, 'dashboard'],
         ['Notifications', '/mark/notifications', 'admin', 15, 'bell'],
