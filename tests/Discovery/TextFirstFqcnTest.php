@@ -6,9 +6,10 @@ namespace Tests\Discovery;
 
 use Modules\Core\Application\Services\AuthProviderRegistry;
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
-use Modules\Core\Interfaces\HTTP\Markdown\MarkdownBlockRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use Modules\Core\Interfaces\HTTP\ThemeRegistry;
+use Modules\Markdown\Interfaces\HTTP\Markdown\MarkdownBlockRegistry;
+use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +18,7 @@ use PHPUnit\Framework\TestCase;
  * TextFirstFqcnTest (Boot 23 follow-up) — the discovery heuristic, and the prose
  * that used to defeat it.
  *
- * Four registries find their implementations the same text-first way: read the
+ * The registries find their implementations the same text-first way: read the
  * file, take the namespace from it, take the type name from it, and only then
  * load anything. That is deliberate — it is what keeps discovery from loading
  * every class in the tree just to find out what they are.
@@ -33,7 +34,7 @@ use PHPUnit\Framework\TestCase;
  * is a line that begins with optional modifiers and the keyword — prose cannot
  * be one, because prose has something else first.
  *
- * One test file for all five registries on purpose: they hold five copies of the
+ * One test file for all the registries on purpose: they hold copies of the
  * same resolver, and this is what keeps a future edit from fixing one and
  * leaving the other four behind — the fifth (`AuthProviderRegistry`) was
  * rebuilt on this very shape when attribute discovery returned.
@@ -47,7 +48,23 @@ final class TextFirstFqcnTest extends TestCase
         MiddlewareRegistry::class,
         MarkdownBlockRegistry::class,
         AuthProviderRegistry::class,
+        NavBadgeRegistry::class,
     ];
+
+    /**
+     * The registries present in this checkout. The nav badge registry is a
+     * module; a kernel-only export must still exercise the four kernel copies
+     * rather than fatal on a class the export deliberately does not ship.
+     *
+     * @return list<class-string>
+     */
+    private static function registries(): array
+    {
+        return array_values(array_filter(
+            self::REGISTRIES,
+            static fn (string $registry): bool => class_exists($registry),
+        ));
+    }
 
     /**
      * A file-level docblock that names both keywords before either declaration.
@@ -80,7 +97,7 @@ final class TextFirstFqcnTest extends TestCase
     #[Test]
     public function proseBeforeTheDeclarationCannotBecomeTheTypeName(): void
     {
-        foreach (self::REGISTRIES as $registry) {
+        foreach (self::registries() as $registry) {
             $this->assertSame(
                 self::EXPECTED,
                 self::resolve($registry, self::PROSE_BEFORE_DECLARATION),
@@ -92,7 +109,7 @@ final class TextFirstFqcnTest extends TestCase
     #[Test]
     public function proseMentioningANamespaceCannotBecomeTheNamespace(): void
     {
-        foreach (self::REGISTRIES as $registry) {
+        foreach (self::registries() as $registry) {
             $this->assertStringStartsWith(
                 'Modules\Demo\Interfaces\HTTP\\',
                 (string) self::resolve($registry, self::PROSE_BEFORE_DECLARATION),
@@ -130,7 +147,7 @@ final class TextFirstFqcnTest extends TestCase
     #[DataProvider('declarations')]
     public function aRealDeclarationStillResolves(string $source): void
     {
-        foreach (self::REGISTRIES as $registry) {
+        foreach (self::registries() as $registry) {
             $this->assertSame('Demo\Thing', self::resolve($registry, $source), $registry);
         }
     }
@@ -140,7 +157,7 @@ final class TextFirstFqcnTest extends TestCase
     {
         $source = "<?php\n\n/** A file whose docblock talks about a class of things. */\nnamespace Demo;\n";
 
-        foreach (self::REGISTRIES as $registry) {
+        foreach (self::registries() as $registry) {
             $this->assertNull(
                 self::resolve($registry, $source),
                 $registry . ' invented a type out of prose instead of answering null.',
