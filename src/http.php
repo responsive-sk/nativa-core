@@ -50,6 +50,7 @@ use Modules\Core\Infrastructure\Bootstrap\Bootstrapper;
 use Modules\Core\Infrastructure\Env;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Interfaces\HTTP\Kernel;
+use Modules\Core\Interfaces\HTTP\Middleware\AdminUnavailableMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\AuthMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\PageCacheMiddleware;
@@ -217,18 +218,21 @@ function http_kernel(): Kernel
 
     // The admin gate: the provider is DISCOVERED (`#[AsAuthProvider]`), so this
     // file names no module class for auth at all. `first()` returns null in a
-    // tree with no provider module, and null wires nothing — absence removes the
-    // middleware, not the request (the port's own rule), which is what keeps
-    // /mark a 404 kernel-only instead of an unguarded 200. The kernel-level
-    // tests ask the same registry the same question, so the pipeline the suite
-    // proves and the pipeline this file runs cannot drift apart.
+    // tree with no provider module, and null wires no AuthMiddleware; the
+    // kernel then answers 404 for the admin prefix itself. Absence of a
+    // provider means the surface does not exist, and that must hold even when a
+    // module still routes `/mark` — measured 2026-11-09: `Cardboard` without
+    // `Users` answered 200 to a guest because the gate was simply never wired.
+    // The kernel-level tests ask the same registry the same question, so the
+    // pipeline the suite proves and the pipeline this file runs cannot drift.
     $authProvider = AuthProviderRegistry::first();
 
     if (null !== $authProvider) {
         $kernel->addMiddleware(new AuthMiddleware($authProvider, $securityEvents));
         error_log('[auth] wired ' . $authProvider::class);
     } else {
-        error_log('[auth] absent — no provider module');
+        $kernel->addMiddleware(new AdminUnavailableMiddleware());
+        error_log('[auth] absent — no provider module, admin paths answer 404');
     }
 
     return $kernel;

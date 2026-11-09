@@ -118,6 +118,7 @@ final class KernelShapeTest extends TestCase
         'src/Modules/Core/Interfaces/HTTP/Kernel.php',
         'src/Modules/Core/Interfaces/HTTP/Markdown/MarkdownBlockContext.php',
         'src/Modules/Core/Interfaces/HTTP/Markdown/MarkdownBlockRegistry.php',
+        'src/Modules/Core/Interfaces/HTTP/Middleware/AdminUnavailableMiddleware.php',
         'src/Modules/Core/Interfaces/HTTP/Middleware/AuthMiddleware.php',
         'src/Modules/Core/Interfaces/HTTP/Middleware/CsrfMiddleware.php',
         'src/Modules/Core/Interfaces/HTTP/Middleware/MiddlewareRegistry.php',
@@ -148,8 +149,15 @@ final class KernelShapeTest extends TestCase
      * the `ok`/`errors` answer four services used to spell as an array, with
      * the "`ok` ⇒ no errors" invariant now in its constructors. It is a
      * `contract` row in docs/kernel-shape.md and stores nothing.
+     *
+     * 66 → 67 is the admin-prefix round: `AdminUnavailableMiddleware` answers
+     * 404 for the admin prefix when no auth provider is wired. The kernel owns
+     * the prefix, so the kernel is the only layer that can refuse a panel a
+     * module still routes; measured 2026-11-09, Cardboard without Users served
+     * `/mark` to a guest because the gate was never wired. One `runtime` row,
+     * three importers (http.php and two tests).
      */
-    private const int MAX_APPROVED = 66;
+    private const int MAX_APPROVED = 67;
 
     /**
      * Rule 1: every `.php` file under `src/Modules/Core` is an interface, enum

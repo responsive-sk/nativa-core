@@ -7,6 +7,7 @@ namespace Tests\Boot;
 use Modules\Core\Application\Services\AuthProviderRegistry;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Interfaces\HTTP\Kernel;
+use Modules\Core\Interfaces\HTTP\Middleware\AdminUnavailableMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\AuthMiddleware;
 use Modules\Core\Interfaces\HTTP\Router;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -22,16 +23,17 @@ use PHPUnit\Framework\TestCase;
  *
  * `/mark` is the one path whose expected status depends on operator state,
  * and the dependency is written down instead of assumed. Two things must be
- * present for the admin surface to exist: a module that ROUTES it (Cardboard)
- * and a module that PROVIDES the auth port (Users — its `#[AsAuthProvider]`
- * `UsersAuthProvider` is DISCOVERED by `AuthProviderRegistry`, and the
- * middleware is wrapped around what it finds, which is the same call
- * `src/http.php` makes). Neither → 404 (no route — not 403, not 500). Router but no
- * provider → 200, which is the unauthenticated admin serving this file was
- * written to rule out. Both → 302 to the login: the gate answers before
- * dispatch, so a guest never reaches a route at all. The kernel rule below
- * asserts the first case separately: a path the kernel has no route for is
- * never Forbidden.
+ * present for the admin surface to exist: a module that PROVIDES the auth port
+ * (Users — its `#[AsAuthProvider]` `UsersAuthProvider` is DISCOVERED by
+ * `AuthProviderRegistry`) and, when it is absent, the kernel answers the admin
+ * prefix with 404 through `AdminUnavailableMiddleware`. Without a provider the
+ * surface does not exist even when a module still ROUTES it: measured
+ * 2026-11-09, `Cardboard` without `Users` answered 200 to a guest because the
+ * gate was never wired, which is the defect this file was written to rule out.
+ * With a provider → 302 to the login: the gate answers before dispatch, so a
+ * guest never reaches a route at all. The kernel rule below asserts the
+ * no-provider case separately: a path the kernel has no route for is never
+ * Forbidden, and an admin path with a route but no gate is not 200 either.
  */
 final class KernelOnlyBootTest extends TestCase
 {
@@ -42,7 +44,6 @@ final class KernelOnlyBootTest extends TestCase
      */
     public static function surfaces(): iterable
     {
-        $adminInstalled = is_dir(APP_BASE_PATH . '/src/Modules/' . self::ADMIN_MODULE);
         $gated = null !== AuthProviderRegistry::first();
 
         yield 'homepage'   => ['GET', '/',            200];
@@ -59,7 +60,7 @@ final class KernelOnlyBootTest extends TestCase
         // before routing, so an anonymous request is 302 whether or not the
         // route exists — and never the 200 that served the admin dashboard
         // to a guest (the measured defect, plan fix-mark-access-control).
-        yield 'admin'      => ['GET', '/mark',        $gated ? 302 : ($adminInstalled ? 200 : 404)];
+        yield 'admin'      => ['GET', '/mark',        $gated ? 302 : 404];
     }
 
     #[Test]
@@ -77,6 +78,10 @@ final class KernelOnlyBootTest extends TestCase
 
         if (null !== $provider) {
             $kernel->addMiddleware(new AuthMiddleware($provider));
+        } else {
+            // The composition root's other branch: with no provider the admin
+            // prefix does not exist, even if a module routes it.
+            $kernel->addMiddleware(new AdminUnavailableMiddleware());
         }
 
         $response = $kernel->handle(Request::create($method, $uri));

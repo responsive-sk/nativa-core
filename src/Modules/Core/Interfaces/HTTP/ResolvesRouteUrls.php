@@ -51,6 +51,19 @@ trait ResolvesRouteUrls
     }
 
     /**
+     * Whether a route name exists in this tree.
+     *
+     * A template that links to another module's admin page must not assume the
+     * module is installed: `url()` throws on an unknown name. Measured
+     * 2026-11-09: `Cardboard` alone answered `/mark` with 500 because its quick
+     * actions resolved `articles.create` and `Blog` was absent.
+     */
+    protected function hasRoute(string $name): bool
+    {
+        return $this->router()->hasRouteName($name);
+    }
+
+    /**
      * The renderer's copy of the same seam: templates call `$url('mark.x')`.
      *
      * @return \Closure(string, array<string, string|int>): string
