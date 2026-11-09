@@ -8,8 +8,6 @@ use Modules\Core\Application\Services\AuthProviderRegistry;
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use Modules\Core\Interfaces\HTTP\ThemeRegistry;
-use Modules\Markdown\Interfaces\HTTP\Markdown\MarkdownBlockRegistry;
-use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -46,15 +44,17 @@ final class TextFirstFqcnTest extends TestCase
         ShellContextProviderRegistry::class,
         ThemeRegistry::class,
         MiddlewareRegistry::class,
-        MarkdownBlockRegistry::class,
+        'Modules\\Markdown\\Interfaces\\HTTP\\Markdown\\MarkdownBlockRegistry',
         AuthProviderRegistry::class,
-        NavBadgeRegistry::class,
+        'Modules\\Navigation\\Infrastructure\\Registry\\NavBadgeRegistry',
     ];
 
     /**
-     * The registries present in this checkout. The nav badge registry is a
-     * module; a kernel-only export must still exercise the four kernel copies
-     * rather than fatal on a class the export deliberately does not ship.
+     * The registries present in this checkout. Markdown and Navigation are
+     * modules; a kernel-only export must still exercise the four kernel copies
+     * rather than fatal on a class the export deliberately does not ship. The
+     * two optional names stay strings: `::class` would make PHPStan resolve a
+     * class the export does not carry, before the runtime filter can skip it.
      *
      * @return list<class-string>
      */
