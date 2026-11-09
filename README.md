@@ -18,8 +18,8 @@ The kernel and the catalogue, with no site attached:
 - `modules/`: 27 catalogued modules, six of them themes. This is a catalogue,
   not a running set. `src/Modules/<Name>` (the installed copy) is gitignored.
 - `Frontend/packages/`: the pnpm workspace that builds the theme bundles.
-  `public/dist/griffe` and `public/dist/mono` are committed frozen builds; the
-  rest is built by `make assets`.
+  `public/dist/griffe`, `public/dist/mono` and `public/dist/nativa` are
+  committed frozen builds; the rest is built by `make assets`.
 
 The boundary rule is one sentence: a kernel file may not import a module, and a
 module may import the kernel. `make mago-guard` fails on the other direction.
@@ -60,8 +60,8 @@ make assets     # pnpm workspace → public/dist/<theme>
 ```
 
 `make assets` needs pnpm and network access for the first install. A deployment
-does not: the two frozen bundles are committed, and the rest can be shipped from
-a build.
+does not: the frozen bundles are committed, and the rest can be shipped from a
+build.
 
 ## Gates
 

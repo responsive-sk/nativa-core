@@ -1,0 +1,11 @@
+{
+  "src/nativa.ts": {
+    "file": "assets/nativa-D2CSQmUm.js",
+    "name": "nativa",
+    "src": "src/nativa.ts",
+    "isEntry": true,
+    "css": [
+      "assets/nativa-CB_wlZU1.css"
+    ]
+  }
+}

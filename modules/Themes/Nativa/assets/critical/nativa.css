@@ -550,6 +550,17 @@ body.nativa-shell {
     color: var(--na-ink);
 }
 
+/* The scrollspy's answer (na-toc-scrollspy.ts). The inset shadow paints the
+   rail's own line where the active link sits, so the marker costs no layout
+   and the list keeps its single border. `aria-current` is the no-JS half: a
+   reader landing on a fragment still sees which section the link belongs to. */
+.na-toc__link--active,
+.na-toc__link[aria-current="location"] {
+    color: var(--na-ink);
+    font-weight: 500;
+    box-shadow: inset 1px 0 0 var(--na-ink);
+}
+
 .na-docs__body {
     max-width: none;
 }

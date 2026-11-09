@@ -45,6 +45,7 @@ const THEME_PORTS: Record<string, { dev: number; preview: number }> = {
   griffe: { dev: 5184, preview: 4184 },
   mono: { dev: 5185, preview: 4185 },
   boson: { dev: 5186, preview: 4186 },
+  nativa: { dev: 5187, preview: 4187 },
 };
 
 export interface ThemeConfigOptions {

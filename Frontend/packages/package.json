@@ -15,6 +15,7 @@
     "build:griffe": "pnpm --filter @nativa/theme-griffe run build",
     "build:mono": "pnpm --filter @nativa/theme-mono run build",
     "build:boson": "pnpm --filter @nativa/theme-boson run build",
+    "build:nativa": "pnpm --filter @nativa/theme-nativa run build",
     "typecheck": "tsc -p tsconfig.build.json && pnpm -r run typecheck"
   },
   "devDependencies": {

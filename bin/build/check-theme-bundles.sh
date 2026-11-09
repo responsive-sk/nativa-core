@@ -47,6 +47,7 @@ THEMES=(
     "Griffe"
     "Jednotka"
     "Mono"
+    "Nativa"
 )
 
 fail() {
