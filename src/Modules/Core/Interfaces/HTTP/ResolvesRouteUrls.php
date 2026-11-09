@@ -28,6 +28,10 @@ use Modules\Core\Kernel\Contracts\RouterInterface;
  *
  * @internal
  */
+// Its users are module slices (admin actions), and phpstan.neon deliberately
+// analyses the kernel scope only. A kernel-only export therefore has no
+// analysed user for this trait; the rule would report a contract as dead code.
+/** @phpstan-ignore trait.unused */
 trait ResolvesRouteUrls
 {
     /**
