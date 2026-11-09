@@ -12,10 +12,10 @@ use Modules\Core\Interfaces\HTTP\ErrorPageRenderer;
 /**
  * AdminUnavailableMiddleware — an admin path without an auth provider is a 404.
  *
- * The composition root wires `AuthMiddleware` only when
- * `AuthProviderRegistry::first()` finds a provider: absence of a provider means
- * there is no admin surface to protect. That rule was only true while the
- * routes were absent too. Measured 2026-11-09 in a tree with `Cardboard`
+ * The composition root wires the Auth module's middleware only when its
+ * provider registry finds a provider: absence of a provider means there is no
+ * admin surface to protect. That rule was only true while the routes were
+ * absent too. Measured 2026-11-09 in a tree with `Cardboard`
  * installed and no `Users`: `/mark` was routed, the gate was never wired, and
  * the dashboard answered 200 to a guest — the exact defect
  * `tests/Boot/KernelOnlyBootTest.php` was written to rule out.
@@ -28,7 +28,8 @@ use Modules\Core\Interfaces\HTTP\ErrorPageRenderer;
  * a kernel-only tree already gives.
  *
  * This middleware is added ONLY in the no-provider branch of `src/http.php`.
- * With a provider, `AuthMiddleware` answers first and this class never runs.
+ * With a provider, the Auth module's middleware answers first and this class
+ * never runs.
  */
 final readonly class AdminUnavailableMiddleware implements MiddlewareInterface
 {

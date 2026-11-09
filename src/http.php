@@ -19,9 +19,11 @@ declare(strict_types = 1);
  *   5. `run_http_application()` — dispatch the request, send it, dispose.
  *
  * The kernel discovers its own middleware (security headers, CSRF) through
- * `#[AsMiddleware]`, and the admin gate through `#[AsAuthProvider]`
- * (`AuthProviderRegistry`), so no call is needed for those and no module class
- * is named here for auth.
+ * `#[AsMiddleware]`. The admin gate is a module surface: when the Auth slice
+ * is installed, its provider registry finds a `#[AsAuthProvider]`, and its
+ * middleware is constructed here. A kernel-only tree has neither, so the
+ * kernel's fallback answers 404. No Auth class is imported; the names below
+ * are strings, the same rule the Outbox sink keeps.
  *
  * Rate limiting takes a constructor argument (`RateLimitMiddleware` a limiter
  * factory), so it is added explicitly: present when its module is installed,
@@ -41,7 +43,6 @@ declare(strict_types = 1);
  * in that process.
  */
 
-use Modules\Core\Application\Services\AuthProviderRegistry;
 use Modules\Core\Application\Services\DiscoveryCache;
 use Modules\Core\Application\Services\DisposalRegistry;
 use Modules\Core\Application\Services\PageCacheService;
@@ -51,7 +52,7 @@ use Modules\Core\Infrastructure\Env;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Interfaces\HTTP\Kernel;
 use Modules\Core\Interfaces\HTTP\Middleware\AdminUnavailableMiddleware;
-use Modules\Core\Interfaces\HTTP\Middleware\AuthMiddleware;
+use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareInterface;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\PageCacheMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\RateLimitMiddleware;
@@ -216,19 +217,53 @@ function http_kernel(): Kernel
         error_log('[cache] PageCache OFF (PAGE_CACHE not enabled)');
     }
 
-    // The admin gate: the provider is DISCOVERED (`#[AsAuthProvider]`), so this
-    // file names no module class for auth at all. `first()` returns null in a
-    // tree with no provider module, and null wires no AuthMiddleware; the
-    // kernel then answers 404 for the admin prefix itself. Absence of a
-    // provider means the surface does not exist, and that must hold even when a
-    // module still routes `/mark` — measured 2026-11-09: `Cardboard` without
-    // `Users` answered 200 to a guest because the gate was simply never wired.
-    // The kernel-level tests ask the same registry the same question, so the
-    // pipeline the suite proves and the pipeline this file runs cannot drift.
-    $authProvider = AuthProviderRegistry::first();
+    // The admin gate belongs to the Auth module. Neither its provider registry
+    // nor its middleware is imported: a kernel-only checkout has no
+    // `Modules\Auth` on disk, and a type written here (a `use`, a `new` with a
+    // literal name) is resolved by static analysis whether or not a runtime
+    // guard would protect it. The two names are strings and the middleware is
+    // built through reflection so the export's PHPStan sees no missing class.
+    //
+    // A provider is still DISCOVERED (`#[AsAuthProvider]`), so this file names
+    // no module that provides one. `first()` returns null in a tree with no
+    // provider, and null wires no auth middleware; the kernel then answers 404
+    // for the admin prefix itself. Absence of a provider means the surface does
+    // not exist, and that must hold even when a module still routes `/mark` —
+    // measured 2026-11-09: `Cardboard` without `Users` answered 200 to a guest
+    // because the gate was simply never wired.
+    // Keep the names plain strings: a literal assigned directly keeps its
+    // literal type, which this export cannot pass as a reflection class name.
+    $keepString = static fn (string $class): string => $class;
+    $authRegistryClass = $keepString('Modules\\Auth\\Application\\Services\\AuthProviderRegistry');
+    /** @var class-string $authMiddlewareClass */
+    $authMiddlewareClass = $keepString('Modules\\Auth\\Interfaces\\HTTP\\Middleware\\AuthMiddleware');
+    $authProvider = null;
 
-    if (null !== $authProvider) {
-        $kernel->addMiddleware(new AuthMiddleware($authProvider, $securityEvents));
+    if (class_exists($authRegistryClass) && is_callable([$authRegistryClass, 'first'])) {
+        /** @var callable(): mixed $first */
+        $first = [$authRegistryClass, 'first'];
+        $authProvider = $first();
+    }
+
+    $authGate = null;
+
+    if (is_object($authProvider)) {
+        try {
+            $candidate = (new \ReflectionClass($authMiddlewareClass))->newInstance(
+                $authProvider,
+                $securityEvents,
+            );
+            $authGate = $candidate instanceof MiddlewareInterface ? $candidate : null;
+        } catch (\Throwable $e) {
+            // A broken auth module must not turn every request into a 500. The
+            // fallback is the safe answer: the admin surface is 404, never an
+            // unguarded 200.
+            error_log('[auth] middleware unavailable: ' . $e->getMessage());
+        }
+    }
+
+    if (null !== $authGate) {
+        $kernel->addMiddleware($authGate);
         error_log('[auth] wired ' . $authProvider::class);
     } else {
         $kernel->addMiddleware(new AdminUnavailableMiddleware());

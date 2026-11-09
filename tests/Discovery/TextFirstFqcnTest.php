@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace Tests\Discovery;
 
-use Modules\Core\Application\Services\AuthProviderRegistry;
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use Modules\Core\Interfaces\HTTP\ThemeRegistry;
@@ -45,16 +44,17 @@ final class TextFirstFqcnTest extends TestCase
         ThemeRegistry::class,
         MiddlewareRegistry::class,
         'Modules\\Markdown\\Interfaces\\HTTP\\Markdown\\MarkdownBlockRegistry',
-        AuthProviderRegistry::class,
+        'Modules\\Auth\\Application\\Services\\AuthProviderRegistry',
         'Modules\\Navigation\\Infrastructure\\Registry\\NavBadgeRegistry',
     ];
 
     /**
-     * The registries present in this checkout. Markdown and Navigation are
-     * modules; a kernel-only export must still exercise the four kernel copies
-     * rather than fatal on a class the export deliberately does not ship. The
-     * two optional names stay strings: `::class` would make PHPStan resolve a
-     * class the export does not carry, before the runtime filter can skip it.
+     * The registries present in this checkout. Markdown, Auth and Navigation
+     * are modules; a kernel-only export must still exercise the three kernel
+     * copies rather than fatal on a class the export deliberately does not
+     * ship. The optional names stay strings: `::class` would make PHPStan
+     * resolve a class the export does not carry, before the runtime filter can
+     * skip it.
      *
      * @return list<class-string>
      */

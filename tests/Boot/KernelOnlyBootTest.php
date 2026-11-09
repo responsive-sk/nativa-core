@@ -4,11 +4,10 @@ declare(strict_types = 1);
 
 namespace Tests\Boot;
 
-use Modules\Core\Application\Services\AuthProviderRegistry;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Interfaces\HTTP\Kernel;
 use Modules\Core\Interfaces\HTTP\Middleware\AdminUnavailableMiddleware;
-use Modules\Core\Interfaces\HTTP\Middleware\AuthMiddleware;
+use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareInterface;
 use Modules\Core\Interfaces\HTTP\Router;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -44,7 +43,7 @@ final class KernelOnlyBootTest extends TestCase
      */
     public static function surfaces(): iterable
     {
-        $gated = null !== AuthProviderRegistry::first();
+        $gated = null !== self::authProvider();
         $docs = is_dir(APP_BASE_PATH . '/src/Modules/Docs') ? 200 : 404;
 
         yield 'homepage'   => ['GET', '/',            200];
@@ -71,14 +70,15 @@ final class KernelOnlyBootTest extends TestCase
         $kernel = new Kernel(new Router([APP_BASE_PATH . '/src/Modules']));
 
         // Mirror src/http.php's wiring — the pipeline under test is the
-        // pipeline the composition root builds, not a test-only one. Two
-        // Core-only lines, and they cannot drift from production: both sides
-        // ask the same registry the same question ("does any module ship a
-        // provider?"), so there is no module-specific copy left to diverge.
-        $provider = AuthProviderRegistry::first();
+        // pipeline the composition root builds, not a test-only one. The Auth
+        // slice is optional, so both class names stay strings: `::class` and a
+        // `use` would make the kernel-only export's PHPStan resolve classes the
+        // export deliberately does not ship.
+        $provider = self::authProvider();
+        $gate = null !== $provider ? self::authGate($provider) : null;
 
-        if (null !== $provider) {
-            $kernel->addMiddleware(new AuthMiddleware($provider));
+        if (null !== $gate) {
+            $kernel->addMiddleware($gate);
         } else {
             // The composition root's other branch: with no provider the admin
             // prefix does not exist, even if a module routes it.
@@ -96,6 +96,49 @@ final class KernelOnlyBootTest extends TestCase
                 sprintf('%s %s must redirect to the login, not merely answer 302', $method, $uri),
             );
         }
+    }
+
+    /**
+     * The provider registry belongs to the optional Auth module. No module, no
+     * class; the name stays a string so this kernel test still typechecks in
+     * the export that prunes Auth.
+     */
+    private static function authProvider(): ?object
+    {
+        /** @var string $registry */
+        $registry = 'Modules\\Auth\\Application\\Services\\AuthProviderRegistry';
+
+        if (!class_exists($registry) || !is_callable([$registry, 'first'])) {
+            return null;
+        }
+
+        /** @var callable(): mixed $first */
+        $first = [$registry, 'first'];
+        $provider = $first();
+
+        return is_object($provider) ? $provider : null;
+    }
+
+    /**
+     * The module's middleware takes a provider and a sink, so discovery cannot
+     * construct it. Reflection mirrors src/http.php and keeps the class name out
+     * of a type position in the kernel-only export.
+     */
+    private static function authGate(object $provider): ?MiddlewareInterface
+    {
+        // Mirror src/http.php: widen the literal before reflection so the
+        // kernel-only export can type-check a class that is not on disk.
+        $keepString = static fn (string $class): string => $class;
+        /** @var class-string $middleware */
+        $middleware = $keepString('Modules\\Auth\\Interfaces\\HTTP\\Middleware\\AuthMiddleware');
+
+        try {
+            $gate = (new \ReflectionClass($middleware))->newInstance($provider);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $gate instanceof MiddlewareInterface ? $gate : null;
     }
 
     /**
