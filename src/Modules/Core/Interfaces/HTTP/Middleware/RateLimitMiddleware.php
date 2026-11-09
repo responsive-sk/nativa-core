@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Core\Interfaces\HTTP\Middleware;
 
-use Modules\Core\Application\Services\PageCacheService;
+use Modules\Core\Domain\Contracts\PageCacheReader;
 use Modules\Core\Domain\Contracts\RateLimiter;
 use Modules\Core\Domain\Contracts\SecurityEventSink;
 use Modules\Core\Infrastructure\Http\Request;
@@ -36,7 +36,7 @@ use Modules\Core\Infrastructure\Http\Response;
  *   yields nothing usable. The expected shape is `isAllowed(string, int,
  *   int): bool` + `getRetryAfter(string): int`.
  *
- * When a PageCacheService is provided, blocked requests check the cache
+ * When a PageCacheReader is provided, blocked requests check the cache
  * for a cached HTML response. Cache hits are served with HTTP 429,
  * Retry-After header, and X-Cache: HIT — giving rate-limited clients
  * a functional page instead of a bare error string.
@@ -50,15 +50,15 @@ final readonly class RateLimitMiddleware implements MiddlewareInterface
     private const int GENERAL_WINDOW = 60;
 
     /**
-     * @param \Closure(): object    $rateLimiterFactory Yields the limiter candidate.
-     *                                                  The product is unchecked until isLimiter() verifies the RateLimiter
-     *                                                  shape, so the closure stays `object` — typing it narrower would
-     *                                                  turn a junk product (pass-through by contract) into a TypeError.
-     * @param PageCacheService|null $cache              Optional page cache for rate-limit fallback
+     * @param \Closure(): object   $rateLimiterFactory Yields the limiter candidate.
+     *                                                 The product is unchecked until isLimiter() verifies the RateLimiter
+     *                                                 shape, so the closure stays `object` — typing it narrower would
+     *                                                 turn a junk product (pass-through by contract) into a TypeError.
+     * @param PageCacheReader|null $cache              Optional page cache reader for the fallback
      */
     public function __construct(
         private \Closure $rateLimiterFactory,
-        private ?PageCacheService $cache = null,
+        private ?PageCacheReader $cache = null,
         private ?SecurityEventSink $sink = null,
     ) {
     }

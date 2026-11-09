@@ -5,7 +5,6 @@ declare(strict_types = 1);
 namespace Modules\Tooling;
 
 use Modules\Core\Application\Services\DiscoveryCache;
-use Modules\Core\Application\Services\PageCacheService;
 use Modules\Core\Infrastructure\Bootstrap\Bootstrapper;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use RuntimeException;
@@ -140,17 +139,28 @@ final readonly class ModuleInstaller
 
     public function flushPageCache(): int
     {
-        // `DEFAULT_DIR` is relative to the BASE ('storage/cache/pages'), not to
-        // the storage root: composing it with `AppPaths::storage()` prepends a
-        // second `storage/`, and — because `PageCacheService` creates the
-        // directory it is handed — `module:add`/`module:remove` left an empty
-        // `storage/storage/cache/pages` behind while the real cache kept every
-        // entry. Same composition as `CacheInvalidator::flush()` and
-        // `CardboardServices::pageCache()`, which is the contract the constant
-        // documents. Pinned by PageCacheDirectoryTest.
-        $dir = APP_BASE_PATH . '/' . PageCacheService::DEFAULT_DIR;
+        // The page cache owns `PageCacheService::DEFAULT_DIR`, but Tooling ships
+        // in the kernel-only export while that module does not. The path is
+        // base-relative ('storage/cache/pages'), not relative to the storage
+        // root: composing it with `AppPaths::storage()` prepends a second
+        // `storage/`, which is the defect PageCacheDirectoryTest pins. Keep the
+        // same glob shape the service's `flush()` uses.
+        $dir = APP_BASE_PATH . '/storage/cache/pages';
+        $files = glob($dir . '/*.json');
 
-        return (new PageCacheService($dir))->flush();
+        if (!is_array($files)) {
+            return 0;
+        }
+
+        $count = 0;
+
+        foreach ($files as $file) {
+            if (is_file($file) && @unlink($file)) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     /**

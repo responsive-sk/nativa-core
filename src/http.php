@@ -45,7 +45,7 @@ declare(strict_types = 1);
 
 use Modules\Core\Application\Services\DiscoveryCache;
 use Modules\Core\Application\Services\DisposalRegistry;
-use Modules\Core\Application\Services\PageCacheService;
+use Modules\Core\Domain\Contracts\PageCacheReader;
 use Modules\Core\Domain\Contracts\SecurityEventSink;
 use Modules\Core\Infrastructure\Bootstrap\Bootstrapper;
 use Modules\Core\Infrastructure\Env;
@@ -54,7 +54,6 @@ use Modules\Core\Interfaces\HTTP\Kernel;
 use Modules\Core\Interfaces\HTTP\Middleware\AdminUnavailableMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareInterface;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
-use Modules\Core\Interfaces\HTTP\Middleware\PageCacheMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\RateLimitMiddleware;
 use Modules\Core\Interfaces\HTTP\Router;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
@@ -159,6 +158,44 @@ function http_kernel(): Kernel
     $asSink = static fn (object $candidate): ?SecurityEventSink => $candidate instanceof SecurityEventSink ? $candidate : null;
     $securityEvents = class_exists($sinkClass) ? $asSink(new $sinkClass()) : null;
 
+    // The page cache is a module surface, and its service is read by the rate
+    // limiter through the kernel's PageCacheReader port. Both objects are
+    // built through reflection so a kernel-only export, which has no
+    // Modules\\PageCache on disk, still type-checks.
+    //
+    // PAGE_CACHE (default: OFF) is the one lever, read from the environment so
+    // a deployment can turn it on in `.env` without a rebuild. It is opt-in on
+    // purpose: serving a page a visitor did not just render is a deployment's
+    // decision, not a kernel default, and a cached HTML copy outlives the
+    // request that produced it.
+    $keepString = static fn (string $class): string => $class;
+    $pageCache = null;
+    $pageCacheMiddleware = null;
+
+    if (Env::bool('PAGE_CACHE', false)) {
+        $pageCacheServiceClass = $keepString('Modules\\PageCache\\Application\\Services\\PageCacheService');
+        /** @var class-string $pageCacheMiddlewareClass */
+        $pageCacheMiddlewareClass = $keepString('Modules\\PageCache\\Interfaces\\HTTP\\Middleware\\PageCacheMiddleware');
+
+        if (!class_exists($pageCacheServiceClass) || !class_exists($pageCacheMiddlewareClass)) {
+            error_log('[cache] absent — no PageCache module');
+        } else {
+            try {
+                // The module owns DEFAULT_DIR; this kernel-side wiring keeps the
+                // same base-relative path and PageCacheDirectoryTest pins it.
+                $pageCacheDir = APP_BASE_PATH . '/storage/cache/pages';
+                $service = (new \ReflectionClass($pageCacheServiceClass))->newInstance($pageCacheDir);
+                $pageCache = $service instanceof PageCacheReader ? $service : null;
+                $middleware = (new \ReflectionClass($pageCacheMiddlewareClass))->newInstance($service);
+                $pageCacheMiddleware = $middleware instanceof MiddlewareInterface ? $middleware : null;
+            } catch (\Throwable $e) {
+                error_log('[cache] unavailable: ' . $e->getMessage());
+            }
+        }
+    } else {
+        error_log('[cache] PageCache OFF (PAGE_CACHE not enabled)');
+    }
+
     // The factory yields an `object` because that is RateLimitMiddleware's own
     // declared shape (`\Closure(): object`) — its product is verified at
     // runtime by isLimiter(), never trusted at compile time. Nothing about the
@@ -171,6 +208,7 @@ function http_kernel(): Kernel
             static fn (): object => new SecurityRateLimiter(
                 DatabaseConnectionManager::instance()->connection('users'),
             ),
+            cache: $pageCache,
             sink: $securityEvents,
         ));
         error_log('[rate] wired RateLimit');
@@ -178,43 +216,12 @@ function http_kernel(): Kernel
         error_log('[rate] absent — no Security module');
     }
 
-    // The page cache: an anonymous public GET is answered from
-    // storage/cache/pages while its entry is fresh, so the theme render is paid
-    // once per TTL instead of once per visitor. Core-owned — no module class to
-    // guard — so it is wired unconditionally, and wired AFTER the limiter on
-    // purpose: the rate limit is counted before a cache hit is returned, not
-    // after.
-    //
-    // It is added as the pipeline is built rather than found by discovery
-    // because it needs a constructed `PageCacheService`, and the discovered
-    // stages are the ones with no wiring (SecurityHeaders, Csrf, Debugbar). The
-    // signed-in and admin bypasses are the service's own policy, so this file
-    // states no rule of its own here.
-    //
-    // PAGE_CACHE (default: OFF) is the one lever, read from the environment so
-    // a deployment can turn it on in `.env` without a rebuild. It is opt-in on
-    // purpose: serving a page a visitor did not just render is a deployment's
-    // decision, not a kernel default, and a cached HTML copy outlives the
-    // request that produced it.
-    //
-    // The lever exists because "does the cache cause the render delay?" is not
-    // answerable by reading code: measured on responsive.sk, the cache HIT
-    // served TTFB in 0 ms while Lighthouse reported an LCP element render
-    // delay of 2500 ms, and every candidate the delay could come from is ruled
-    // out on its own terms — `font-display: swap` on all seven @font-face
-    // rules, the 47 KB critical CSS inlined and resolving, 61–158 KB hero
-    // images, and Total Blocking Time at 0 ms. Speed Index measures visual
-    // completeness from screenshots, which a server-side HTML cache does not
-    // touch, so the switch makes the claim measurable on the deployment
-    // instead of argued. Turning it ON buys the 0 ms HIT; leaving it off pays
-    // the render on every request.
-    if (Env::bool('PAGE_CACHE', false)) {
-        $kernel->addMiddleware(new PageCacheMiddleware(
-            new PageCacheService(APP_BASE_PATH . '/' . PageCacheService::DEFAULT_DIR),
-        ));
+    // Added AFTER the limiter on purpose: the rate limit is counted before a
+    // cache hit is returned, not after. The signed-in and admin bypasses are
+    // the service's own policy, so this file states no rule of its own here.
+    if (null !== $pageCacheMiddleware) {
+        $kernel->addMiddleware($pageCacheMiddleware);
         error_log('[cache] wired PageCache (anonymous HTML, 5 min TTL, admin and signed-in bypass)');
-    } else {
-        error_log('[cache] PageCache OFF (PAGE_CACHE not enabled)');
     }
 
     // The admin gate belongs to the Auth module. Neither its provider registry
@@ -233,7 +240,6 @@ function http_kernel(): Kernel
     // because the gate was simply never wired.
     // Keep the names plain strings: a literal assigned directly keeps its
     // literal type, which this export cannot pass as a reflection class name.
-    $keepString = static fn (string $class): string => $class;
     $authRegistryClass = $keepString('Modules\\Auth\\Application\\Services\\AuthProviderRegistry');
     /** @var class-string $authMiddlewareClass */
     $authMiddlewareClass = $keepString('Modules\\Auth\\Interfaces\\HTTP\\Middleware\\AuthMiddleware');
