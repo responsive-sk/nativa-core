@@ -2,10 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Interfaces\HTTP;
+namespace Themes;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Themes\ThemeModule;
 
 /**
  * ThemeRegistry — discovers theme modules carried by installed modules.

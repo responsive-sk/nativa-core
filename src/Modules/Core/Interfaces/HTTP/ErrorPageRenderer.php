@@ -6,6 +6,8 @@ namespace Modules\Core\Interfaces\HTTP;
 
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Kernel\Contracts\ErrorRendererInterface;
+use Themes\ThemeKernel;
+use Themes\ThemeResolver;
 
 /**
  * ErrorPageRenderer — styled HTTP error pages (404/405/500).

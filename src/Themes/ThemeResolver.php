@@ -2,11 +2,10 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Interfaces\HTTP;
+namespace Themes;
 
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Domain\AdminRoutePolicy;
-use Modules\Core\Domain\ThemePreference;
 use Modules\Core\Infrastructure\Http\Request;
 
 /**

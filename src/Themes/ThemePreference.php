@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Domain;
+namespace Themes;
 
 /**
  * ThemePreference — the stored-theme vote as a pure decision.

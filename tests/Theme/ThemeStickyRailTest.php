@@ -5,9 +5,9 @@ declare(strict_types = 1);
 namespace Tests\Theme;
 
 use Modules\Core\Application\Services\View\InlineCss;
-use Modules\Core\Interfaces\HTTP\ThemeRegistry;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\ThemeRegistry;
 
 /**
  * ThemeStickyRailTest — the one-line CSS change that silently unfloats every

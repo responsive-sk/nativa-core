@@ -7,10 +7,10 @@ namespace Tests\Theme;
 use Modules\Core\Application\Services\AssetManager;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Core\Interfaces\HTTP\FrontendLayout;
-use Modules\Core\Interfaces\HTTP\ThemeRegistry;
-use Modules\Core\Interfaces\HTTP\ThemeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\ThemeRegistry;
+use Themes\ThemeResolver;
 
 /**
  * ThemeBundleDiscoveryTest (Boot 22) — the door the `erik` defect came through,

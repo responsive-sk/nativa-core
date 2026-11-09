@@ -4,9 +4,9 @@ declare(strict_types = 1);
 
 namespace Tests\Domain;
 
-use Modules\Core\Domain\ThemePreference;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\ThemePreference;
 
 /**
  * ThemePreferenceTest — the stored-theme vote as a pure decision, no

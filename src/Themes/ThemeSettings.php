@@ -4,8 +4,6 @@ declare(strict_types = 1);
 
 namespace Themes;
 
-use Modules\Core\Domain\ThemeSetting;
-
 /**
  * Theme settings contract — an OPTIONAL half of `ThemeModule`.
  *

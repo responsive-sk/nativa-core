@@ -2,9 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Domain;
-
-use Themes\ThemeSettings;
+namespace Themes;
 
 /**
  * ThemeSettingValues — where per-theme settings are stored and how they are

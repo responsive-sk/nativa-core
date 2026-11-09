@@ -6,10 +6,10 @@ namespace Tests\Discovery;
 
 use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
-use Modules\Core\Interfaces\HTTP\ThemeRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\ThemeRegistry;
 
 /**
  * TextFirstFqcnTest (Boot 23 follow-up) — the discovery heuristic, and the prose

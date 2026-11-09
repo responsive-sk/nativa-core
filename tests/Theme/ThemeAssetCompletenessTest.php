@@ -5,9 +5,9 @@ declare(strict_types = 1);
 namespace Tests\Theme;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Core\Interfaces\HTTP\ThemeRegistry;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\ThemeRegistry;
 
 /**
  * ThemeAssetCompletenessTest — every theme has the assets it claims, and

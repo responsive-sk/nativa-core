@@ -2,10 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Interfaces\HTTP;
+namespace Themes;
 
 use Themes\kernel\KernelFallbackTheme;
-use Themes\ThemeModule;
 
 /**
  * ThemeKernel connector — the ONLY place mapping a resolved theme name to its

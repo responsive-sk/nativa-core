@@ -5,8 +5,8 @@ declare(strict_types = 1);
 namespace Modules\Core\Application\Services;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Core\Interfaces\HTTP\ThemeRegistry;
-use Modules\Core\Interfaces\HTTP\ThemeResolver;
+use Themes\ThemeRegistry;
+use Themes\ThemeResolver;
 
 /**
  * AssetManager — asset manifest reader for PHP templates (task 10.5).
