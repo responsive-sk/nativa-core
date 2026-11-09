@@ -1,6 +1,6 @@
 {
     "name": "responsive-sk/nativa-core",
-    "description": "responsive.sk Nativa Core: the kernel, the Nativa theme and the one module that votes it. Generated from responsive-sk/nativa-php-core.",
+    "description": "responsive.sk Nativa Core: the kernel, the Nativa theme and the modules the theme needs. Generated from responsive-sk/nativa-php-core.",
     "type": "project",
     "license": "MIT",
     "keywords": [

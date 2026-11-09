@@ -67,7 +67,7 @@ final class ThemeLocalePrefixTest extends TestCase
             $offenders,
             "A theme spells the locale URL prefix itself instead of asking its owner:\n"
             . implode("\n", $offenders)
-            . "\nUse ContentServices::mapper()->urlPrefix(\$code) . \$currentPath; the default locale owns the bare path.",
+            . "\nUse ContentLocaleServices::mapper()->urlPrefix(\$code) . \$currentPath; the default locale owns the bare path.",
         );
     }
 
@@ -95,7 +95,7 @@ final class ThemeLocalePrefixTest extends TestCase
 
             file_put_contents(
                 $file,
-                "<?php\nif (null !== \$context->localeLinks) {\n    echo ContentServices::mapper()->urlPrefix(\$code) . \$context->currentPath;\n}\n",
+                "<?php\nif (null !== \$context->localeLinks) {\n    echo ContentLocaleServices::mapper()->urlPrefix(\$code) . \$context->currentPath;\n}\n",
             );
 
             $this->assertSame(

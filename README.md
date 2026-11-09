@@ -16,17 +16,18 @@ The kernel and the Nativa theme, with no site attached:
   drives.
 - `src/Modules/KernelTheme` and `src/Themes/kernel`: the default presentation
   that needs no build.
-- `modules/`: two catalogued modules — `Themes/Nativa` and `Settings`, the theme
-  vote. This is a catalogue, not a running set. `src/Modules/<Name>` (the
-  installed copy) is gitignored. Docs is a module in the source repository and
-  is pruned here: this tree carries no guides, and `/docs` answers 404.
+- `modules/`: three catalogued modules — `Themes/Nativa`, `Settings` (the
+  theme vote) and `ContentLocale` (the locale mapping every theme asks for).
+  This is a catalogue, not a running set. `src/Modules/<Name>` (the installed
+  copy) is gitignored. Docs is a module in the source repository and is pruned
+  here: this tree carries no guides, and `/docs` answers 404.
 - `Frontend/packages/`: the pnpm workspace that builds the Nativa bundle.
   `public/dist/nativa` is a committed frozen build; `make assets` rebuilds it.
 
 The boundary rule is one sentence: a kernel file may not import a module, and a
 module may import the kernel. `make mago-guard` fails on the other direction.
 
-### Why only two modules
+### Why only three modules
 
 The catalogue is a measurement, not a starting point. The source repository
 built this tree without a catalogue and added back only what a surface proved
@@ -34,14 +35,16 @@ it needed. Every row is a module that could be added, with its measured cost:
 
 | Surface | Modules | Cost | Without it |
 |---|---|---|---|
-| Nativa on `/` | `Settings` | +14 files | `/` renders `KernelTheme` |
+| Nativa on `/` | `Settings`, `ContentLocale` | +16 files | `/` renders `KernelTheme` |
 | Slovak copy | `Settings`, `Locales` | +143 files | English kernel copy |
 | `/blog`, `/cookies` | `Blog`, `Pages` | +373 files | 404 |
 | `/mark` | `Users`, `Cardboard` | +209 files | 404 |
 
 `Settings` is kept because the theme vote is a kernel port with no kernel
-implementation; the rest are product surfaces, not dependencies of the theme.
-A module comes back only with a row here and a measurement behind it.
+implementation. `ContentLocale` is kept because every theme asks it for the
+locale-to-URL-prefix rule; it has no routes, tables or admin screen. The rest
+are product surfaces, not dependencies of the theme. A module comes back only
+with a row here and a measurement behind it.
 
 ## Run it
 
@@ -64,8 +67,9 @@ php bin/cms module:add Settings               # copies the closure into src/Modu
 php bin/cms module:remove Settings --force    # removes it again
 ```
 
-The catalogue is deliberately two entries: the theme and the module that votes
-it. A module that is not in `modules/` cannot be installed, and adding one back
+The catalogue is deliberately three entries: the theme, the module that votes
+it, and the locale rule the theme renders through. A module that is not in
+`modules/` cannot be installed, and adding one back
 is a decision with a measured cost — the register in `docs/` of the source
 repository explains what each surface would cost.
 

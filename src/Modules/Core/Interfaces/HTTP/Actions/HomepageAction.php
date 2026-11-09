@@ -9,7 +9,6 @@ use Modules\Core\Application\Services\WebsiteStructuredData;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
-use Modules\Core\Interfaces\HTTP\ContentServices;
 use Modules\Core\Interfaces\HTTP\FrontendLayout;
 use Modules\Core\Interfaces\HTTP\PageContext;
 use Modules\Core\Interfaces\HTTP\ThemeKernel;
@@ -49,7 +48,7 @@ final class HomepageAction
     public function handle(Request $request): Response
     {
         $theme = (new ThemeResolver())->resolve($request);
-        $locale = ContentServices::mapper()->defaultLocale();
+        $locale = ShellContextProviderRegistry::defaultLocale() ?? 'sk_SK';
         $siteName = ShellContextProviderRegistry::siteName() ?? 'Nativa PHP Core';
 
         // `+` and not `array_merge`: the site name is the kernel's own answer for

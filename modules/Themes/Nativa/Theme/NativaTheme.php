@@ -7,7 +7,7 @@ namespace Modules\Themes\Nativa\Theme;
 use Modules\Core\Domain\AdminRoutePolicy;
 use Modules\Core\Domain\ShellNavItem;
 use Modules\Core\Domain\ThemeSetting;
-use Modules\Core\Interfaces\HTTP\ContentServices;
+use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Modules\Core\Interfaces\HTTP\PageContext;
 use Modules\Core\Interfaces\HTTP\ShellContext;
 use Themes\AuthPageTheme;
@@ -42,7 +42,7 @@ use Themes\ThemeSettings;
  *   a class that can style the panel.
  * - **It imports nothing from a feature module.** Article shapes are read
  *   through `get_object_vars`; the blog address comes from the kernel's own
- *   `ContentServices` mapper, never from a Blog class.
+ *   `ContentLocaleServices` mapper, never from a Blog class.
  */
 final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, ThemeSettings
 {
@@ -464,7 +464,7 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
      */
     private static function blogBase(PageContext $context): string
     {
-        return ContentServices::mapper()->urlPrefix($context->locale) . '/blog';
+        return ContentLocaleServices::mapper()->urlPrefix($context->locale) . '/blog';
     }
 
     /**
@@ -817,7 +817,7 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
         $links = '';
 
         foreach ($context->availableLocales as $language) {
-            $href = $context->localeLinks[$language] ?? ContentServices::mapper()->urlPrefix($language) . $context->currentPath;
+            $href = $context->localeLinks[$language] ?? ContentLocaleServices::mapper()->urlPrefix($language) . $context->currentPath;
 
             $links .= '<a class="na-locale__link" href="' . self::e($href) . '"'
                 . ($language === $context->activeLocale ? ' aria-current="true"' : '')

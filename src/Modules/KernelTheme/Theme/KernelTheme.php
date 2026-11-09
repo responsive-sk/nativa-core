@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\KernelTheme\Theme;
 
 use Modules\Core\Domain\ShellNavItem;
-use Modules\Core\Interfaces\HTTP\ContentServices;
+use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Modules\Core\Interfaces\HTTP\PageContext;
 use Modules\Core\Interfaces\HTTP\ShellContext;
 use Themes\ThemeModule;
@@ -303,7 +303,7 @@ final class KernelTheme implements ThemeModule
         $links = '';
 
         foreach ($context->availableLocales as $language) {
-            $href = $context->localeLinks[$language] ?? ContentServices::mapper()->urlPrefix($language) . $context->currentPath;
+            $href = $context->localeLinks[$language] ?? self::localeHref($language, $context->currentPath);
 
             $links .= '<a class="k-locale__link" href="' . self::e($href) . '"'
                 . ($language === $context->activeLocale ? ' aria-current="true"' : '')
@@ -311,6 +311,20 @@ final class KernelTheme implements ThemeModule
         }
 
         return '<div class="k-locale">' . $links . '</div>';
+    }
+
+    /**
+     * The kernel theme ships with a tree that may not have ContentLocale
+     * installed. Ask it when it is there; otherwise render the short prefix
+     * from the locale code, as the kernel did before the mapping moved.
+     */
+    private static function localeHref(string $language, string $path): string
+    {
+        if (class_exists(ContentLocaleServices::class)) {
+            return ContentLocaleServices::mapper()->urlPrefix($language) . $path;
+        }
+
+        return '/' . strtolower(substr($language, 0, 2)) . $path;
     }
 
     private static function e(mixed $value): string

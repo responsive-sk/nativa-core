@@ -14,7 +14,7 @@ use Modules\Core\Domain\ShellNavItem;
  * six facts that belong to whoever owns the site: its name, the active theme,
  * the default locale, the language list, the navigation menu, and the copy a
  * surface renders. Before this port, `FrontendLayout`, `ThemeResolver` and
- * `ContentServices` reached for `SettingsServices` and `LocalesServices`
+ * `ContentLocaleServices` reaches for the shell port instead of a module
  * directly, which made the shared kernel unbuildable without two feature
  * modules it does not own.
  *

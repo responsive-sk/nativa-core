@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Application\Services;
+namespace Modules\ContentLocale\Application\Services;
 
 /**
  * ContentLocaleMapper — maps a locale code to its storage subdirectory.
@@ -20,10 +20,10 @@ namespace Modules\Core\Application\Services;
  * canonical spec while two independent call sites each hardcoded their own
  * idea of the layout.
  *
- * Lives in Core (shared kernel) because Blog AND Pages both need it, and
- * because Core is the only layer allowed to be imported across module
- * boundaries. The default resolver is injected as a closure so this class
- * never touches the Settings module itself — same pattern as LocaleService.
+ * Lives in ContentLocale because Blog, Pages and every theme share the rule;
+ * it is the module's only surface, with no routes, tables or admin screen. The
+ * default resolver is injected as a closure so this class never touches the
+ * Settings module itself — same pattern as LocaleService.
  */
 final readonly class ContentLocaleMapper
 {

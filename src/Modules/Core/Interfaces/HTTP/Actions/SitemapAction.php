@@ -4,10 +4,10 @@ declare(strict_types = 1);
 
 namespace Modules\Core\Interfaces\HTTP\Actions;
 
+use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
-use Modules\Core\Interfaces\HTTP\ContentServices;
 use Modules\Core\Interfaces\HTTP\FrontendLayout;
 
 /**
@@ -43,17 +43,26 @@ final class SitemapAction
     }
 
     /**
-     * Home in every locale the mapper knows: the default owns the bare path,
-     * every other locale its prefix.
+     * Home in every locale the shell port reports: the default owns the bare
+     * path, every other locale its short language prefix. A kernel with no
+     * locale provider lists only `/` — the pages it actually serves.
      */
     private function entries(string $base): string
     {
-        $mapper = ContentServices::mapper();
-        $entries = '';
+        $default = ShellContextProviderRegistry::defaultLocale();
+        $entries = $this->entry($base, '/', 'weekly', '1.0');
 
-        foreach ($mapper->locales() as $locale) {
-            $prefix = $mapper->urlPrefix($locale);
-            $entries .= $this->entry($base, '' === $prefix ? '/' : $prefix . '/', 'weekly', '1.0');
+        foreach (ShellContextProviderRegistry::languages() as $locale) {
+            if ($locale === $default) {
+                continue;
+            }
+
+            $entries .= $this->entry(
+                $base,
+                '/' . strtolower(substr($locale, 0, 2)) . '/',
+                'weekly',
+                '1.0',
+            );
         }
 
         return $entries;
