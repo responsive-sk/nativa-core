@@ -25,34 +25,7 @@
     <testsuites>
         <testsuite name="kernel">
             <directory>tests</directory>
-                    <exclude>tests/Architecture/KernelShapeTest.php</exclude>
-            <exclude>tests/Architecture/MagoScopeContractTest.php</exclude>
-            <exclude>tests/Architecture/NameOwnershipContractTest.php</exclude>
-            <exclude>tests/Architecture/PersistedBooleanContractTest.php</exclude>
-            <exclude>tests/Architecture/ToolchainRegistryContractTest.php</exclude>
-            <exclude>tests/Architecture/DocsCatalogContractTest.php</exclude>
-            <exclude>tests/Architecture/SlovakProseContractTest.php</exclude>
-            <exclude>tests/Architecture/ModelCatalogueContractTest.php</exclude>
-            <exclude>tests/Architecture/ModelPayloadContractTest.php</exclude>
-            <exclude>tests/Architecture/ModelReferenceContractTest.php</exclude>
-            <exclude>tests/Architecture/ScenarioTestBindingContractTest.php</exclude>
-            <exclude>tests/Content/EmDashContractTest.php</exclude>
-            <exclude>tests/Content/ProseRhythmContractTest.php</exclude>
-            <exclude>tests/Architecture/StatementHelperContractTest.php</exclude>
-            <exclude>tests/Cache/PageCacheInvalidationTest.php</exclude>
-            <exclude>tests/Discovery/DiscoveryCacheTest.php</exclude>
-            <exclude>tests/Modules/ModuleLifecycleTest.php</exclude>
-            <exclude>tests/Architecture/AdminRouteUrlNamesTest.php</exclude>
-            <exclude>tests/Architecture/MetricRegistryResolutionTest.php</exclude>
-            <exclude>tests/Architecture/ModuleCatalogueShapeTest.php</exclude>
-            <exclude>tests/Architecture/SecurityEventPayloadContractTest.php</exclude>
-            <exclude>tests/Theme/ThemeClassOwnershipTest.php</exclude>
-            <exclude>tests/Architecture/AdminClassContractTest.php</exclude>
-            <exclude>tests/Discovery/AuthProviderRegistryTest.php</exclude>
-            <exclude>tests/Http/AuthMiddlewareDenialTest.php</exclude>
-            <exclude>tests/Http/DocsSearchTest.php</exclude>
-            <exclude>tests/Theme/FontPreloadTest.php</exclude>
-</testsuite>
+        </testsuite>
         <testsuite name="modules">
             <directory>modules</directory>
         </testsuite>

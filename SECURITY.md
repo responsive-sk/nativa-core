@@ -70,8 +70,8 @@ What you can expect:
   `/forgot-password`, `/reset-password`, admin access control, password policy.
 - Uploads and stored media, comment and question submission, inline editing.
 - The gates themselves: a way to make `make security-audit`,
-  `make dependency-audit` or `bin/build/admin-smoke.sh` report success without
-  checking anything is a valid finding.
+  `make dependency-audit` or the source repository's `bin/build/admin-smoke.sh`
+  report success without checking anything is a valid finding.
 
 ## Out of scope
 
@@ -138,7 +138,7 @@ unreviewable mitigation is not a mitigation the next person can keep.
 |---|---|---|
 | secret scan + tracked `.env` | `make security-audit` | tracked files; `audit-ok` marks a deliberate literal |
 | dependency advisories | `make dependency-audit` | `composer.lock` and `Frontend/packages/pnpm-lock.yaml`, high and critical |
-| live surface | `bin/build/admin-smoke.sh` | CSRF refusal, honeypot, moderation, admin access |
+| live surface | `bin/build/admin-smoke.sh` (source repository; the export ships no admin module) | CSRF refusal, honeypot, moderation, admin access |
 | architecture | `make guard` | the kernel may not import a module |
 
 None of these reads the PHP interpreter's patch level. That is why the floor is

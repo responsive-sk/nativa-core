@@ -88,7 +88,8 @@ APPLY_PROFILE=true
 #   ./fixtures          the theme-gallery inputs, read by
 #                       `bin/build/render-theme-pages.php` — which is itself
 #                       excluded below, so nothing in the artifact reads them;
-#                       `public/demo/` keeps the images a deployment serves
+#                       `public/demo/`, when present, keeps the images a
+#                       deployment serves
 #   ./Frontend          theme SOURCES: the artifact ships built bundles only
 #   ./vendor            the kernel runtime has zero Composer packages — this is
 #                       the claim the smoke test below is about to check
@@ -415,13 +416,18 @@ else
     check /docs        200
     check /nope        404
 
-    # Static art a page DEPENDS on, not just the routes: the mono home slider
-    # cycles public/demo/*.jpg as its slide photography, so a future exclusion
-    # that dropped them would ship a hero that renders a broken image — and
-    # every status code above would still be green.
-    for frame in hero-1 hero-2 hero-3; do
-        check "/demo/$frame.jpg" 200
-    done
+    # Static art a page DEPENDS on, not just the routes. `favicon.svg` is linked
+    # by every shipped layout, so a build that dropped public/ icons would still
+    # answer 200 on every route above and render a broken tab. The demo frames
+    # are checked only when the tree carries them: they are Mono's home-slider
+    # photography, and a kernel-only export does not ship that theme.
+    check /favicon.svg 200
+
+    if [ -d "$DIST_DIR/public/demo" ]; then
+        for frame in hero-1 hero-2 hero-3; do
+            check "/demo/$frame.jpg" 200
+        done
+    fi
 
     mark_status="$(curl -s -o /dev/null -w '%{http_code}' "http://$SMOKE_HOST:$SMOKE_PORT/mark")"
     echo "    --  /mark → $mark_status (depends on the installed modules; not asserted)"

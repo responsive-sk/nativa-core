@@ -61,9 +61,6 @@ mago-lint: ## Gate: curated lint findings must be zero
 modules-install: ## Install every catalogued module (closure order; refuses a cycle)
 	bin/build/install-catalogue.sh
 
-admin-smoke: ## Boot the panel with temp DBs and walk the admin flows over HTTP
-	bin/build/admin-smoke.sh
-
 ##@ Distribution
 dist-check: ## Gate: build dist from a clean clone (no vendor/) and smoke it
 	@bin/build/dist-check.sh

@@ -68,12 +68,6 @@
             "answers": "does every catalogued module install in closure order (refuses a cycle)"
         },
         {
-            "target": "admin-smoke",
-            "tier": "catalogue",
-            "can_fail": true,
-            "answers": "does the booted panel walk its admin flows over HTTP on temp databases"
-        },
-        {
             "target": "dist-check",
             "tier": "dist",
             "can_fail": true,

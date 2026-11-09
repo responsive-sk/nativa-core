@@ -98,6 +98,11 @@ make dist-check           # a clean clone builds a green artifact
 here. They guard the source repository's relationship with a sibling checkout
 and its own model; the export carries neither.
 
+The suite carries no test whose subject is absent. Tests of the source
+repository's approval records, its Lekalo model, its article corpus or a module
+outside the catalogue are not copied here at all; the source's
+`bin/export/core/phpunit.exclude` names each one with its reason.
+
 ## License
 
 MIT. See `LICENSE`.
