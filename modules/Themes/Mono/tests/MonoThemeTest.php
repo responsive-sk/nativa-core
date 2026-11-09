@@ -386,6 +386,11 @@ final class MonoThemeTest extends TestCase
     /**
      * The group's rows are what the translation admin types, so they are user
      * input by definition and travel the same escaping path as the rest.
+     *
+     * The copy is asserted through the hero's own slots (`home.title` and
+     * `home.cta_start`): they render on every tree, while `home.read_article`
+     * is the label of a case-study slide, which exists only where storage
+     * publishes an article. Escaping is the subject here, not the corpus.
      */
     #[Test]
     public function theHomeGroupCopyIsEscaped(): void
@@ -395,7 +400,7 @@ final class MonoThemeTest extends TestCase
                 Request::create('GET', '/'),
                 'mono',
                 'sk_SK',
-                copy: ['home.title' => 'A & B <script>', 'home.read_article' => '"quoted"'],
+                copy: ['home.title' => 'A & B <script>', 'home.cta_start' => '"quoted"'],
             ),
         );
 
