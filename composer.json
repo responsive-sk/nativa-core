@@ -31,6 +31,7 @@
     "autoload": {
         "psr-4": {
             "Modules\\": "src/Modules/",
+            "Shell\\": "src/Shell/",
             "Themes\\": "src/Themes/",
             "View\\": "src/View/"
         }

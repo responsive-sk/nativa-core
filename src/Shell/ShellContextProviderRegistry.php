@@ -2,11 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Application\Services;
+namespace Shell;
 
-use Modules\Core\Domain\Contracts\ShellContextProvider;
-use Modules\Core\Domain\ShellNavItem;
-use Modules\Core\Infrastructure\Attributes\AsShellContextProvider;
+use Modules\Core\Application\Services\PreferenceVote;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 
 /**

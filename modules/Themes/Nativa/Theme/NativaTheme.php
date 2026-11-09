@@ -5,11 +5,11 @@ declare(strict_types = 1);
 namespace Modules\Themes\Nativa\Theme;
 
 use Modules\Core\Domain\AdminRoutePolicy;
-use Modules\Core\Domain\ShellNavItem;
+use Shell\ShellNavItem;
 use Themes\ThemeSetting;
 use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
-use Modules\Core\Interfaces\HTTP\PageContext;
-use Modules\Core\Interfaces\HTTP\ShellContext;
+use Shell\PageContext;
+use Shell\ShellContext;
 use Themes\AuthPageTheme;
 use Themes\DocsPageTheme;
 use Themes\ThemeModule;

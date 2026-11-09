@@ -2,9 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Domain\Contracts;
-
-use Modules\Core\Domain\ShellNavItem;
+namespace Shell;
 
 /**
  * ShellContextProvider — the kernel-owned port the site shell asks instead of

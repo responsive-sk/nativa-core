@@ -2,9 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Interfaces\HTTP;
-
-use Modules\Core\Domain\ShellNavItem;
+namespace Shell;
 
 /**
  * Data the theme module needs to render its shell chrome (header/footer).

@@ -4,11 +4,11 @@ declare(strict_types = 1);
 
 namespace Tests\Discovery;
 
-use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Tooling\ModuleInstaller;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Shell\ShellContextProviderRegistry;
 
 /**
  * ShellContextCopyMergeTest — the `copy` merge rule, pinned where it can fail.
@@ -168,9 +168,9 @@ final class ShellContextCopyMergeTest extends TestCase
 
             namespace Modules\TempCopy\Interfaces\HTTP;
 
-            use Modules\Core\Domain\Contracts\ShellContextProvider;
-            use Modules\Core\Domain\ShellNavItem;
-            use Modules\Core\Infrastructure\Attributes\AsShellContextProvider;
+            use Shell\ShellContextProvider;
+            use Shell\ShellNavItem;
+            use Shell\AsShellContextProvider;
 
             /** Merge-test fixture: holds three keys and a blank, and echoes its locale. */
             #[AsShellContextProvider(priority: 0)]
@@ -240,9 +240,9 @@ final class ShellContextCopyMergeTest extends TestCase
 
             namespace Modules\TempCopy\Interfaces\HTTP;
 
-            use Modules\Core\Domain\Contracts\ShellContextProvider;
-            use Modules\Core\Domain\ShellNavItem;
-            use Modules\Core\Infrastructure\Attributes\AsShellContextProvider;
+            use Shell\ShellContextProvider;
+            use Shell\ShellNavItem;
+            use Shell\AsShellContextProvider;
 
             /** Merge-test fixture: the later provider — one shared key, one of its own, one that fills a blank. */
             #[AsShellContextProvider(priority: 10)]

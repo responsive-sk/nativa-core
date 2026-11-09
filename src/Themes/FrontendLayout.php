@@ -4,10 +4,10 @@ declare(strict_types = 1);
 
 namespace Themes;
 
-use Modules\Core\Application\Services\ShellContextProviderRegistry;
-use Modules\Core\Domain\ShellNavItem;
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Core\Interfaces\HTTP\ShellContext;
+use Shell\ShellContext;
+use Shell\ShellContextProviderRegistry;
+use Shell\ShellNavItem;
 use View\InlineCss;
 use View\InlineJs;
 

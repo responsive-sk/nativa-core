@@ -4,9 +4,9 @@ declare(strict_types = 1);
 
 namespace Tests\Theme;
 
-use Modules\Core\Interfaces\HTTP\ShellContext;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Shell\ShellContext;
 
 /**
  * ShellContextThemeSettingsTest — the shell context is where a theme reads its

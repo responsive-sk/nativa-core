@@ -4,8 +4,8 @@ declare(strict_types = 1);
 
 namespace Modules\Settings\Tests;
 
-use Modules\Core\Application\Services\ShellContextProviderRegistry;
-use Modules\Core\Domain\ShellNavItem;
+use Shell\ShellContextProviderRegistry;
+use Shell\ShellNavItem;
 use Themes\FrontendLayout;
 use Themes\ThemeRegistry;
 use Themes\ThemeResolver;

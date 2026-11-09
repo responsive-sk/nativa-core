@@ -4,10 +4,10 @@ declare(strict_types = 1);
 
 namespace Modules\Core\Interfaces\HTTP\Actions;
 
-use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
+use Shell\ShellContextProviderRegistry;
 use Themes\FrontendLayout;
 
 /**

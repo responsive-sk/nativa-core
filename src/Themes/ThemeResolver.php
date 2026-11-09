@@ -4,9 +4,9 @@ declare(strict_types = 1);
 
 namespace Themes;
 
-use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Domain\AdminRoutePolicy;
 use Modules\Core\Infrastructure\Http\Request;
+use Shell\ShellContextProviderRegistry;
 
 /**
  * ThemeResolver — resolves the active theme for the request (ADR-0002).

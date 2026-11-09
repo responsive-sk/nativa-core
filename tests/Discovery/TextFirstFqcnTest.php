@@ -4,11 +4,11 @@ declare(strict_types = 1);
 
 namespace Tests\Discovery;
 
-use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Shell\ShellContextProviderRegistry;
 use Themes\ThemeRegistry;
 
 /**

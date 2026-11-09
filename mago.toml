@@ -31,6 +31,7 @@ paths = [
     "src/Modules/Core",
     "src/Modules/Database",
     "src/Modules/Tooling",
+    "src/Shell",
     "src/Themes",
     "src/View",
     "src/composition.php",
@@ -191,7 +192,7 @@ excludes = ["tests", "public", "bin", "src/Themes", "src/composition.php", "src/
 
 [[guard.perimeter.rules]]
 namespace = 'Modules\Core'
-permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Themes\**', 'View\**', '@global']
+permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Shell\**', 'Themes\**', 'View\**', '@global']
 reason = 'The contract kernel may not see a module: modules are installed on top of it.'
 
 [[guard.perimeter.rules]]
@@ -203,6 +204,11 @@ reason = 'The concrete runtime sits on the kernel contracts; a module is still o
 namespace = 'Modules\Tooling'
 permit = ['Modules\Tooling\**', 'Modules\Core\**', 'Modules\Database\**', 'Themes\**', 'View\**', '@global']
 reason = 'The module tooling reads the kernel and the catalogue, never a module class.'
+
+[[guard.perimeter.rules]]
+namespace = 'Shell'
+permit = ['Shell\**', 'Modules\Core\**', '@global']
+reason = 'The shell port reads kernel paths and values; a module is on the answering side of it, not a dependency.'
 
 [[guard.perimeter.rules]]
 namespace = 'View'

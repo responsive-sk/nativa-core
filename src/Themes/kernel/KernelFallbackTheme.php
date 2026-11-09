@@ -4,8 +4,8 @@ declare(strict_types = 1);
 
 namespace Themes\kernel;
 
-use Modules\Core\Interfaces\HTTP\PageContext;
-use Modules\Core\Interfaces\HTTP\ShellContext;
+use Shell\PageContext;
+use Shell\ShellContext;
 use Themes\ThemeModule;
 
 /**

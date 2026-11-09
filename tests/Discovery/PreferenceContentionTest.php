@@ -4,11 +4,11 @@ declare(strict_types = 1);
 
 namespace Tests\Discovery;
 
-use Modules\Core\Application\Services\ShellContextProviderRegistry;
 use Modules\Tooling\ModuleInstaller;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Shell\ShellContextProviderRegistry;
 
 /**
  * PreferenceContentionTest — a second provider at the WINNING priority must
@@ -83,9 +83,9 @@ final class PreferenceContentionTest extends TestCase
 
                 namespace Modules\TempVote\Interfaces\HTTP;
 
-                use Modules\Core\Domain\Contracts\ShellContextProvider;
-                use Modules\Core\Domain\ShellNavItem;
-                use Modules\Core\Infrastructure\Attributes\AsShellContextProvider;
+                use Shell\ShellContextProvider;
+                use Shell\ShellNavItem;
+                use Shell\AsShellContextProvider;
 
                 /** Contention-test fixture: answers theme() at the Settings vote priority. */
                 #[AsShellContextProvider(priority: -100)]

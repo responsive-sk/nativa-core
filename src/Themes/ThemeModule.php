@@ -4,8 +4,8 @@ declare(strict_types = 1);
 
 namespace Themes;
 
-use Modules\Core\Interfaces\HTTP\PageContext;
-use Modules\Core\Interfaces\HTTP\ShellContext;
+use Shell\PageContext;
+use Shell\ShellContext;
 
 /**
  * Theme module contract — the single entry point of a wired theme.

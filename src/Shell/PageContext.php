@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Interfaces\HTTP;
+namespace Shell;
 
 use Modules\Core\Infrastructure\Http\Request;
 

@@ -33,6 +33,7 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 spl_autoload_register(static function (string $class): void {
     $prefixMap = [
         'Modules\\'   => [__DIR__ . '/Modules/'],
+        'Shell\\'     => [__DIR__ . '/Shell/'],
         'Templates\\' => [__DIR__ . '/Templates/'],
         'Themes\\'    => [__DIR__ . '/Themes/'],
         'View\\'      => [__DIR__ . '/View/'],

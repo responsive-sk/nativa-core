@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\ContentLocale\Interfaces\HTTP;
 
 use Modules\ContentLocale\Application\Services\ContentLocaleMapper;
-use Modules\Core\Application\Services\ShellContextProviderRegistry;
+use Shell\ShellContextProviderRegistry;
 
 /**
  * ContentLocaleServices — lazy factory for the content locale mapper.

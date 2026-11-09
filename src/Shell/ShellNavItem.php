@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Domain;
+namespace Shell;
 
 /**
  * ShellNavItem — one navigation entry the shell chrome renders.

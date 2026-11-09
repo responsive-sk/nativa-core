@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Modules\Core\Infrastructure\Attributes;
+namespace Shell;
 
 use Attribute;
 
