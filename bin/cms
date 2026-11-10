@@ -51,9 +51,19 @@ declare(strict_types = 1);
  * rather than symfony Console commands: a module command that extends
  * `Symfony\...\Command` cannot be loaded without `vendor/`, so it would be a
  * command that only exists on a developer machine.
+ *
+ * Options have ONE owner: `commandOptions()` below. A command that does not
+ * declare an option refuses it before doing anything, naming the option and
+ * listing the accepted ones, so `--lmit=3` cannot run as a default-limit batch.
+ * A delegated command (a module `Command` class) owns its own list and
+ * validates it there; the table marks such a command `null` instead of
+ * copying its options a second time. The help text renders the kernel's
+ * fragments from that table, and `tests/Architecture/CliCommandOptionsTest.php`
+ * fails when the dispatch, the table and the help drift apart.
  */
 
 use Modules\Core\Interfaces\CLI\CliOutput;
+use Modules\Core\Interfaces\CLI\CommandOptions;
 use Modules\Core\Interfaces\CLI\Support\DatabaseMigrator;
 use Modules\Tooling\ModuleCatalog;
 use Modules\Tooling\ModuleInstaller;
@@ -349,31 +359,50 @@ function cmdRemove(ModuleInstaller $installer, string $name, bool $force): void
 
 function usage(): void
 {
-    out('Usage: php bin/cms <command> [args]');
-    out('');
-    out('  module:list              installed + catalogued modules');
-    out('  module:show [<Name>]     drift report, or one module\'s manifest');
-    out('  module:add <Name>        install a module (refuses an incomplete closure)');
-    out('  module:remove <Name> [--force]  remove a module (refuses while imported)');
-    out('  migrate                  run every module migrator (the first-request run, forced)');
-    out('  schedule:run             run due Scheduler timetable entries (exit 1 on any failure)');
-    out('  queue:work [<name>] [--limit=N]  work one batch of queued jobs (exit 1 on a parked job)');
-    out('  queue:prune [--interval="30 days"] [--dry-run]');
-    out('                            drop failed jobs older than the interval');
-    out('  outbox:process [--limit=N] [--prune-interval="7 days"] [--no-prune]');
-    out('                            deliver pending outbox messages and prune processed ones');
-    out('  generate-images [-s|--slug S] [-f|--format FMT]  render article preview images');
-    out('  clickhouse:attach [--db=<name>] [--prefix=<p>] [--dry-run] [--force] [--checkpoint]');
-    out('                            attach every storage/data/*.db as a ClickHouse database');
-    out('  clickhouse:status         the server\'s view of the attached databases, and drift');
-    out('  clickhouse:query "<sql>" [--db=<name>] [--write] [--format=JSONEachRow|TSV]');
-    out('                            run one statement (read-only unless --write)');
-    out('  user:admin [email] [password] [--name=NAME]');
-    out('                            create or repair an administrator (defaults admin@example.test / admin1234)');
-    out('  settings:profile [--file=PATH]');
-    out('                            apply a committed deployment profile (default: config/deploy.php)');
-    out('  discovery:clear          delete the discovery cache (rebuilt on the next request)');
-    out('  discovery:status         whether the discovery cache exists and is fresh');
+    foreach (usageLines() as $line) {
+        out($line);
+    }
+}
+
+/**
+ * The help text, as data, so a kernel command's options are not spelled twice.
+ *
+ * A kernel-owned command's `[--option]` fragments come from `optionUsage()`,
+ * which reads `commandOptions()`. A delegated command's line keeps its own
+ * spelling, because the module `Command` class that validates those options
+ * owns them; the table marks it `null` rather than copying them here.
+ *
+ * @return list<string>
+ */
+function usageLines(): array
+{
+    return [
+        'Usage: php bin/cms <command> [args]',
+        '',
+        '  module:list              installed + catalogued modules',
+        '  module:show [<Name>]     drift report, or one module\'s manifest',
+        '  module:add <Name>        install a module (refuses an incomplete closure)',
+        '  module:remove <Name>' . optionUsage('module:remove') . '  remove a module (refuses while imported)',
+        '  migrate                  run every module migrator (the first-request run, forced)',
+        '  schedule:run             run due Scheduler timetable entries (exit 1 on any failure)',
+        '  queue:work [<name>]' . optionUsage('queue:work') . '  work one batch of queued jobs (exit 1 on a parked job)',
+        '  queue:prune' . optionUsage('queue:prune'),
+        '                            drop failed jobs older than the interval',
+        '  outbox:process [--limit=N] [--prune-interval="7 days"] [--no-prune]',
+        '                            deliver pending outbox messages and prune processed ones',
+        '  generate-images [-s|--slug S] [-f|--format FMT]  render article preview images',
+        '  clickhouse:attach [--db=<name>] [--prefix=<p>] [--dry-run] [--force] [--checkpoint]',
+        '                            attach every storage/data/*.db as a ClickHouse database',
+        '  clickhouse:status         the server\'s view of the attached databases, and drift',
+        '  clickhouse:query "<sql>" [--db=<name>] [--write] [--format=JSONEachRow|TSV]',
+        '                            run one statement (read-only unless --write)',
+        '  user:admin [email] [password] [--name=NAME]',
+        '                            create or repair an administrator (defaults admin@example.test / admin1234)',
+        '  settings:profile [--file=PATH]',
+        '                            apply a committed deployment profile (default: config/deploy.php)',
+        '  discovery:clear          delete the discovery cache (rebuilt on the next request)',
+        '  discovery:status         whether the discovery cache exists and is fresh',
+    ];
 }
 
 /**
@@ -617,9 +646,9 @@ function output(): CliOutput
  *
  * The handler pairing is wired first, for the reason in the file header.
  *
- * @param list<string> $argv the full argv; options start at index 2
+ * @param array{delegated: bool, args: list<string>, options: array<string, string|null>} $parsed
  */
-function cmdQueueWork(array $argv): void
+function cmdQueueWork(array $parsed): void
 {
     if (!class_exists(\Modules\Queue\Interfaces\HTTP\QueueServices::class)) {
         fail('queue:work needs the Queue module (bin/cms module:add Queue).');
@@ -627,16 +656,10 @@ function cmdQueueWork(array $argv): void
 
     wire_module_handlers();
 
-    $queue = null;
-    $limit = 10;
-
-    foreach (array_slice($argv, 2) as $argument) {
-        if (str_starts_with($argument, '--limit=')) {
-            $limit = max(1, (int) substr($argument, strlen('--limit=')));
-        } elseif (!str_starts_with($argument, '--')) {
-            $queue = $argument;
-        }
-    }
+    $queue = $parsed['args'][0] ?? null;
+    $limit = isset($parsed['options']['--limit='])
+        ? max(1, (int) $parsed['options']['--limit='])
+        : 10;
 
     $result = \Modules\Queue\Interfaces\HTTP\QueueServices::work($queue, $limit);
 
@@ -673,27 +696,19 @@ function cmdQueueWork(array $argv): void
  * being deleted is a work queue rather than a log: there is a retry button on
  * each row, and an unattended run that emptied it would report success.
  *
- * @param list<string> $argv
+ * @param array{delegated: bool, args: list<string>, options: array<string, string|null>} $parsed
  */
-function cmdQueuePrune(array $argv): void
+function cmdQueuePrune(array $parsed): void
 {
     if (!class_exists(\Modules\Queue\Interfaces\HTTP\QueueServices::class)) {
         fail('queue:prune needs the Queue module (bin/cms module:add Queue).');
     }
 
-    $interval = '30 days';
-    $dryRun = false;
+    $interval = $parsed['options']['--interval='] ?? '30 days';
+    $dryRun = array_key_exists('--dry-run', $parsed['options']);
 
-    foreach (array_slice($argv, 2) as $argument) {
-        if (str_starts_with($argument, '--interval=')) {
-            $interval = substr($argument, strlen('--interval='));
-        } elseif ('--dry-run' === $argument) {
-            $dryRun = true;
-        } elseif (str_starts_with($argument, '--')) {
-            fail('unknown option "' . $argument . '" for queue:prune; known: --interval=, --dry-run');
-        } else {
-            fail('queue:prune takes options only, got "' . $argument . '"');
-        }
+    if ([] !== $parsed['args']) {
+        fail('queue:prune takes options only, got "' . $parsed['args'][0] . '"');
     }
 
     if ('' === trim($interval)) {
@@ -746,10 +761,131 @@ function cmdDiscoveryStatus(): void
     out(sprintf('Version:     %d', $status['version']));
 }
 
+/**
+ * The one table of accepted options, per command.
+ *
+ * A key is the token as typed: `--force` is a flag, `--limit=` takes a value.
+ * Its value is the usage fragment the help prints. `null` means the command
+ * hands its argv to a module `Command` class, which declares and validates
+ * those options itself; copying them here would be a second owner of the same
+ * fact.
+ *
+ * @return array<string, array<string, string>|null>
+ */
+function commandOptions(): array
+{
+    return [
+        'module:list'       => [],
+        'module:show'       => [],
+        'module:add'        => [],
+        'module:remove'     => ['--force' => '[--force]'],
+        'migrate'           => [],
+        'schedule:run'      => [],
+        'queue:work'        => ['--limit=' => '[--limit=N]'],
+        'queue:prune'       => ['--interval=' => '[--interval="30 days"]', '--dry-run' => '[--dry-run]'],
+        'discovery:clear'   => [],
+        'discovery:status'  => [],
+
+        // Delegated: the module Command class owns and validates these.
+        'user:admin'        => null,
+        'settings:profile'  => null,
+        'outbox:process'    => null,
+        'generate-images'   => null,
+        'clickhouse:attach' => null,
+        'clickhouse:status' => null,
+        'clickhouse:query'  => null,
+    ];
+}
+
+/**
+ * The `[--option]` fragments for one kernel-owned command, leading space
+ * included, or an empty string when it accepts none.
+ */
+function optionUsage(string $command): string
+{
+    $spec = commandOptions()[$command] ?? null;
+
+    return null === $spec || [] === $spec ? '' : ' ' . implode(' ', array_values($spec));
+}
+
+/**
+ * Split one command's argv into positionals and accepted options.
+ *
+ * A delegated command returns its raw arguments untouched: its module
+ * `Command` class is the validator, and this parser must not pretend to know
+ * options it does not own.
+ *
+ * @param list<string> $argv
+ *
+ * @return array{delegated: bool, args: list<string>, options: array<string, string|null>}
+ *
+ * @throws InvalidArgumentException when the command is given an option it does not declare
+ */
+function parseArguments(string $command, array $argv): array
+{
+    // `array_key_exists`, not `??`: a delegated command's entry IS null, and
+    // null coalescing would read it as "no entry" and hand it an empty table.
+    $specs = commandOptions();
+    $spec = array_key_exists($command, $specs) ? $specs[$command] : null;
+
+    if (null === $spec) {
+        return ['delegated' => true, 'args' => array_slice($argv, 2), 'options' => []];
+    }
+
+    // The table's keys are the tokens as typed (`--force`, `--limit=`); the
+    // parser wants bare names, so split them once here and put the trailing
+    // `=` back on the way out, where the callers look their value up.
+    $values = [];
+    $flags = [];
+
+    foreach (array_keys($spec) as $token) {
+        if (str_ends_with($token, '=')) {
+            $values[] = substr($token, 2, -1);
+        } else {
+            $flags[] = substr($token, 2);
+        }
+    }
+
+    try {
+        $parsed = CommandOptions::parse(array_slice($argv, 2), $values, $flags);
+    } catch (RuntimeException $e) {
+        // The parser names the option; this entry point names the command and
+        // the alternatives, which is what an operator needs at a prompt.
+        throw new InvalidArgumentException(sprintf(
+            '%s for %s; known: %s',
+            rtrim($e->getMessage(), '.'),
+            $command,
+            [] === $spec ? 'none' : implode(', ', array_keys($spec)),
+        ));
+    }
+
+    $options = [];
+
+    foreach ($parsed['options'] as $name => $value) {
+        $token = in_array($name, $values, true) ? '--' . $name . '=' : '--' . $name;
+        $options[$token] = is_string($value) ? $value : null;
+    }
+
+    return ['delegated' => false, 'args' => $parsed['positional'], 'options' => $options];
+}
+
 /** @param list<string> $argv */
 function main(array $argv): void
 {
     $command = $argv[1] ?? '';
+    $specs = commandOptions();
+
+    if (!array_key_exists($command, $specs)) {
+        usage();
+
+        exit('' === $command ? 0 : 1);
+    }
+
+    try {
+        $parsed = parseArguments($command, $argv);
+    } catch (InvalidArgumentException $e) {
+        fail($e->getMessage());
+    }
 
     $installer = ModuleInstaller::fromAppPaths();
     $catalog = ModuleCatalog::fromAppPaths();
@@ -761,25 +897,25 @@ function main(array $argv): void
             break;
 
         case 'module:show':
-            cmdShow($catalog, $argv[2] ?? null);
+            cmdShow($catalog, $parsed['args'][0] ?? null);
 
             break;
 
         case 'module:add':
-            if (!isset($argv[2])) {
+            if (!isset($parsed['args'][0])) {
                 fail('module:add needs a module name.');
             }
 
-            cmdAdd($installer, $catalog, $argv[2]);
+            cmdAdd($installer, $catalog, $parsed['args'][0]);
 
             break;
 
         case 'module:remove':
-            if (!isset($argv[2])) {
+            if (!isset($parsed['args'][0])) {
                 fail('module:remove needs a module name.');
             }
 
-            cmdRemove($installer, $argv[2], in_array('--force', $argv, true));
+            cmdRemove($installer, $parsed['args'][0], array_key_exists('--force', $parsed['options']));
 
             break;
 
@@ -804,12 +940,12 @@ function main(array $argv): void
             break;
 
         case 'queue:work':
-            cmdQueueWork($argv);
+            cmdQueueWork($parsed);
 
             break;
 
         case 'queue:prune':
-            cmdQueuePrune($argv);
+            cmdQueuePrune($parsed);
 
             break;
 
@@ -855,4 +991,11 @@ function main(array $argv): void
     }
 }
 
-main($argv ?? []);
+// Included (the option-table test) defines the functions without running a
+// command; executed as the CLI it dispatches. `main()` exits and `fail()` calls
+// `exit`, so this guard is what lets the table be tested in-process.
+$script = $_SERVER['SCRIPT_FILENAME'] ?? null;
+
+if (PHP_SAPI === 'cli' && is_string($script) && realpath($script) === __FILE__) {
+    main($argv ?? []);
+}
