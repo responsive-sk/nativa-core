@@ -55,7 +55,7 @@ first keyword because at that point nobody has said.
 - `composer test`: 1186 tests, 7536 assertions, 1 skipped. PHPStan, Rector,
   CS Fixer, mago-lint and mago-guard clean; `make extract-check` reports 185
   identical files and 103 recorded.
-- The kernel moved from 159 059 B to 184 616 B and from 38 to 47 files, Core's
+- The kernel moved from 159 059 B to 185 219 B and from 38 to 47 files, Core's
   types unchanged at 8 interface and 28 concrete.
 
 **Reading**
