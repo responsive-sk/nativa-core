@@ -6,8 +6,10 @@ namespace Modules\Settings\Interfaces\CLI\Command;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Core\Interfaces\CLI\CliOutput;
+use Modules\Core\Interfaces\CLI\CommandOptions;
+use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\UnitOfWork;
-use Modules\Settings\Infrastructure\Persistence\Statement;
+use RuntimeException;
 
 /**
  * bin/cms settings:profile — apply a committed deployment profile.
@@ -42,7 +44,7 @@ use Modules\Settings\Infrastructure\Persistence\Statement;
  */
 final readonly class ApplyDeploymentProfileCommand
 {
-    public function __construct(private \PDO $pdo)
+    public function __construct(private ConnectionInterface $db)
     {
     }
 
@@ -76,7 +78,7 @@ final readonly class ApplyDeploymentProfileCommand
         /** @var array<string, array{value: string|int|float|bool, type: string}> $rows */
         $rows = [];
         $unknown = [];
-        $statement = Statement::prepare($this->pdo, 'SELECT value_type FROM settings WHERE setting_key = :key');
+        $statement = $this->db->prepare('SELECT value_type FROM settings WHERE setting_key = :key');
 
         foreach ($profile as $key => $value) {
             $statement->execute([':key' => $key]);
@@ -98,8 +100,8 @@ final readonly class ApplyDeploymentProfileCommand
             return 1;
         }
 
-        (new UnitOfWork($this->pdo))->transaction(function (\PDO $pdo) use ($rows): void {
-            $update = Statement::prepare($pdo,
+        (new UnitOfWork($this->db))->transaction(function (ConnectionInterface $db) use ($rows): void {
+            $update = $db->prepare(
                 'UPDATE settings SET setting_value = :value, updated_at = CURRENT_TIMESTAMP WHERE setting_key = :key',
             );
 
@@ -128,21 +130,20 @@ final readonly class ApplyDeploymentProfileCommand
      */
     private function profilePath(array $arguments, CliOutput $output): ?string
     {
-        $path = AppPaths::instance()->config('deploy.php');
+        try {
+            $parsed = CommandOptions::parse($arguments, ['file']);
+        } catch (RuntimeException $e) {
+            $output->writeln('settings:profile: ' . $e->getMessage() . ' Known: --file=PATH');
 
-        foreach ($arguments as $argument) {
-            if (str_starts_with($argument, '--file=')) {
-                $path = substr($argument, strlen('--file='));
+            return null;
+        }
 
-                continue;
-            }
+        $path = CommandOptions::value($parsed['options'], 'file')
+            ?? AppPaths::instance()->config('deploy.php');
 
-            if (str_starts_with($argument, '-')) {
-                $output->writeln('settings:profile: unknown option "' . $argument . '" (known: --file=PATH)');
-
-                return null;
-            }
-
+        // A positional path wins over the option, the same order the loop this
+        // replaced used: `settings:profile other.php` must read other.php.
+        foreach ($parsed['positional'] as $argument) {
             if ('' !== $argument) {
                 $path = $argument;
             }

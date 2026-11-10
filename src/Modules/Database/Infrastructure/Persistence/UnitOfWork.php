@@ -4,23 +4,34 @@ declare(strict_types = 1);
 
 namespace Modules\Database\Infrastructure\Persistence;
 
+use Modules\Database\Contracts\ConnectionInterface;
+
 /**
  * UnitOfWork — transactional consistency across repositories.
  *
  * Wraps database operations in a single transaction. If any operation fails,
  * all changes are rolled back. Follows the "all or nothing" principle.
  *
- * Accepts a PDO connection directly so it works with any module database.
+ * Takes the connection contract rather than `\PDO`, so the callback it hands
+ * out can route like every other call in the module: writes to the primary, and
+ * reads to a replica until the transaction itself marks the connection as
+ * written.
  *
  * ## Nesting
  *
  * Every caller constructs its own `UnitOfWork`, so nesting is the normal case,
  * not an edge: `BulkDeleteAction` opens one, then `UserRepository::delete()`
- * opens another on the same PDO. The previous per-instance `$transactionStarted`
- * boolean could not see that, so the second `beginTransaction()` threw
- * `PDOException: There is already an active transaction` and a privileged
- * delete 500'd half-done. Depth is therefore tracked **per PDO handle**, not
- * per instance.
+ * opens another on the same database. The previous per-instance
+ * `$transactionStarted` boolean could not see that, so the second
+ * `beginTransaction()` threw `PDOException: There is already an active
+ * transaction` and a privileged delete 500'd half-done. Depth is therefore
+ * tracked **per database**, not per instance.
+ *
+ * The database's identity is `ConnectionInterface::name()`: the manager returns
+ * one routed connection per name, so two callers that asked for `users` are one
+ * stack. That is what lets a decorator (`ReadWriteConnection`, which changes the
+ * handle underneath) sit between this class and everything else without
+ * splitting a transaction in two.
  *
  * ## What a nested throw does
  *
@@ -40,12 +51,12 @@ namespace Modules\Database\Infrastructure\Persistence;
  * `docs/security-patterns.md`.
  *
  * Usage:
- *   $pdo = DatabaseConnectionManager::instance()->connection('users');
- *   $uow = new UnitOfWork($pdo);
+ *   $db = DatabaseConnectionManager::instance()->connect('users');
+ *   $uow = new UnitOfWork($db);
  *
- *   $uow->transaction(function (\PDO $pdo) use ($user, $role) {
- *       $pdo->prepare('INSERT INTO users ...')->execute([...]);
- *       $pdo->prepare('INSERT INTO user_roles ...')->execute([...]);
+ *   $uow->transaction(function (ConnectionInterface $db) use ($user, $role) {
+ *       $db->execute('INSERT INTO users ...', [...]);
+ *       $db->execute('INSERT INTO user_roles ...', [...]);
  *   });
  *
  * @see Modules\Outbox for domain event publishing within transactions
@@ -53,19 +64,20 @@ namespace Modules\Database\Infrastructure\Persistence;
 final class UnitOfWork
 {
     /**
-     * Nesting depth per PDO handle.
+     * Nesting depth per database name.
      *
-     * Keyed by handle rather than by object: two UnitOfWork instances over one
-     * connection are one nesting stack, and only the handle can tell that.
-     * A WeakMap lets the entry disappear with the connection, so a per-request
-     * process does not accumulate one entry per database it ever opened.
+     * Keyed by name rather than by object: two UnitOfWork instances over one
+     * database are one nesting stack, and the routed connection for that name
+     * may be a different object from one call to the next. The set of keys is
+     * bounded by the number of databases the process opens, so a plain array
+     * does not grow the way a per-request WeakMap was guarding against.
      *
-     * @var \WeakMap<\PDO, int>
+     * @var array<string, int>
      */
-    private static ?\WeakMap $depth = null;
+    private static array $depth = [];
 
     public function __construct(
-        private readonly \PDO $pdo,
+        private readonly ConnectionInterface $connection,
     ) {
     }
 
@@ -79,7 +91,7 @@ final class UnitOfWork
      *
      * @template T
      *
-     * @param callable(\PDO): T $fn Operations to execute in transaction
+     * @param callable(ConnectionInterface): T $fn Operations to execute in transaction
      *
      * @throws \Throwable Rethrown from callback after rollback
      *
@@ -90,7 +102,7 @@ final class UnitOfWork
         $this->beginTransaction();
 
         try {
-            $result = $fn($this->pdo);
+            $result = $fn($this->connection);
             $this->commit();
 
             return $result;
@@ -109,15 +121,15 @@ final class UnitOfWork
         $depth = $this->depth();
 
         if (0 === $depth) {
-            self::stack()[$this->pdo] = 1;
-            $this->pdo->beginTransaction();
+            self::$depth[$this->name()] = 1;
+            $this->connection->beginTransaction();
             self::log('begin', 1);
 
             return;
         }
 
-        self::stack()[$this->pdo] = $depth + 1;
-        $this->pdo->exec('SAVEPOINT ' . self::savepointName($depth + 1));
+        self::$depth[$this->name()] = $depth + 1;
+        $this->connection->execute('SAVEPOINT ' . self::savepointName($depth + 1));
         self::log('savepoint ' . self::savepointName($depth + 1), $depth + 1);
     }
 
@@ -134,15 +146,15 @@ final class UnitOfWork
         }
 
         if (1 === $depth) {
-            unset(self::stack()[$this->pdo]);
-            $this->pdo->commit();
+            unset(self::$depth[$this->name()]);
+            $this->connection->commit();
             self::log('commit', 1);
 
             return;
         }
 
-        self::stack()[$this->pdo] = $depth - 1;
-        $this->pdo->exec('RELEASE SAVEPOINT ' . self::savepointName($depth));
+        self::$depth[$this->name()] = $depth - 1;
+        $this->connection->execute('RELEASE SAVEPOINT ' . self::savepointName($depth));
         self::log('release ' . self::savepointName($depth), $depth);
     }
 
@@ -159,19 +171,19 @@ final class UnitOfWork
         }
 
         if (1 === $depth) {
-            unset(self::stack()[$this->pdo]);
-            $this->pdo->rollBack();
+            unset(self::$depth[$this->name()]);
+            $this->connection->rollBack();
             self::log('rollback', 1);
 
             return;
         }
 
-        self::stack()[$this->pdo] = $depth - 1;
-        $this->pdo->exec('ROLLBACK TO SAVEPOINT ' . self::savepointName($depth));
+        self::$depth[$this->name()] = $depth - 1;
+        $this->connection->execute('ROLLBACK TO SAVEPOINT ' . self::savepointName($depth));
         // ROLLBACK TO leaves the savepoint itself on the stack; RELEASE is what
         // actually removes it. Without this the next scope at the same depth
         // would reuse a savepoint that already holds rolled-back state.
-        $this->pdo->exec('RELEASE SAVEPOINT ' . self::savepointName($depth));
+        $this->connection->execute('RELEASE SAVEPOINT ' . self::savepointName($depth));
         self::log('rollback to ' . self::savepointName($depth), $depth);
     }
 
@@ -194,7 +206,7 @@ final class UnitOfWork
      */
     public function depth(): int
     {
-        return self::stack()[$this->pdo] ?? ($this->pdo->inTransaction() ? 1 : 0);
+        return self::$depth[$this->name()] ?? ($this->connection->inTransaction() ? 1 : 0);
     }
 
     /**
@@ -207,21 +219,12 @@ final class UnitOfWork
      */
     public static function reset(): void
     {
-        self::$depth = null;
+        self::$depth = [];
     }
 
-    /**
-     * The depth stack, created on first use.
-     *
-     * A `new` expression cannot appear in a static property initializer, and
-     * building the WeakMap eagerly for every class load would be wasteful on a
-     * request that never opens a transaction.
-     *
-     * @return \WeakMap<\PDO, int>
-     */
-    private static function stack(): \WeakMap
+    private function name(): string
     {
-        return self::$depth ??= new \WeakMap();
+        return $this->connection->name();
     }
 
     private static function savepointName(int $depth): string

@@ -28,7 +28,7 @@ final class SettingsServices
     {
         return self::$menu ??= new MenuService(
             new MenuRepository(
-                DatabaseConnectionManager::instance()->connection('config'),
+                DatabaseConnectionManager::instance()->connect('config'),
             ),
         );
     }
@@ -37,7 +37,7 @@ final class SettingsServices
     {
         return self::$settings ??= new SettingsService(
             new SettingsRepository(
-                DatabaseConnectionManager::instance()->connection('config'),
+                DatabaseConnectionManager::instance()->connect('config'),
             ),
         );
     }

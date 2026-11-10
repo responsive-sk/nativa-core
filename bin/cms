@@ -396,12 +396,14 @@ function usageLines(): array
         '  clickhouse:status         the server\'s view of the attached databases, and drift',
         '  clickhouse:query "<sql>" [--db=<name>] [--write] [--format=JSONEachRow|TSV]',
         '                            run one statement (read-only unless --write)',
-        '  user:admin [email] [password] [--name=NAME]',
+        '  user:admin [email] [password] [--name=NAME | --name NAME]',
         '                            create or repair an administrator (defaults admin@example.test / admin1234)',
-        '  settings:profile [--file=PATH]',
+        '  settings:profile [--file=PATH | --file PATH]',
         '                            apply a committed deployment profile (default: config/deploy.php)',
         '  discovery:clear          delete the discovery cache (rebuilt on the next request)',
         '  discovery:status         whether the discovery cache exists and is fresh',
+        '',
+        '  An option that takes a value accepts --name=value and --name value.',
     ];
 }
 
@@ -435,8 +437,8 @@ function cmdUserAdmin(array $argv): void
         fail('user:admin needs the Users module (bin/cms module:add Users).');
     }
 
-    $pdo = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connection('users');
-    $command = new \Modules\Users\Interfaces\CLI\Command\EnsureAdminCommand($pdo);
+    $db = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connect('users');
+    $command = new \Modules\Users\Interfaces\CLI\Command\EnsureAdminCommand($db);
 
     exit($command->run(array_merge(['user:admin'], array_slice($argv, 2)), output()));
 }
@@ -458,8 +460,8 @@ function cmdSettingsProfile(array $argv): void
         fail('settings:profile needs the Settings module (bin/cms module:add Settings).');
     }
 
-    $pdo = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connection('config');
-    $command = new \Modules\Settings\Interfaces\CLI\Command\ApplyDeploymentProfileCommand($pdo);
+    $db = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connect('config');
+    $command = new \Modules\Settings\Interfaces\CLI\Command\ApplyDeploymentProfileCommand($db);
 
     exit($command->run(array_merge(['settings:profile'], array_slice($argv, 2)), output()));
 }

@@ -98,6 +98,12 @@ require_once __DIR__ . '/composition.php';
  */
 function http_kernel(): Kernel
 {
+    // ROUTING RESET — a sticky write and an onPrimary() scope belong to one
+    // request. A PHP-FPM worker serves many, so a write from the previous one
+    // would pin every later read in this process to the primary and nothing
+    // would look broken. One line, before any connection can be reused.
+    DatabaseConnectionManager::instance()->resetRouting();
+
     // Migrations — every module that ships an #[AsMigrator] runs it here,
     // idempotently. With no feature module installed this creates the kernel's
     // own tables and nothing else.
@@ -206,7 +212,7 @@ function http_kernel(): Kernel
     if (class_exists(SecurityRateLimiter::class)) {
         $kernel->addMiddleware(new RateLimitMiddleware(
             static fn (): object => new SecurityRateLimiter(
-                DatabaseConnectionManager::instance()->connection('users'),
+                DatabaseConnectionManager::instance()->connect('users'),
             ),
             cache: $pageCache,
             sink: $securityEvents,

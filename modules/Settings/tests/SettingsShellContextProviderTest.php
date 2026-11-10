@@ -9,6 +9,7 @@ use Shell\ShellNavItem;
 use Themes\FrontendLayout;
 use Themes\ThemeRegistry;
 use Themes\ThemeResolver;
+use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator;
 use Modules\Settings\Infrastructure\Persistence\Repositories\SettingsRepository;
@@ -59,6 +60,8 @@ final class SettingsShellContextProviderTest extends TestCase
 
     private \PDO $pdo;
 
+    private ConnectionInterface $connection;
+
     protected function setUp(): void
     {
         if (!is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
@@ -77,6 +80,10 @@ final class SettingsShellContextProviderTest extends TestCase
         // The migrator the kernel would run, against a database of our own —
         // same schema, same seeded menu, no shared state.
         (new SettingsDatabaseMigrator($this->pdo))->run($this->quietOutput());
+
+        // The migrator keeps the raw handle for its DDL; the repositories and
+        // the fixture SQL read and write through the routed connection.
+        $this->connection = DatabaseConnectionManager::instance()->connect('config');
     }
 
     protected function tearDown(): void
@@ -294,7 +301,7 @@ final class SettingsShellContextProviderTest extends TestCase
     #[Test]
     public function aMissingSiteDescriptionAbstains(): void
     {
-        (new SettingsRepository($this->pdo))->delete('site_description');
+        (new SettingsRepository($this->connection))->delete('site_description');
         SettingsServices::reset();
 
         $this->assertNull((new SettingsShellContextProvider())->siteDescription());
@@ -384,7 +391,7 @@ final class SettingsShellContextProviderTest extends TestCase
     #[Test]
     public function aMissingLocaleKeyAbstains(): void
     {
-        Statement::prepare($this->pdo, 'DELETE FROM settings WHERE setting_key = :key')->execute([':key' => 'locale']);
+        Statement::prepare($this->connection, 'DELETE FROM settings WHERE setting_key = :key')->execute([':key' => 'locale']);
         SettingsServices::reset();
 
         $provider = new SettingsShellContextProvider();
@@ -422,7 +429,7 @@ final class SettingsShellContextProviderTest extends TestCase
     #[Test]
     public function aMissingThemeKeyAbstains(): void
     {
-        Statement::prepare($this->pdo, 'DELETE FROM settings WHERE setting_key = :key')->execute([':key' => 'theme']);
+        Statement::prepare($this->connection, 'DELETE FROM settings WHERE setting_key = :key')->execute([':key' => 'theme']);
         SettingsServices::reset();
 
         $this->assertNull((new SettingsShellContextProvider())->theme());
@@ -442,7 +449,7 @@ final class SettingsShellContextProviderTest extends TestCase
     {
         $this->storeTheme(ThemeResolver::KERNEL_THEME);
 
-        $repository = new SettingsRepository($this->pdo);
+        $repository = new SettingsRepository($this->connection);
         $repository->set('theme.kernel.nav_toggle_icon', 'meatball', 'design', false);
         $repository->set('theme.other.nav_toggle_icon', 'burger', 'design', false);
         SettingsServices::reset();
@@ -522,7 +529,7 @@ final class SettingsShellContextProviderTest extends TestCase
     private function seededPublicHrefs(): array
     {
         /** @var list<string> $hrefs */
-        $hrefs = Statement::query($this->pdo,
+        $hrefs = Statement::query($this->connection,
             "SELECT href FROM menu_items WHERE location IN ('header', 'footer')",
         )->fetchAll(\PDO::FETCH_COLUMN);
 
@@ -585,7 +592,7 @@ final class SettingsShellContextProviderTest extends TestCase
      */
     private function storeTheme(string $value): void
     {
-        (new SettingsRepository($this->pdo))->set('theme', $value, 'design', false);
+        (new SettingsRepository($this->connection))->set('theme', $value, 'design', false);
         SettingsServices::reset();
     }
 
@@ -595,7 +602,7 @@ final class SettingsShellContextProviderTest extends TestCase
      */
     private function storeSiteName(string $value): void
     {
-        (new SettingsRepository($this->pdo))->set('site_name', $value, 'general', false);
+        (new SettingsRepository($this->connection))->set('site_name', $value, 'general', false);
         SettingsServices::reset();
     }
 
@@ -605,7 +612,7 @@ final class SettingsShellContextProviderTest extends TestCase
      */
     private function storeSiteDescription(string $value): void
     {
-        (new SettingsRepository($this->pdo))->set('site_description', $value, 'general', false);
+        (new SettingsRepository($this->connection))->set('site_description', $value, 'general', false);
         SettingsServices::reset();
     }
 
@@ -615,7 +622,7 @@ final class SettingsShellContextProviderTest extends TestCase
      */
     private function storeLocale(string $value): void
     {
-        (new SettingsRepository($this->pdo))->set('locale', $value, 'general', false);
+        (new SettingsRepository($this->connection))->set('locale', $value, 'general', false);
         SettingsServices::reset();
     }
 
@@ -624,13 +631,13 @@ final class SettingsShellContextProviderTest extends TestCase
         $parent = null;
 
         if (null !== $parentLabel) {
-            $stmt = Statement::prepare($this->pdo, 'SELECT id FROM menu_items WHERE label = :label AND location = :loc');
+            $stmt = Statement::prepare($this->connection, 'SELECT id FROM menu_items WHERE label = :label AND location = :loc');
             $stmt->execute([':label' => $parentLabel, ':loc' => $location]);
             $parent = $stmt->fetchColumn();
             $this->assertIsString($parent, 'The parent row must exist before its child is inserted.');
         }
 
-        $stmt = Statement::prepare($this->pdo,
+        $stmt = Statement::prepare($this->connection,
             'INSERT INTO menu_items (id, label, href, sort_order, location, icon, parent_item_id, is_active, created_at, updated_at)
              VALUES (:id, :label, :href, :sort, :loc, :icon, :parent, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
         );

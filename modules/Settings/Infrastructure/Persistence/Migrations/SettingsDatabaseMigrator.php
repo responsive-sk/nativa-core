@@ -7,6 +7,9 @@ namespace Modules\Settings\Infrastructure\Persistence\Migrations;
 use Modules\Core\Infrastructure\Attributes\AsMigrator;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
+use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Contracts\StatementInterface;
+use Modules\Database\Infrastructure\Persistence\PdoConnection;
 use Modules\Settings\Infrastructure\Persistence\Statement;
 
 /**
@@ -56,8 +59,15 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
         ['Audit', '/mark/audit', 'admin', 110, 'clipboard'],
     ];
 
+    private ConnectionInterface $connection;
+
     public function __construct(private \PDO $pdo)
     {
+        // DDL and the PRAGMA probe stay on the raw handle, which is why the
+        // migrator keeps `\PDO`. Everything that binds values goes through
+        // the contract the repositories use, on this migrator's own
+        // connection.
+        $this->connection = new PdoConnection($pdo, 'config');
     }
 
     public function run(CliOutput $output): void
@@ -143,7 +153,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
      */
     private function addColumnIfMissing(string $table, string $column, string $definition): void
     {
-        $stmt = Statement::query($this->pdo, "PRAGMA table_info({$table})");
+        $stmt = Statement::query($this->connection, "PRAGMA table_info({$table})");
         $rows = $stmt->fetchAll();
 
         foreach ($rows as $row) {
@@ -181,7 +191,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
         ];
 
         $inserted = 0;
-        $stmt = Statement::prepare($this->pdo,
+        $stmt = Statement::prepare($this->connection,
             'INSERT OR IGNORE INTO settings (id, setting_key, setting_value, value_type, group_name, is_public, created_at, updated_at)
              VALUES (:id, :key, :value, :type, :group, :public, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
         );
@@ -210,8 +220,8 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
     private function seedDefaultMenu(): int
     {
         $inserted = 0;
-        $existsStmt = Statement::prepare($this->pdo, 'SELECT 1 FROM menu_items WHERE label = :label AND location = :loc LIMIT 1');
-        $stmt = Statement::prepare($this->pdo,
+        $existsStmt = Statement::prepare($this->connection, 'SELECT 1 FROM menu_items WHERE label = :label AND location = :loc LIMIT 1');
+        $stmt = Statement::prepare($this->connection,
             'INSERT INTO menu_items (id, label, href, sort_order, location, icon, is_active, created_at, updated_at)
              VALUES (:id, :label, :href, :sort, :loc, :icon, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
         );
@@ -229,11 +239,11 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
     /**
      * Insert one default menu item unless its label+location already exists.
      *
-     * @param \PDOStatement                                              $existsStmt prepared existence probe (label + location)
-     * @param \PDOStatement                                              $stmt       prepared INSERT for one menu item
+     * @param StatementInterface                                         $existsStmt prepared existence probe (label + location)
+     * @param StatementInterface                                         $stmt       prepared INSERT for one menu item
      * @param array{0: string, 1: string, 2: string, 3: int, 4?: string} $item       label, href, location, sort, icon
      */
-    private function seedMenuItem(\PDOStatement $existsStmt, \PDOStatement $stmt, array $item): int
+    private function seedMenuItem(StatementInterface $existsStmt, StatementInterface $stmt, array $item): int
     {
         $existsStmt->execute([':label' => $item[0], ':loc' => $item[2]]);
 
@@ -258,7 +268,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
      */
     private function nestChildrenUnderArticles(): void
     {
-        $stmt = Statement::query($this->pdo,
+        $stmt = Statement::query($this->connection,
             "SELECT id FROM menu_items WHERE label = 'Blog' AND location = 'admin' AND parent_item_id IS NULL LIMIT 1",
         );
 
@@ -268,7 +278,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
             return;
         }
 
-        $nestStmt = Statement::prepare($this->pdo,
+        $nestStmt = Statement::prepare($this->connection,
             'UPDATE menu_items SET parent_item_id = :parent, updated_at = CURRENT_TIMESTAMP
              WHERE label = :label AND location = :loc AND parent_item_id IS NULL',
         );

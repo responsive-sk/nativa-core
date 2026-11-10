@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Settings\Tests;
 
 use Modules\Core\Interfaces\CLI\CliOutput;
+use Modules\Database\Infrastructure\Persistence\PdoConnection;
 use Themes\ThemeResolver;
 use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator;
 use Modules\Settings\Infrastructure\Persistence\Statement;
@@ -88,7 +89,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
         ]);
         $recorder = $this->recorder();
 
-        $exit = (new ApplyDeploymentProfileCommand($this->pdo))->run(['settings:profile', $path], $recorder);
+        $exit = (new ApplyDeploymentProfileCommand($this->db()))->run(['settings:profile', $path], $recorder);
 
         $this->assertSame(0, $exit, $recorder->text());
         $this->assertSame('profile-theme', $this->setting(ThemeResolver::THEME_SETTING)['setting_value']);
@@ -113,7 +114,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
     public function aSecondRunIsIdempotent(): void
     {
         $path = $this->profileOf([ThemeResolver::THEME_SETTING => 'profile-theme']);
-        $command = new ApplyDeploymentProfileCommand($this->pdo);
+        $command = new ApplyDeploymentProfileCommand($this->db());
 
         $this->assertSame(0, $command->run(['settings:profile', $path], $this->recorder()));
         $this->assertSame(0, $command->run(['settings:profile', $path], $this->recorder()));
@@ -129,7 +130,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
         ]);
         $recorder = $this->recorder();
 
-        $exit = (new ApplyDeploymentProfileCommand($this->pdo))->run(['settings:profile', $path], $recorder);
+        $exit = (new ApplyDeploymentProfileCommand($this->db()))->run(['settings:profile', $path], $recorder);
 
         $this->assertSame(1, $exit);
         $this->assertStringContainsString('sitename', $recorder->text());
@@ -147,7 +148,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
         $path = $this->tmpDir . '/no-such-profile.php';
         $recorder = $this->recorder();
 
-        $exit = (new ApplyDeploymentProfileCommand($this->pdo))->run(['settings:profile', $path], $recorder);
+        $exit = (new ApplyDeploymentProfileCommand($this->db()))->run(['settings:profile', $path], $recorder);
 
         $this->assertSame(1, $exit);
         $this->assertStringContainsString($path, $recorder->text());
@@ -159,7 +160,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
     {
         $recorder = $this->recorder();
 
-        $exit = (new ApplyDeploymentProfileCommand($this->pdo))->run(
+        $exit = (new ApplyDeploymentProfileCommand($this->db()))->run(
             ['settings:profile', $this->rawProfile("<?php\n\nreturn 'profile-theme';\n")],
             $recorder,
         );
@@ -173,7 +174,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
     {
         $recorder = $this->recorder();
 
-        $exit = (new ApplyDeploymentProfileCommand($this->pdo))->run(
+        $exit = (new ApplyDeploymentProfileCommand($this->db()))->run(
             ['settings:profile', $this->profileOf([])],
             $recorder,
         );
@@ -187,7 +188,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
     {
         $recorder = $this->recorder();
 
-        $exit = (new ApplyDeploymentProfileCommand($this->pdo))->run(
+        $exit = (new ApplyDeploymentProfileCommand($this->db()))->run(
             ['settings:profile', $this->profileOf([ThemeResolver::THEME_SETTING => ['profile-theme']])],
             $recorder,
         );
@@ -204,7 +205,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
     #[Test]
     public function booleanRowsTakeTrueAndFalse(): void
     {
-        $command = new ApplyDeploymentProfileCommand($this->pdo);
+        $command = new ApplyDeploymentProfileCommand($this->db());
 
         $this->assertSame(0, $command->run(
             ['settings:profile', $this->profileOf(['maintenance_mode' => true])],
@@ -225,7 +226,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
     {
         $path = $this->profileOf(['site_name' => 'profile.example']);
 
-        $exit = (new ApplyDeploymentProfileCommand($this->pdo))->run(
+        $exit = (new ApplyDeploymentProfileCommand($this->db()))->run(
             ['settings:profile', '--file=' . $path],
             $this->recorder(),
         );
@@ -258,7 +259,7 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
      */
     private function setting(string $key): ?array
     {
-        $statement = Statement::prepare($this->pdo, 'SELECT * FROM settings WHERE setting_key = :key');
+        $statement = Statement::prepare($this->db(), 'SELECT * FROM settings WHERE setting_key = :key');
         $statement->execute([':key' => $key]);
         /** @var array<string, mixed>|false $row */
         $row = $statement->fetch();
@@ -286,5 +287,14 @@ final class ApplyDeploymentProfileCommandTest extends TestCase
                 return implode("\n", $this->lines);
             }
         };
+    }
+
+    /**
+     * The command takes the connection contract now; this wraps the test's
+     * temp-file handle without routing anywhere.
+     */
+    private function db(): PdoConnection
+    {
+        return new PdoConnection($this->pdo, 'config');
     }
 }
