@@ -98,12 +98,15 @@ final class DatabaseConnectionManager
      * The sticky write and the `onPrimary()` depth belong to one unit of work.
      * In a long-lived worker they would otherwise outlive it: after the first
      * write every later read would go to the primary, correct but invisible.
+     *
+     * A transaction left open by a job that threw is rolled back here too, so
+     * the next unit of work does not inherit it.
      */
     public function resetRouting(): void
     {
         foreach ($this->routed as $connection) {
             if ($connection instanceof ReadWriteConnection) {
-                $connection->resetSticky();
+                $connection->reset();
             }
         }
     }

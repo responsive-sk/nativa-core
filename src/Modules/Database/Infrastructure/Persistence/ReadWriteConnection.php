@@ -20,8 +20,9 @@ use Modules\Database\Exceptions\ReadException;
  *     row I just saved is not there" rather than like replication lag.
  *  2. **Explicit intent.** `query()` reads, `execute()` writes. `prepare()`
  *     asks `StatementIntent` for its side, because the target is chosen before
- *     the statement runs. A prepared read does not fail over: the throw happens
- *     at `execute()`, when the replica is already chosen.
+ *     the statement runs. A prepared read gets a `FailoverStatement` instead of
+ *     a handle on one replica: it defers the prepare to `execute()`, which is
+ *     where a dead replica becomes visible, and replays its bindings there.
  *  3. **Transactions on the primary.** Beginning a transaction marks the
  *     connection as written. `UnitOfWork` now hands its callback this same
  *     object, so writes inside it would mark it anyway; doing it at `begin`
@@ -79,7 +80,11 @@ final class ReadWriteConnection implements ConnectionInterface, PrimaryReadInter
             return $this->write->prepare($sql);
         }
 
-        return $this->readSide()->prepare($sql);
+        if ($this->goesToPrimary()) {
+            return $this->write->prepare($sql);
+        }
+
+        return new FailoverStatement(fn (): array => $this->readOrder(), $this->name(), $sql);
     }
 
     public function execute(string $sql, array $bindings = []): int
@@ -97,6 +102,18 @@ final class ReadWriteConnection implements ConnectionInterface, PrimaryReadInter
     public function inTransaction(): bool
     {
         return $this->write->inTransaction();
+    }
+
+    public function transaction(
+        callable $callback,
+        int $attempts = 1,
+        int|\Closure|null $backoff = null,
+    ): mixed {
+        // Every attempt writes, so the read side has to be on the primary
+        // before the first statement of the first attempt runs.
+        $this->markWritten();
+
+        return TransactionRetry::run($this, static fn (ConnectionInterface $db): mixed => $callback($db), $attempts, $backoff);
     }
 
     public function beginTransaction(): void
@@ -129,30 +146,33 @@ final class ReadWriteConnection implements ConnectionInterface, PrimaryReadInter
     }
 
     /**
-     * Forget the sticky write and any open `onPrimary()` scope.
+     * Close an open transaction, forget the sticky write and any open
+     * `onPrimary()` scope.
      *
      * Called at the request boundary. A PHP-FPM worker keeps this object for
      * its whole life, so without the reset the first write would pin every
      * later request in that worker to the primary and nothing would look wrong.
+     *
+     * The rollback is the part a queue worker needs: a job that threw inside a
+     * transaction left the handle open, and the next job would run inside it, or
+     * fail to begin one at all. Every level unwinds here; `rollBack()` closes
+     * one, so the loop ends at the outermost transaction.
      */
-    public function resetSticky(): void
+    public function reset(): void
     {
-        $this->wrote = false;
-        $this->primaryReads = 0;
+        try {
+            while ($this->write->inTransaction()) {
+                $this->write->rollBack();
+            }
+        } finally {
+            $this->wrote = false;
+            $this->primaryReads = 0;
+        }
     }
 
     private function goesToPrimary(): bool
     {
         return $this->wrote || $this->primaryReads > 0 || $this->replicas === [];
-    }
-
-    private function readSide(): ConnectionInterface
-    {
-        if ($this->goesToPrimary()) {
-            return $this->write;
-        }
-
-        return $this->selector->select($this->replicas);
     }
 
     /**

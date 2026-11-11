@@ -78,6 +78,14 @@ final readonly class PdoConnection implements ConnectionInterface
         return $this->pdo->inTransaction();
     }
 
+    public function transaction(
+        callable $callback,
+        int $attempts = 1,
+        int|\Closure|null $backoff = null,
+    ): mixed {
+        return TransactionRetry::run($this, static fn (ConnectionInterface $db): mixed => $callback($db), $attempts, $backoff);
+    }
+
     public function beginTransaction(): void
     {
         $this->pdo->beginTransaction();

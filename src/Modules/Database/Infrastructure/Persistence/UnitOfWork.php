@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Database\Infrastructure\Persistence;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Exceptions\TransactionConflictException;
 
 /**
  * UnitOfWork — transactional consistency across repositories.
@@ -89,16 +90,42 @@ final class UnitOfWork
      * exception is rethrown — for a nested scope that means rolling back to
      * its savepoint, leaving the outer transaction intact.
      *
+     * The outermost scope hands the transaction to the connection, which owns
+     * the retry (`ConnectionInterface::transaction()`): `$attempts` and
+     * `$backoff` reach it unchanged, and a conflict spends an attempt there.
+     * A nested scope ignores both, because retrying it would replay work the
+     * outer transaction has already done; its conflict propagates instead, and
+     * the outer scope is the one that runs again.
+     *
      * @template T
      *
-     * @param callable(ConnectionInterface): T $fn Operations to execute in transaction
+     * @param callable(ConnectionInterface): T                            $fn       Operations to execute in transaction
+     * @param int                                                         $attempts How many times the outermost transaction may run, at least 1
+     * @param int|(\Closure(int, TransactionConflictException): int)|null $backoff  The delay between attempts
      *
-     * @throws \Throwable Rethrown from callback after rollback
+     * @throws \Throwable                   Rethrown from callback after rollback
+     * @throws TransactionConflictException When the last attempt still conflicts
      *
      * @return T The return value of the callback
      */
-    public function transaction(callable $fn): mixed
-    {
+    public function transaction(
+        callable $fn,
+        int $attempts = 1,
+        int|\Closure|null $backoff = null,
+    ): mixed {
+        if (0 === $this->depth()) {
+            // The depth entry is what makes the scopes inside the callback
+            // nested savepoints; it has to cover every attempt, so it is set
+            // before the first one and dropped after the last.
+            self::$depth[$this->name()] = 1;
+
+            try {
+                return $this->connection->transaction($fn, $attempts, $backoff);
+            } finally {
+                unset(self::$depth[$this->name()]);
+            }
+        }
+
         $this->beginTransaction();
 
         try {

@@ -46,8 +46,22 @@ final class ReadWriteConnectionTest extends TestCase
         $connection = $this->connection(['primary'], ['replica']);
         $connection->execute("INSERT INTO t (v) VALUES ('second')");
 
-        $connection->resetSticky();
+        $connection->reset();
 
+        self::assertSame('replica', $this->value($connection));
+    }
+
+    #[Test]
+    public function resettingRollsBackATransactionAWorkerLeftOpen(): void
+    {
+        $connection = $this->connection(['primary'], ['replica']);
+
+        $connection->beginTransaction();
+        $connection->execute("INSERT INTO t (v) VALUES ('rolled back')");
+        $connection->reset();
+
+        self::assertFalse($connection->inTransaction());
+        self::assertSame(['primary'], $connection->onPrimary(fn (): array => $this->values($connection)));
         self::assertSame('replica', $this->value($connection));
     }
 
@@ -102,6 +116,37 @@ final class ReadWriteConnectionTest extends TestCase
         );
 
         self::assertSame('replica', $this->value($connection));
+    }
+
+    #[Test]
+    public function aPreparedSelectFallsOverToTheNextReplica(): void
+    {
+        $connection = new ReadWriteConnection(
+            new PdoConnection($this->pdo(['primary']), 'primary'),
+            [$this->dead('dead-1'), new PdoConnection($this->pdo(['replica']), 'replica')],
+            new ReplicaSelector(),
+        );
+
+        $statement = $connection->prepare('SELECT v FROM t ORDER BY v LIMIT 1');
+        $statement->execute();
+
+        self::assertSame('replica', $statement->fetchColumn());
+    }
+
+    #[Test]
+    public function aFailedOverPreparedReadReplaysItsBoundValues(): void
+    {
+        $connection = new ReadWriteConnection(
+            new PdoConnection($this->pdo(['primary']), 'primary'),
+            [$this->dead('dead-1'), new PdoConnection($this->pdo(['replica']), 'replica')],
+            new ReplicaSelector(),
+        );
+
+        $statement = $connection->prepare('SELECT v FROM t WHERE v = :value');
+        $statement->bindValue(':value', 'replica');
+        $statement->execute();
+
+        self::assertSame('replica', $statement->fetchColumn());
     }
 
     #[Test]
@@ -219,6 +264,14 @@ final class ReadWriteConnectionTest extends TestCase
             public function inTransaction(): bool
             {
                 return false;
+            }
+
+            public function transaction(
+                callable $callback,
+                int $attempts = 1,
+                int|\Closure|null $backoff = null,
+            ): mixed {
+                throw new \PDOException('SQLSTATE[HY000]: unable to open database file');
             }
 
             public function beginTransaction(): void
