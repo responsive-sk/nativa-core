@@ -116,6 +116,11 @@ make modules-install      # every catalogued module installs in closure order
 make dist-check           # a clean clone builds a green artifact
 ```
 
+Several comments cite `docs/*.md` — `mago.toml`, `toolchain.json`,
+`bin/build/mago-spike.sh` and a few source docblocks (`docs/mago-evaluation.md`,
+`docs/kernel-shape.md`, `docs/security-patterns.md`). Docs is the pruned module,
+so those pointers resolve in the source repository, not in this tree.
+
 `make core-export`, `make themes-check` and `make lekalo-check` do not exist
 here. They guard the source repository's relationship with a sibling checkout
 and its own model; the export carries neither.
