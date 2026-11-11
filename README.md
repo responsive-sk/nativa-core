@@ -80,7 +80,7 @@ source repository measures, not a hidden default).
 php bin/cms module:list                       # what the catalogue carries
 php bin/cms module:add View                   # a module installs only when its
 php bin/cms module:add Layout                 # dependencies are already in place
-php bin/cms module:add Settings               # (Settings names both of them)
+php bin/cms module:add Settings               # (Settings names Layout, which names View)
 php bin/cms module:remove Settings --force    # removes it again
 ```
 
@@ -89,6 +89,22 @@ parser, the theme, the module that votes it, and the locale rule the theme
 renders through. A module that is not in `modules/` cannot be installed, and
 adding one back is a decision with a measured cost — the register in `docs/` of
 the source repository explains what each surface would cost.
+
+`module:add` copies nothing when a dependency is missing, and names what is
+missing, so the graph is worth writing down. Measured from the CLI, not from
+the import graph by eye:
+
+| Module | Needs first | Because |
+|---|---|---|
+| `View` | — | the renderer; Core only |
+| `Markdown` | — | the parser; Core only |
+| `ContentLocale` | — | the locale rule; Core only |
+| `Layout` | `View` | the page shell renders through `InlineCss`/`InlineJs` |
+| `Settings` | `Layout` | the theme vote writes `Layout`'s theme settings |
+| `Nativa` (theme) | `View`, `Layout`, `ContentLocale` | a `Layout` theme module that asks `ContentLocale` for the prefix rule |
+
+`KernelTheme` is absent from the table on purpose: it is a kernel slice, not a
+catalogue entry, so nothing installs it as a dependency.
 
 `modules/Themes/<Name>` holds the theme modules. The installed copy keeps the
 same grouped shape, `src/Modules/Themes/<Name>`, and the theme name the settings

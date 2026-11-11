@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # =============================================================================
-# dist-profile-test.sh — the three deployment-profile branches, exercised.
+# dist-profile-test.sh — the deployment-profile branches, exercised.
 # =============================================================================
 # `bin/build/build-dist.sh` decides the artifact's identity in four ways, and
 # three of them end in a GREEN build, which is what makes them easy to break in
@@ -14,11 +14,18 @@
 #                                              applies (the positive control
 #                                              that proves #3 fails because of
 #                                              the profile, not the install).
+#   4. the whole catalogue installed         → the artifact boots and the HTTP
+#                                              smoke test passes. Cases 1–3
+#                                              ask what identity the build
+#                                              claims; this one asks whether
+#                                              the tree a deployment gets can
+#                                              serve at all.
 #
 # Every case clones HEAD, so the test cannot borrow a module, a `config.db` or a
-# `vendor/` from the developer's checkout. `--skip-smoke` keeps it about the
-# profile: the HTTP smoke test is `dist-check.sh`'s job, and running it four
-# times here would only make a red test slower to read.
+# `vendor/` from the developer's checkout. `--skip-smoke` keeps cases 1–3 about
+# the profile: the HTTP smoke test is `dist-check.sh`'s job, and running it
+# three more times would only make a red test slower to read. Case 4 runs the
+# smoke deliberately — it is the one that installs everything.
 #
 # Usage: bin/build/dist-profile-test.sh   (CI runs `make dist-profile-test`)
 # =============================================================================
@@ -159,4 +166,58 @@ expect "$settings/build.log" \
     'broken profile'
 pass "broken profile → build fails (exit $broken_code)"
 
-echo "==> OK — all three profile branches behave as documented"
+# --- 4. The whole catalogue installed: the artifact boots and serves ----------
+# The cases above hold the smoke test out of the way. This one is the opposite
+# question, asked once and with the smoke left ON: install every catalogued
+# module and check that the artifact a deployment gets boots, applies the
+# committed profile and answers the kernel's surfaces.
+#
+# `install-catalogue.sh` is invoked rather than reimplemented. Its retry loop IS
+# the topological sort (`module:add` refuses an incomplete closure and names the
+# missing entries), so this case cannot drift from the order `make
+# modules-install` uses — a hand-written order here would be a second copy of
+# the dependency graph, and the one that goes stale.
+catalogue="$WORK/with-catalogue"
+clone_into "$catalogue"
+
+if ! "$catalogue/bin/build/install-catalogue.sh" > "$catalogue/install.log" 2>&1; then
+    cat "$catalogue/install.log" >&2
+    fail "install-catalogue.sh failed in a clean clone — the smoke case below would be vacuous"
+fi
+
+# The count is the installer's own expectation (catalogue + KernelTheme), so an
+# install that silently skipped an entry cannot pass this case as "the whole
+# catalogue".
+expect "$catalogue/install.log" 'ok  7 modules installed' 'catalogue'
+
+for slice in src/Modules/Themes/Nativa src/Modules/Layout src/Modules/Settings; do
+    if [ ! -d "$catalogue/$slice" ]; then
+        fail "the catalogue install exited 0 without $slice"
+    fi
+done
+
+# A port of its own: case 4 runs while nothing else does, but the default the
+# smoke helper uses is `dist-check.sh`'s, and two builds answering on one port
+# would make a green run depend on scheduling.
+smoke_code=0
+SMOKE_PORT="${SMOKE_PORT:-8138}" \
+    "$catalogue/bin/build/build-dist.sh" --skip-assets > "$catalogue/build.log" 2>&1 || smoke_code=$?
+
+if [ "$smoke_code" -ne 0 ]; then
+    cat "$catalogue/build.log" >&2
+    fail "the full catalogue must build and pass its smoke test (exit 0), it exited $smoke_code"
+fi
+
+expect "$catalogue/build.log" 'Applying the deployment profile' 'catalogue'
+expect "$catalogue/build.log" \
+    'identity:   config/deploy.php applied' \
+    'catalogue'
+expect "$catalogue/build.log" 'Smoke-testing the artifact' 'catalogue'
+
+expect "$catalogue/build.log" 'ok  / → 200' 'catalogue'
+expect "$catalogue/build.log" 'ok  /sitemap.xml → 200' 'catalogue'
+expect "$catalogue/build.log" 'ok  /robots.txt → 200' 'catalogue'
+expect "$catalogue/build.log" 'error log is clean' 'catalogue'
+pass "whole catalogue installed → build, profile and smoke all pass"
+
+echo "==> OK — every profile branch, and the full catalogue's artifact, behave as documented"
