@@ -78,7 +78,9 @@ source repository measures, not a hidden default).
 
 ```sh
 php bin/cms module:list                       # what the catalogue carries
-php bin/cms module:add Settings               # copies the closure into src/Modules/
+php bin/cms module:add View                   # a module installs only when its
+php bin/cms module:add Layout                 # dependencies are already in place
+php bin/cms module:add Settings               # (Settings names both of them)
 php bin/cms module:remove Settings --force    # removes it again
 ```
 

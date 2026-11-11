@@ -9,7 +9,8 @@
 #
 #   1. kernel-only tree (no Settings module) → skip, kernel defaults;
 #   2. `--no-profile`                        → skip, kernel defaults;
-#   3. Settings installed + a BROKEN profile → fail the build, and a valid one
+#   3. Settings installed (with its View → Layout closure) + a BROKEN profile
+#      → fail the build, and a valid one
 #                                              applies (the positive control
 #                                              that proves #3 fails because of
 #                                              the profile, not the install).
@@ -110,13 +111,19 @@ pass "--no-profile → skipped, kernel defaults"
 settings="$WORK/with-settings"
 clone_into "$settings"
 
-if ! php "$settings/bin/cms" module:add Settings > "$settings/install.log" 2>&1; then
-    cat "$settings/install.log" >&2
-    fail "module:add Settings failed in the clone — the case below would be vacuous"
-fi
+# The closure, in order: Settings imports Layout (theme settings, registry) and
+# Layout imports View (the renderer). `module:add` installs one module and
+# refuses an incomplete closure by name, so the gate installs the dependencies
+# first instead of assuming Settings stands alone.
+for module in View Layout Settings; do
+    if ! php "$settings/bin/cms" module:add "$module" >> "$settings/install.log" 2>&1; then
+        cat "$settings/install.log" >&2
+        fail "module:add $module failed in the clone — the case below would be vacuous"
+    fi
+done
 
 if [ ! -d "$settings/src/Modules/Settings" ]; then
-    fail "module:add Settings exited 0 without installing the module"
+    fail "the closure exited 0 without installing Settings"
 fi
 
 build "$settings" && valid_code=0 || valid_code=$?
