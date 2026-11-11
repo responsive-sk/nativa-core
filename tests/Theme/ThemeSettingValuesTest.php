@@ -4,12 +4,12 @@ declare(strict_types = 1);
 
 namespace Tests\Theme;
 
+use Modules\Layout\ThemeResolver;
+use Modules\Layout\ThemeSetting;
+use Modules\Layout\ThemeSettings;
+use Modules\Layout\ThemeSettingValues;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Themes\ThemeResolver;
-use Themes\ThemeSetting;
-use Themes\ThemeSettings;
-use Themes\ThemeSettingValues;
 
 /**
  * ThemeSettingValuesTest — the rule that turns stored rows into the values a

@@ -7,11 +7,11 @@ namespace Modules\Settings\Interfaces\HTTP;
 use Modules\Core\Domain\AdminRoutePolicy;
 use Shell\ShellContextProvider;
 use Shell\ShellNavItem;
-use Themes\ThemePreference;
-use Themes\ThemeSettingValues;
+use Modules\Layout\ThemePreference;
+use Modules\Layout\ThemeSettingValues;
 use Shell\AsShellContextProvider;
-use Themes\ThemeRegistry;
-use Themes\ThemeResolver;
+use Modules\Layout\ThemeRegistry;
+use Modules\Layout\ThemeResolver;
 use Modules\Settings\Application\DTOs\MenuItemDTO;
 
 /**

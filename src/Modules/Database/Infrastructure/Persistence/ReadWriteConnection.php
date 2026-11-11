@@ -53,6 +53,15 @@ final class ReadWriteConnection implements ConnectionInterface, PrimaryReadInter
         return $this->write->name();
     }
 
+    /**
+     * The primary's driver. Replicas serve the same database, so the dialect
+     * a caller branches on is the one the writes use.
+     */
+    public function driverName(): string
+    {
+        return $this->write->driverName();
+    }
+
     public function query(string $sql): StatementInterface
     {
         if ($this->goesToPrimary()) {

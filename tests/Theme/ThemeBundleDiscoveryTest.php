@@ -5,12 +5,12 @@ declare(strict_types = 1);
 namespace Tests\Theme;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
+use Modules\Layout\AssetManager;
+use Modules\Layout\FrontendLayout;
+use Modules\Layout\ThemeRegistry;
+use Modules\Layout\ThemeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Themes\AssetManager;
-use Themes\FrontendLayout;
-use Themes\ThemeRegistry;
-use Themes\ThemeResolver;
 
 /**
  * ThemeBundleDiscoveryTest (Boot 22) — the door the `erik` defect came through,

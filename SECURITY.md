@@ -25,7 +25,7 @@ even when the tree boots on it.
 | Branch | `master` only; releases are commit hashes, there are no tagged versions |
 | Modules | the catalog in `modules/` — each module is supported with the kernel revision it ships beside |
 | Installed module slices (`src/Modules/<Name>/`) | **not** supported surface: operator state, gitignored, produced by `bin/cms module:add` |
-| Themes | `src/Themes/*` and `modules/Themes/*` as committed |
+| Themes and page shell | `modules/Layout` and `modules/Themes/*` as committed |
 
 Older PHP branches (8.2–8.4) receive upstream fixes, but this tree does not
 claim them: `mago.toml`, CI and the two tool configs are set to 8.5.

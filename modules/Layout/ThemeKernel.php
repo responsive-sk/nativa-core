@@ -2,19 +2,19 @@
 
 declare(strict_types = 1);
 
-namespace Themes;
+namespace Modules\Layout;
 
-use Themes\kernel\KernelFallbackTheme;
+use Modules\Layout\kernel\KernelFallbackTheme;
 
 /**
  * ThemeKernel connector — the ONLY place mapping a resolved theme name to its
- * `Themes\ThemeModule` implementation.
+ * `Modules\Layout\ThemeModule` implementation.
  *
  * Every theme is a module: `ThemeRegistry` discovers the installed ones (the
  * kernel's own visual theme ships as `Modules\KernelTheme`), so a module that
  * is removed takes its theme with it without anyone editing this file.
  *
- * The kernel keeps one built-in default, `Themes\kernel\KernelFallbackTheme`.
+ * The kernel keeps one built-in default, `Modules\Layout\kernel\KernelFallbackTheme`.
  * It answers when no installed module supplies the requested name, so every
  * public surface still renders in a tree with no theme module at all.
  *

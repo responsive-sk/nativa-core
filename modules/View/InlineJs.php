@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace View;
+namespace Modules\View;
 
 /**
  * InlineJs — reads runtime JavaScript assets from src/ and returns their bytes.

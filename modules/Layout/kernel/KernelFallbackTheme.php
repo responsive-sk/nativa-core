@@ -2,11 +2,11 @@
 
 declare(strict_types = 1);
 
-namespace Themes\kernel;
+namespace Modules\Layout\kernel;
 
 use Shell\PageContext;
 use Shell\ShellContext;
-use Themes\ThemeModule;
+use Modules\Layout\ThemeModule;
 
 /**
  * KernelFallbackTheme — the kernel's built-in default theme.

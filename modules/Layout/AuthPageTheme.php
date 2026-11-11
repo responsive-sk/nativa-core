@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Themes;
+namespace Modules\Layout;
 
 /**
  * AuthPageTheme — the optional auth surfaces a `ThemeModule` may compose.

@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Themes;
+namespace Modules\Layout;
 
 /**
  * ThemeSetting — one field a theme declares as admin-editable.

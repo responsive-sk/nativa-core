@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace View;
+namespace Modules\View;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
 

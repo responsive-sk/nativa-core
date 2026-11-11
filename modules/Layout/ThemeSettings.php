@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Themes;
+namespace Modules\Layout;
 
 /**
  * Theme settings contract — an OPTIONAL half of `ThemeModule`.

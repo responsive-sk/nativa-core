@@ -241,6 +241,11 @@ final class ReadWriteConnectionTest extends TestCase
                 return $this->connectionName;
             }
 
+            public function driverName(): string
+            {
+                return 'sqlite';
+            }
+
             public function query(string $sql): StatementInterface
             {
                 throw new \PDOException('SQLSTATE[HY000]: unable to open database file');

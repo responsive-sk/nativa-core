@@ -437,7 +437,7 @@ function cmdUserAdmin(array $argv): void
         fail('user:admin needs the Users module (bin/cms module:add Users).');
     }
 
-    $db = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connect('users');
+    $db = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connection('users');
     $command = new \Modules\Users\Interfaces\CLI\Command\EnsureAdminCommand($db);
 
     exit($command->run(array_merge(['user:admin'], array_slice($argv, 2)), output()));

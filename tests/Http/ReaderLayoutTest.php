@@ -4,10 +4,10 @@ declare(strict_types = 1);
 
 namespace Tests\Http;
 
+use Modules\Layout\FrontendLayout;
+use Modules\View\InlineJs;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Themes\FrontendLayout;
-use View\InlineJs;
 
 /**
  * ReaderLayoutTest — the one reading surface shared by `/docs` and
@@ -183,7 +183,7 @@ final class ReaderLayoutTest extends TestCase
     public function theMeasuringScriptIsEmittedAndAgreesWithTheStyle(): void
     {
         $html = FrontendLayout::readerLayout('<article>body</article>', self::headings(2));
-        $script = InlineJs::file('Themes/assets/scripts/docs-reader.js');
+        $script = InlineJs::file('Modules/Layout/assets/scripts/docs-reader.js');
 
         self::assertNotSame('', $script, 'The docs-reader script asset is missing (path moved?).');
         self::assertStringContainsString('--docs-header-offset', $script, 'The script writes no offset, so the property stays 0px.');
@@ -215,7 +215,7 @@ final class ReaderLayoutTest extends TestCase
     #[Test]
     public function theMeasurementAlsoClearsTheThemesAnchors(): void
     {
-        $script = InlineJs::file('Themes/assets/scripts/docs-reader.js');
+        $script = InlineJs::file('Modules/Layout/assets/scripts/docs-reader.js');
 
         self::assertStringContainsString(
             'getComputedStyle(document.documentElement).scrollPaddingTop',

@@ -4,10 +4,10 @@ declare(strict_types = 1);
 
 namespace Tests\Theme;
 
+use Modules\Layout\kernel\KernelFallbackTheme;
+use Modules\Layout\ThemeKernel;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Themes\kernel\KernelFallbackTheme;
-use Themes\ThemeKernel;
 
 /**
  * KernelFallbackThemeTest — the kernel's built-in default theme.

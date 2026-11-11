@@ -5,6 +5,71 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### The page shell is a port, and `src/Themes` is a module
+
+Another kernel-slimming round: `src/Themes` (25 files, 2 085 lines) is the
+`Layout` module now, and the kernel surfaces that used to render through it ask
+a kernel port instead.
+
+**Changed**
+
+- `src/Modules/Core/Kernel/Contracts/PageShellInterface` is the new port:
+  `home()` and `error()` take the values the kernel owns (site name, locale,
+  copy, status) and return markup. `PlainPageShell` implements it with no
+  dependency, so a boot with no modules installed still answers `/` and the
+  error pages, and `PageShellRegistry` discovers `#[AsPageShell]` from the
+  installed slices (`src/Modules/*/Interfaces/HTTP/*PageShell.php`, plus one
+  group level) before falling back.
+- `HomepageAction`, `ErrorPageRenderer` and `SitemapAction` no longer import the
+  theme tree. The sitemap escapes its own values; the error renderer keeps
+  `PlainPageShell::bare()` as the answer when a shell raises.
+- `src/Themes` → `modules/Layout` under `Modules\Layout`, assets included
+  (`Themes/assets/` → `Modules/Layout/assets/`).
+  `modules/Layout/Interfaces/HTTP/PageShell` is the `#[AsPageShell]` adapter over
+  `FrontendLayout`, `ThemeKernel` and `ThemeResolver`. 51 consumer files follow
+  the namespace, and `composer.json`, `src/init.php`, `phpstan.neon`,
+  `.php-cs-fixer.dist.php`, `rector.php` and `mago.toml` drop `Themes` from
+  their scopes. The guard's permit list no longer names a theme tree, because
+  the kernel no longer renders one.
+- `modules/View` (4 files, 295 lines) and `modules/Markdown` (5 files, 858
+  lines) came out of `src/` the same way earlier in the round: kernel imports
+  rewritten, config scopes trimmed, legacy `Modules\Core\Application\Services\View\*`
+  references replaced.
+
+**Fixed on the way**
+
+- `ThemeRegistry` discovered the fallback theme it ships beside. The class moved
+  into the module as `kernel/KernelFallbackTheme`, and its `kernel` name
+  overwrote `Modules\KernelTheme` on every discovered render. Registration now
+  skips files under its own `__DIR__`.
+
+**Added**
+
+- `tests/Kernel/PageShellPortTest.php` pins the fallback the boot test cannot
+  reach: with `Layout` installed, `KernelOnlyBootTest` exercises the module's
+  shell, never the kernel's. The new test renders and escapes through
+  `PlainPageShell` directly and asserts that the registry always answers with
+  the port, without naming the module that implements it.
+
+**Measured**
+
+- `php vendor/bin/phpunit --no-coverage`: 262 tests, 822 assertions, 4 skipped.
+- PHPStan level 9: 0 errors; Rector dry and CS Fixer dry clean (9 test files
+  needed their imports re-sorted after the namespace rename). `php -l` clean;
+  `make lint` and `make modules-install` exit 0 with all 6 catalogue entries
+  installed in closure order. No `Modules\Layout` reference in
+  `src/Modules/Core` or `src/Modules/Database`.
+- `make mago-guard` did not run: the `mago` binary is absent in the environment
+  where this round was measured, so the rule was checked by `grep` and by
+  `KernelCouplingTest`, not by the gate.
+- Sizes: Core 152 520 B, Database 59 791 B, Tooling 37 919 B, Layout 113 793 B.
+
+**Not included**
+
+- `Shell` and `Seo` stay in the kernel. Both are ports a module answers
+  (`ShellContextProvider`, `SitemapContributor`); moving the port would remove
+  the seam, not move an implementation.
+
 ### Failover for prepared reads, and a reset that rolls back
 
 A comparison against Marko's `ReadWriteConnection` found two gaps in the

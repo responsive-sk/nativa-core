@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Themes;
+namespace Modules\Layout;
 
 /**
  * ThemeSettingValues — where per-theme settings are stored and how they are

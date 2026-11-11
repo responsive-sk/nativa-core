@@ -43,6 +43,7 @@ final class PageContext
         public string $theme,
         public string $locale,
         public ?string $blogHref = null,
+        public ?string $adminHref = null,
         public ?string $heroSrc = null,
         public ?string $heroSrcset = null,
         public array $copy = [],
@@ -86,10 +87,18 @@ final class PageContext
      * translation system stays kernel-owned), feature-card article links
      * and the pre-fetched article lists per theme need.
      *
+     * `$blogHref` and `$adminHref` are the hero's ADVERTISEMENTS, so they are
+     * nullable on purpose: the layout passes the URL only when a route answers
+     * it, and a theme renders no button for a null. A default of `/blog` would
+     * have every theme teach a kernel-only tree a 404 — the same rule the menu
+     * seed follows.
+     *
      * @param array<string, string>       $copy           translation key → resolved copy
      * @param array<string, string>       $links          feature-card key → article href
      * @param array<string, list<string>> $cards          section key → card keys
      * @param list<object>                $latestArticles pre-fetched articles for the theme's latest section
+     * @param string|null                 $blogHref       null when `/blog` is not routed
+     * @param string|null                 $adminHref      null when the admin prefix is not routed
      */
     public static function forHomepage(
         Request $request,
@@ -98,7 +107,8 @@ final class PageContext
         array $copy = [],
         array $links = [],
         array $cards = [],
-        string $blogHref = '/blog',
+        ?string $blogHref = null,
+        ?string $adminHref = null,
         string $heroSrc = '',
         string $heroSrcset = '',
         array $latestArticles = [],
@@ -108,6 +118,7 @@ final class PageContext
             theme: $theme,
             locale: $locale,
             blogHref: $blogHref,
+            adminHref: $adminHref,
             heroSrc: $heroSrc,
             heroSrcset: $heroSrcset,
             copy: $copy,

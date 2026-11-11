@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Themes;
+namespace Modules\Layout;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
 
@@ -10,7 +10,7 @@ use Modules\Core\Infrastructure\Paths\AppPaths;
  * ThemeRegistry — discovers theme modules carried by installed modules.
  *
  * A theme arrives with the module that ships it: any installed class
- * implementing `Themes\ThemeModule` (found by scanning `src/Modules` the way
+ * implementing `Modules\Layout\ThemeModule` (found by scanning `src/Modules` the way
  * `MiddlewareRegistry` scans for middleware) extends the theme set — no entry
  * in a static table the kernel would have to keep, and a removed module takes
  * its theme with it. The kernel's own theme stays hardcoded in `ThemeKernel`:
@@ -51,6 +51,15 @@ final class ThemeRegistry
         /** @var \SplFileInfo $file */
         foreach ($iterator as $file) {
             if (!$file->isFile() || 'php' !== $file->getExtension()) {
+                continue;
+            }
+
+            // The fallback theme this slice carries is the kernel's last
+            // resort, not a module-carried theme: `ThemeKernel` answers with it
+            // by class, never by name. Discovering it here would let its
+            // `kernel` name overwrite the real `Modules\KernelTheme` entry —
+            // measured: every kernel-themed page rendered the bare fallback.
+            if (str_starts_with($file->getPathname(), __DIR__ . DIRECTORY_SEPARATOR)) {
                 continue;
             }
 

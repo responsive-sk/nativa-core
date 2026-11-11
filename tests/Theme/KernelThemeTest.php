@@ -6,10 +6,10 @@ namespace Tests\Theme;
 
 use Modules\Core\Interfaces\HTTP\ErrorPageRenderer;
 use Modules\KernelTheme\Theme\KernelTheme;
+use Modules\Layout\FrontendLayout;
+use Modules\View\InlineCss;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Themes\FrontendLayout;
-use View\InlineCss;
 
 /**
  * KernelThemeTest (task 2.2) — the trimmed design, pinned.

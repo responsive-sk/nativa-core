@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Themes;
+namespace Modules\Layout;
 
 /**
  * DocsPageTheme — the optional `/docs` surfaces a `ThemeModule` may compose.

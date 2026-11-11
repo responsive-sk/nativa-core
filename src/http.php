@@ -212,7 +212,7 @@ function http_kernel(): Kernel
     if (class_exists(SecurityRateLimiter::class)) {
         $kernel->addMiddleware(new RateLimitMiddleware(
             static fn (): object => new SecurityRateLimiter(
-                DatabaseConnectionManager::instance()->connect('users'),
+                DatabaseConnectionManager::instance()->connection('users'),
             ),
             cache: $pageCache,
             sink: $securityEvents,

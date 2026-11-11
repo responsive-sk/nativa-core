@@ -6,6 +6,7 @@ namespace Modules\Core\Interfaces\HTTP\Actions;
 
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
+use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
 use Modules\Core\Interfaces\HTTP\Router;
 
@@ -13,11 +14,18 @@ use Modules\Core\Interfaces\HTTP\Router;
  * RobotsAction — robots.txt for cooperative crawlers, allow-whitelist style.
  *
  * The file disallows everything by default and re-allows only the public
- * indexable surfaces: home (incl. the /sk and /en locale roots), the blog
- * (index, articles, feeds), author profiles, the self-hosted generated
- * cover images and the sitemap. Admin (/mark), debug (/debug), uploads and
- * auth pages are deliberately NOT mentioned — a blacklist would advertise
- * their existence to anyone reading the file.
+ * indexable surfaces this tree actually serves: home, then the /sk and /en
+ * locale roots, the blog, author profiles, the legal pages, the sitemap and
+ * `llms.txt` — each emitted only when the router answers its path. Admin
+ * (/mark), debug (/debug), uploads and auth pages are deliberately NOT
+ * mentioned — a blacklist would advertise their existence to anyone reading
+ * the file.
+ *
+ * Measured 2026-11-11 on the kernel-only export: the file listed `/blog`,
+ * `/authors`, `/privacy`, `/cookies`, both locale roots and the cover-image
+ * directory while every one of them answered 404. A crawl hint that points at
+ * a dead end is the same defect as a seeded menu row or a hero button: it is
+ * a claim about the site that no route backs.
  *
  * robots.txt is a crawl hint, not a security boundary: the real protection
  * for /mark and /debug is the existing auth (admin role) + APP_DEBUG gating
@@ -35,22 +43,43 @@ final readonly class RobotsAction
     {
         $content = 'User-agent: *' . "\n"
             . 'Disallow: /' . "\n"
-            . 'Allow: /$' . "\n"
-            . 'Allow: /sk' . "\n"
-            . 'Allow: /en' . "\n"
-            . 'Allow: /blog' . "\n"
-            . 'Allow: /authors' . "\n"
-            . 'Allow: /privacy' . "\n"
-            . 'Allow: /cookies' . "\n"
-            . 'Allow: /storage/blog-images' . "\n"
-            . 'Allow: /sitemap.xml' . "\n"
-            . (null === $this->router || $this->router->hasPath('/llms.txt') ? 'Allow: /llms.txt' . "\n" : '')
-            . "\n"
-            . 'Sitemap: ' . $request->absoluteUrl('/sitemap.xml') . "\n";
+            // `/` is the one surface the kernel itself always serves.
+            . 'Allow: /$' . "\n";
+
+        // The rest are advertisements, so they follow the same rule as the
+        // seeded menu and the theme's hero: ask the router, the owner of "what
+        // exists". A module that is installed answers yes; a tree without it
+        // stops teaching a crawler a 404. No router means nothing can be
+        // confirmed, and the file advertises only `/`.
+        foreach (self::indexablePaths() as $path) {
+            if (null !== $this->router && $this->router->hasPath($path)) {
+                $content .= 'Allow: ' . $path . "\n";
+            }
+        }
+
+        // Not a route: generated covers are files, so the directory itself is
+        // the test. An install that never generated one has nothing to allow.
+        if (is_dir(AppPaths::instance()->public('storage/blog-images'))) {
+            $content .= 'Allow: /storage/blog-images' . "\n";
+        }
+
+        $content .= "\n" . 'Sitemap: ' . $request->absoluteUrl('/sitemap.xml') . "\n";
 
         $response = new Response($content);
         $response->setHeader('Content-Type', 'text/plain; charset=utf-8');
 
         return $response;
+    }
+
+    /**
+     * Public paths a full site advertises, in file order. None is a kernel
+     * route: each belongs to a module (ContentLocale, Blog, Pages) or is a
+     * generated file, so every one is emitted only on the router's yes.
+     *
+     * @return list<string>
+     */
+    private static function indexablePaths(): array
+    {
+        return ['/sk', '/en', '/blog', '/authors', '/privacy', '/cookies', '/sitemap.xml', '/llms.txt'];
     }
 }

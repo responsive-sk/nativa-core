@@ -8,7 +8,7 @@ use Shell\ShellNavItem;
 use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Shell\PageContext;
 use Shell\ShellContext;
-use Themes\ThemeModule;
+use Modules\Layout\ThemeModule;
 
 /**
  * KernelTheme — the trimmed design the kernel-only tree renders with.

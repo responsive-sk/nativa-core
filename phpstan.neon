@@ -16,8 +16,6 @@ parameters:
         - src/Discovery
         - src/Seo
         - src/Shell
-        - src/Themes
-        - src/View
         - src/composition.php
         - src/http.php
         - public/index.php

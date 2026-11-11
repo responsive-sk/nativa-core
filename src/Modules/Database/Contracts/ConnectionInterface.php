@@ -35,6 +35,14 @@ interface ConnectionInterface
     public function name(): string;
 
     /**
+     * The PDO driver behind this connection: `sqlite`, `mysql`, `pgsql`.
+     *
+     * A repository that needs dialect-specific SQL asks here instead of
+     * assuming the file it was developed against.
+     */
+    public function driverName(): string;
+
+    /**
      * Run a read and return its statement.
      */
     public function query(string $sql): StatementInterface;
