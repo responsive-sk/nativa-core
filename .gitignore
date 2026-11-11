@@ -17,6 +17,9 @@
 /storage/cache/*
 /storage/sessions/*
 /storage/uploads/*
+# Backup snapshots written before destructive maintenance (prunes, migrations).
+# They are local recovery material, not part of the tree's history.
+/storage/backup/*
 !/storage/data/.gitkeep
 !/storage/logs/.gitkeep
 !/storage/cache/.gitkeep
