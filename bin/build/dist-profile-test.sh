@@ -20,12 +20,18 @@
 #                                              claims; this one asks whether
 #                                              the tree a deployment gets can
 #                                              serve at all.
+#   5. `--with-catalogue`                    → the artifact ships `modules/`, so
+#                                              the CLI it carries can install
+#                                              from the catalogue. The default
+#                                              artifact cannot, by design.
 #
 # Every case clones HEAD, so the test cannot borrow a module, a `config.db` or a
 # `vendor/` from the developer's checkout. `--skip-smoke` keeps cases 1–3 about
 # the profile: the HTTP smoke test is `dist-check.sh`'s job, and running it
 # three more times would only make a red test slower to read. Case 4 runs the
-# smoke deliberately — it is the one that installs everything.
+# smoke deliberately — it is the one that installs everything. Case 5 reuses
+# case 4's clone and its installed catalogue: it asks only what the flag put in
+# the artifact, so it needs neither a build of the catalogue nor a smoke test.
 #
 # Usage: bin/build/dist-profile-test.sh   (CI runs `make dist-profile-test`)
 # =============================================================================
@@ -220,4 +226,37 @@ expect "$catalogue/build.log" 'ok  /robots.txt → 200' 'catalogue'
 expect "$catalogue/build.log" 'error log is clean' 'catalogue'
 pass "whole catalogue installed → build, profile and smoke all pass"
 
-echo "==> OK — every profile branch, and the full catalogue's artifact, behave as documented"
+# --- 5. --with-catalogue: the artifact ships the catalogue it installs from ---
+# The default artifact carries `Modules` once (`src/Modules/`) and says so; the
+# flag is what makes `module:add` possible on a DEPLOYED tree. Nothing else in
+# this gate reads that branch of build-dist.sh, so it is exercised here once,
+# on the clone that already holds the whole catalogue.
+build "$catalogue" --with-catalogue && shipped_code=0 || shipped_code=$?
+
+if [ "$shipped_code" -ne 0 ]; then
+    cat "$catalogue/build.log" >&2
+    fail "--with-catalogue must build (exit 0), it exited $shipped_code"
+fi
+
+expect "$catalogue/build.log" \
+    'Catalogue in the artifact (module:add works here)' \
+    '--with-catalogue'
+expect "$catalogue/build.log" \
+    'catalogue INCLUDED (--with-catalogue)' \
+    '--with-catalogue'
+expect "$catalogue/build.log" 'byte-identical' '--with-catalogue'
+
+if [ ! -d "$catalogue/dist/modules" ]; then
+    cat "$catalogue/build.log" >&2
+    fail "--with-catalogue exited 0 without dist/modules — the artifact cannot install what it does not ship"
+fi
+
+# The shipped catalogue is only worth shipping if the artifact's OWN CLI can
+# read it: that is the capability the flag claims.
+if ! php "$catalogue/dist/bin/cms" module:list 2>&1 | grep -q '^Catalogued ('; then
+    fail "the --with-catalogue artifact's own CLI does not list a catalogue it ships"
+fi
+
+pass "--with-catalogue → catalogue shipped, the artifact's CLI lists it"
+
+echo "==> OK — every profile branch and the catalogue's artifact behave as documented"
