@@ -27,6 +27,12 @@ php-version = "8.5"
 # outside Core/Database/Tooling is operator state (gitignored, present only where
 # someone ran `bin/cms module:add`), so it is excluded by omission: naming only
 # the kernel keeps the verdict independent of what this checkout installed.
+#
+# `src/Modules/KernelTheme` is the tracked exception to that sentence: it ships
+# with the core export, yet it implements a contract owned by `modules/Layout`
+# and asks `ContentLocale`, so no kernel-only checkout can analyse it. It stays
+# out for the same reason as the installed slices; its import boundary is read
+# by `tests/Architecture/KernelThemeBoundaryTest.php` instead.
 paths = [
     "src/Modules/Core",
     "src/Modules/Database",

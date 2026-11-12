@@ -3,7 +3,10 @@ parameters:
     # The kernel scope only. Installed module slices (src/Modules/<Name> outside
     # Core/Database) are operator state — gitignored, never committed — so
     # analysing them would make the gate's result depend on which modules this
-    # checkout happens to have installed. The catalogue (modules/) is text the
+    # checkout happens to have installed. `src/Modules/KernelTheme` is tracked
+    # but excluded for the same reason: it implements `Modules\Layout`'s theme
+    # contract and asks `ContentLocale`, and a kernel-only checkout has neither;
+    # `tests/Architecture/KernelThemeBoundaryTest.php` pins its two imports. The catalogue (modules/) is text the
     # kernel does not run until module:add copies it; its verification is
     # module:show's closure scan, not PHPStan.
     paths:

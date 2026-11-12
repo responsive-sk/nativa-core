@@ -21,10 +21,27 @@ use Modules\Layout\ThemeModule;
  * (home, the SEO text surfaces, `/docs`, the error pages) and renders the blog
  * family plainly if a blog module is ever installed alongside it.
  *
- * It imports nothing from a feature module: not `Settings`, not `Locales`, not
- * `Blog`. Everything it needs arrives in `ShellContext` (which the kernel fills
- * through `ShellContextProvider`) and `PageContext`. A property read on an
- * object the kernel handed it is not an import — see `links()`.
+ * Everything it needs for CONTENT arrives in `ShellContext` (which the kernel
+ * fills through `ShellContextProvider`) and `PageContext`. A property read on
+ * an object the kernel handed it is not an import — see `links()`.
+ *
+ * It does name two module symbols, and this is the only tracked file under
+ * `src/` that imports a module a kernel-only export does not carry (measured
+ * 2026-11-12; `tests/Architecture/KernelThemeBoundaryTest.php` pins the list):
+ *
+ *  - `Modules\Layout\ThemeModule` is the contract a theme implements. The
+ *    module owns the theme surface (`FrontendLayout`, `ThemeKernel`, theme
+ *    discovery), so the contract travels with the module that resolves it; the
+ *    kernel theme is the fallback IMPLEMENTOR, not the reverse. Moving the
+ *    contract into the kernel is the source repository's decision.
+ *  - `ContentLocaleServices` is asked only when it is on disk, behind
+ *    `class_exists` in `localeHref()` — a tree without locales derives the
+ *    short prefix from the locale code, as this theme did before the mapping
+ *    moved.
+ *
+ * Neither is a content dependency, and neither is silent: PHPStan and mago
+ * scope exclude this slice because a kernel-only checkout cannot load what it
+ * implements, so the boundary test reads it instead.
  *
  * No asset bundle ships with it and none is needed: the whole design is one
  * hand-written file (`assets/critical/kernel.css`, inlined by `InlineCss`),
