@@ -18,6 +18,13 @@ use Tests\Support\KernelCoupling;
  * one can be true — which is why the edges are written down rather than
  * asserted as a count.
  *
+ * The walk covers the kernel MODULES and the BOOTSTRAP FILES
+ * (`src/http.php`, `src/init.php`, `src/composition.php`) — the sentence is
+ * about the kernel, not about a directory. `src/http.php` used to carry the
+ * tree's only `use Modules\Security\…`, outside every scan, while its own
+ * header promised no such line exists (measured 2026-11-12); the list is
+ * explicit so that file stays read.
+ *
  * Ported from `../nativa-minimal/tests/Architecture/KernelCouplingTest.php`
  * (2026-10-15), which carried a 34-edge ledger from a tree still importing
  * Blog, Locales, Settings, Users, Security and Media from Core. This tree has
@@ -98,7 +105,8 @@ final class KernelCouplingTest extends TestCase
 
         self::assertNotEmpty(
             $imports,
-            'the scanner found no `Modules\\…` imports at all under src/Modules/{Core,Database} — '
+            'the scanner found no `Modules\\…` imports at all in the kernel '
+            . '(src/Modules/{Core,Database,Tooling} plus the bootstrap files) — '
             . 'the walk or the tokenizer stopped working, and every rule below would then cover '
             . 'zero edges while the suite stayed green',
         );
@@ -111,10 +119,12 @@ final class KernelCouplingTest extends TestCase
         );
 
         foreach ($imports as $key => $edge) {
-            self::assertStringStartsWith(
-                'src/Modules/',
-                $edge['file'],
-                $key . ' resolved to a path outside src/Modules',
+            $inKernel = str_starts_with($edge['file'], 'src/Modules/')
+                || \in_array($edge['file'], KernelCoupling::BOOTSTRAP_FILES, true);
+
+            self::assertTrue(
+                $inKernel,
+                $key . ' resolved to a path outside src/Modules and the bootstrap list',
             );
         }
     }
