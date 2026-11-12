@@ -515,6 +515,18 @@ else
 
     echo "    ok  CSP nonce is fresh per request (${nonce_a:0:8}… ≠ ${nonce_b:0:8}…)"
 
+    # Error responses, not just the happy path. They are built by
+    # `Kernel::dispatch`'s catch and by `renderError`, i.e. INSIDE the onion, so
+    # `$next` returns them and the headers are applied on the way out — but move
+    # that catch above `buildPipeline()` and every status code above still
+    # passes while every 404 ships without a CSP. A 404 is a page an injected
+    # script can use exactly as well as the home page, and it is the response a
+    # proxy or a WAF is most likely to rewrite.
+    expect_header /nope X-Content-Type-Options '^nosniff$'
+    expect_header /nope X-Frame-Options '^DENY$'
+    expect_header /nope Content-Security-Policy "frame-ancestors 'none'"
+    expect_header /nope Content-Type '^text/html; charset=UTF-8$'
+
     mark_status="$(curl -s -o /dev/null -w '%{http_code}' "http://$SMOKE_HOST:$SMOKE_PORT/mark")"
     echo "    --  /mark → $mark_status (depends on the installed modules; not asserted)"
 
