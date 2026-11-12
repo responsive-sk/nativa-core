@@ -128,5 +128,51 @@
             "answers": "all four Mago tools over the phpstan scope, informational"
         }
     ],
-    "ci_jobs": []
+    "ci_jobs": [
+        {
+            "key": "analysis",
+            "name": "Lint + PHPStan",
+            "can_fail": true
+        },
+        {
+            "key": "kernel-dependency",
+            "name": "Kernel dependency (mago guard)",
+            "can_fail": true
+        },
+        {
+            "key": "curated-lint",
+            "name": "Curated lint count (mago lint)",
+            "can_fail": true
+        },
+        {
+            "key": "tests",
+            "name": "PHPUnit",
+            "can_fail": true
+        },
+        {
+            "key": "modules",
+            "name": "Modules (catalogue installed)",
+            "can_fail": true
+        },
+        {
+            "key": "assets",
+            "name": "Assets (pnpm)",
+            "can_fail": false
+        },
+        {
+            "key": "dist",
+            "name": "Dist artifact (clean clone)",
+            "can_fail": true
+        },
+        {
+            "key": "security-audit",
+            "name": "Security audit (tracked tree)",
+            "can_fail": true
+        },
+        {
+            "key": "dependency-audit",
+            "name": "Dependency audit (composer + pnpm)",
+            "can_fail": true
+        }
+    ]
 }
