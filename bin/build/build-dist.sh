@@ -437,6 +437,84 @@ else
         done
     fi
 
+    # --- Response headers -----------------------------------------------------
+    # The status codes above prove a route EXISTS. These prove what the response
+    # CARRIES, which is the half that fails silently: a page that answers 200 with
+    # no CSP still renders, and nothing above would notice that an injected
+    # <script> now runs. The values are the middleware's
+    # (Modules\Core\Interfaces\HTTP\Middleware\SecurityHeadersMiddleware), and
+    # they are asserted HERE rather than only in a PHP unit test because the
+    # artifact is where a dropped middleware, a pruned Core slice or a proxy that
+    # strips headers actually shows up.
+    header_of() {
+        # Last value wins: a redirect prints its headers and then the final hop's.
+        curl -s -o /dev/null -D - "http://$SMOKE_HOST:$SMOKE_PORT$1" 2>/dev/null \
+            | tr -d '\r' \
+            | awk -v want="$(printf '%s' "$2" | tr 'A-Z' 'a-z')" '
+                BEGIN { value = "" }
+                tolower($0) ~ ("^" want ":") {
+                    sub(/^[^:]*:[ \t]*/, "")
+                    value = $0
+                }
+                END { if (value != "") print value }
+            '
+    }
+
+    expect_header() {
+        local path="$1" name="$2" pattern="$3" got
+        got="$(header_of "$path" "$name" || true)"
+        if [ -z "$got" ]; then
+            echo "::error::GET $path carries no $name header" >&2
+            return 1
+        fi
+        if ! printf '%s' "$got" | grep -qiE -- "$pattern"; then
+            echo "::error::GET $path → $name: $got (did not match /$pattern/)" >&2
+            return 1
+        fi
+        echo "    ok  $path → $name"
+    }
+
+    expect_header / X-Content-Type-Options '^nosniff$'
+    expect_header / X-Frame-Options '^DENY$'
+    expect_header / Referrer-Policy '^strict-origin-when-cross-origin$'
+    # Character classes instead of backslashes: ERE `\(` is a literal parenthesis
+    # only by accident of escaping, and a doubled backslash silently matches a
+    # backslash nobody sends. `[(]` means the same thing and cannot be mistyped.
+    expect_header / Permissions-Policy '^camera=[(][)], microphone=[(][)], geolocation=[(][)]$'
+    expect_header / Content-Security-Policy "frame-ancestors 'none'"
+    expect_header / Content-Security-Policy "default-src 'self'"
+
+    # The sitemap and robots are fetched by machines that believe the type. A
+    # sitemap served as text/html or without its charset is a file crawlers
+    # reject, and the status code is still 200 — so the type is the assertion.
+    expect_header /robots.txt Content-Type '^text/plain; charset=utf-8$'
+    expect_header /sitemap.xml Content-Type '^application/xml; charset=utf-8$'
+
+    # The nonce must be PER REQUEST. A nonce generated once and reused still
+    # appears in the header, still passes every check above, and has already
+    # handed every client the same attacker-known value — the header alone cannot
+    # tell the two apart, so two requests must disagree.
+    nonce_of() {
+        # script-src and style-src carry the same nonce; the first line is enough.
+        header_of / Content-Security-Policy \
+            | sed -n "s/.*'nonce-\([^']*\)'.*/\1/p" || true
+    }
+
+    nonce_a="$(nonce_of)"
+    nonce_a="${nonce_a%%$'\n'*}"
+    nonce_b="$(nonce_of)"
+    nonce_b="${nonce_b%%$'\n'*}"
+
+    if [ -z "$nonce_a" ] || [ -z "$nonce_b" ]; then
+        fail "the CSP advertises no nonce — script-src would fall back to 'self' alone" 1
+    fi
+
+    if [ "$nonce_a" = "$nonce_b" ]; then
+        fail "two requests got the same CSP nonce ($nonce_a) — the nonce is not per-request" 1
+    fi
+
+    echo "    ok  CSP nonce is fresh per request (${nonce_a:0:8}… ≠ ${nonce_b:0:8}…)"
+
     mark_status="$(curl -s -o /dev/null -w '%{http_code}' "http://$SMOKE_HOST:$SMOKE_PORT/mark")"
     echo "    --  /mark → $mark_status (depends on the installed modules; not asserted)"
 
