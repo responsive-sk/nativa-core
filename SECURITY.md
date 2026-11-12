@@ -139,7 +139,7 @@ unreviewable mitigation is not a mitigation the next person can keep.
 | secret scan + tracked `.env` | `make security-audit` | tracked files; `audit-ok` marks a deliberate literal |
 | dependency advisories | `make dependency-audit` | `composer.lock` and `Frontend/packages/pnpm-lock.yaml`, high and critical |
 | live surface | `bin/build/admin-smoke.sh` (source repository; the export ships no admin module) | CSRF refusal, honeypot, moderation, admin access |
-| architecture | `make guard` | the kernel may not import a module |
+| architecture | `make mago-guard` | the kernel may not import a module |
 
 None of these reads the PHP interpreter's patch level. That is why the floor is
 in `composer.json` and why step 1 of the rule is a human with `ps`.
