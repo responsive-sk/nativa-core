@@ -59,10 +59,11 @@ final class RobotsActionTest extends TestCase
     }
 
     /**
-     * Every `Allow:` path in file order, without the two entries that are not
-     * routes: `/` (the kernel's own home) and the generated cover directory,
-     * which is a filesystem question and differs between a fresh checkout and
-     * an install that has imported images.
+     * Every `Allow:` path in file order, minus the two entries the router is
+     * not asked about: `/` (emitted unconditionally — `HomepageAction` is the
+     * kernel's own route) and the generated cover directory, which is a
+     * filesystem question and differs between a fresh checkout and an install
+     * that has imported images.
      *
      * @return list<string>
      */

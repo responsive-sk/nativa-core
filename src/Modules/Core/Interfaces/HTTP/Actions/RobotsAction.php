@@ -72,9 +72,11 @@ final readonly class RobotsAction
     }
 
     /**
-     * Public paths a full site advertises, in file order. None is a kernel
-     * route: each belongs to a module (ContentLocale, Blog, Pages) or is a
-     * generated file, so every one is emitted only on the router's yes.
+     * Public paths a full site advertises, in file order. `/sitemap.xml` is the
+     * kernel's own route (`SitemapAction`), so a kernel-only tree answers it and
+     * advertises it too; the rest belong to a module (ContentLocale, Blog,
+     * Pages) or are a generated file, so each is emitted only on the router's
+     * yes.
      *
      * @return list<string>
      */
