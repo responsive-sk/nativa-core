@@ -35,9 +35,9 @@ use PHPUnit\Framework\TestCase;
  * without one, and `AssetManager` degrades to critical CSS for both. The
  * direction that bit is the one asserted.
  *
- * Kernel-only here, like the rest of `tests/`: nothing in this file names a
- * module's class, so a tree with no theme installed still analyses and runs it
- * — the discovered set is simply empty and only the kernel's own bundles are
+ * `ThemeRegistry` is the catalogue's `Layout` slice: the dev autoloader
+ * resolves it by name, but nothing installs it in a kernel-only checkout, so
+ * the discovered set is empty there and only the kernel's own bundles are
  * checked.
  */
 final class ThemeBundleDiscoveryTest extends TestCase

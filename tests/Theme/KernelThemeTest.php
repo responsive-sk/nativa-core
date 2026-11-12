@@ -60,6 +60,10 @@ final class KernelThemeTest extends TestCase
     #[Test]
     public function errorPageIsThemeVocabularyWithoutShowcase(): void
     {
+        if (!is_dir(APP_BASE_PATH . '/src/Modules/Layout')) {
+            $this->markTestSkipped('Layout is not installed — the error page wears the installed page shell.');
+        }
+
         $response = ErrorPageRenderer::response(404, 'Not Found', 'gone <script>');
 
         $this->assertSame(404, $response->getStatusCode());

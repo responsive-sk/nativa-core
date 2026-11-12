@@ -182,6 +182,10 @@ final class ReaderLayoutTest extends TestCase
     #[Test]
     public function theMeasuringScriptIsEmittedAndAgreesWithTheStyle(): void
     {
+        if (!is_dir(APP_BASE_PATH . '/src/Modules/Layout')) {
+            self::markTestSkipped('Layout is not installed — the docs-reader asset ships with it.');
+        }
+
         $html = FrontendLayout::readerLayout('<article>body</article>', self::headings(2));
         $script = InlineJs::file('Modules/Layout/assets/scripts/docs-reader.js');
 
@@ -215,6 +219,10 @@ final class ReaderLayoutTest extends TestCase
     #[Test]
     public function theMeasurementAlsoClearsTheThemesAnchors(): void
     {
+        if (!is_dir(APP_BASE_PATH . '/src/Modules/Layout')) {
+            self::markTestSkipped('Layout is not installed — the docs-reader asset ships with it.');
+        }
+
         $script = InlineJs::file('Modules/Layout/assets/scripts/docs-reader.js');
 
         self::assertStringContainsString(

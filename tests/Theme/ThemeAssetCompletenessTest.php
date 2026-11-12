@@ -29,9 +29,10 @@ use PHPUnit\Framework\TestCase;
  *    until its author lists it with a reason — the gap Mono had, found by
  *    eye instead of by a test.
  *
- * Kernel-only like the rest of tests/: nothing here names a module's class.
- * Themes arrive through ThemeRegistry as objects; everything else is text
- * over file bodies. An empty registry skips.
+ * `ThemeRegistry` is the catalogue's `Layout` slice: the dev autoloader
+ * resolves it by name, but nothing installs it in a kernel-only checkout — the
+ * discovered set is empty there, and every loop below skips. Themes arrive as
+ * objects; everything else is text over file bodies.
  */
 final class ThemeAssetCompletenessTest extends TestCase
 {

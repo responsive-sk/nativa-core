@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Layout;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
+use Modules\Layout\kernel\KernelFallbackTheme;
 
 /**
  * ThemeRegistry — discovers theme modules carried by installed modules.
@@ -54,20 +55,25 @@ final class ThemeRegistry
                 continue;
             }
 
+            $fqcn = self::loadThemeClass($file->getPathname());
+
+            if (null === $fqcn) {
+                continue;
+            }
+
             // The fallback theme this slice carries is the kernel's last
             // resort, not a module-carried theme: `ThemeKernel` answers with it
             // by class, never by name. Discovering it here would let its
             // `kernel` name overwrite the real `Modules\KernelTheme` entry —
             // measured: every kernel-themed page rendered the bare fallback.
-            if (str_starts_with($file->getPathname(), __DIR__ . DIRECTORY_SEPARATOR)) {
+            // Asked by class, not by path: the same file runs from the
+            // installed slice and from the catalogue, so `__DIR__` names only
+            // whichever copy the autoloader happened to load.
+            if (KernelFallbackTheme::class === $fqcn[0]) {
                 continue;
             }
 
-            $fqcn = self::loadThemeClass($file->getPathname());
-
-            if (null !== $fqcn) {
-                $found[$fqcn[1]] = $fqcn[0];
-            }
+            $found[$fqcn[1]] = $fqcn[0];
         }
 
         ksort($found);
