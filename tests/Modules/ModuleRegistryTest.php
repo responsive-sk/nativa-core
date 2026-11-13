@@ -55,6 +55,11 @@ final class ModuleRegistryTest extends TestCase
         self::assertDirectoryExists($this->root . '/src/Modules/Alpha');
         self::assertDirectoryExists($this->root . '/src/Modules/Beta');
         self::assertSame([], $this->registry($registryDir)->available());
+
+        /** @var array{schema_version: int, modules: array<string, array{source: string, requires: list<string>}>} $index */
+        $index = json_decode((string) file_get_contents($this->root . '/modules/catalogue.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(['Alpha', 'Beta'], array_keys($index['modules']));
+        self::assertSame(['Alpha'], $index['modules']['Beta']['requires']);
     }
 
     #[Test]

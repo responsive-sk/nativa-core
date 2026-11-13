@@ -222,8 +222,6 @@ final readonly class ModuleRegistry
                     ModuleInstaller::copyTree($directory, $target);
                     $copied[] = $target;
                 }
-
-                return $this->installer->addWithDependencies($name);
             } catch (\Throwable $e) {
                 foreach ($copied as $target) {
                     if (is_dir($target)) {
@@ -237,6 +235,22 @@ final readonly class ModuleRegistry
 
                 throw $e;
             }
+
+            try {
+                $result = $this->installer->addWithDependencies($name);
+            } catch (\Throwable $e) {
+                try {
+                    (new ModuleCatalogueIndex($this->catalog))->write();
+                } catch (\Throwable) {
+                    // The install refusal is the failure worth reporting.
+                }
+
+                throw $e;
+            }
+
+            (new ModuleCatalogueIndex($this->catalog))->write();
+
+            return $result;
         } finally {
             foreach ($temporary as $path) {
                 self::remove($path);

@@ -49,6 +49,14 @@ final readonly class ModuleCatalog
     }
 
     /**
+     * The catalogue root, for the generated index that sits beside it.
+     */
+    public function catalogueRoot(): string
+    {
+        return $this->catalogDir;
+    }
+
+    /**
      * A module name is a directory name that becomes a namespace segment —
      * PascalCase alphanumerics, nothing that can traverse (`..`, `/`) or hide
      * (` .`, leading dots). A name that fails this check is refused before any
