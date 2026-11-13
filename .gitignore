@@ -33,10 +33,12 @@ src/Modules/*
 !src/Modules/Tooling
 !src/Modules/KernelTheme
 
-# Built bundles are artifacts, except the frozen Nativa bundle: a deploy without
-# Node serves it byte-identical, and its freeze test fails on a hand edit.
+# Built bundles are artifacts, except the frozen Nativa and Moonshine bundles:
+# a deploy without Node serves them byte-identical, and the nativa freeze test
+# fails on a hand edit. Moonshine carries the admin stylesheets /mark reads.
 /public/dist/*
 !/public/dist/nativa/
+!/public/dist/moonshine/
 
 # pnpm workspace dependencies. The second rule reaches a package-local store.
 /Frontend/packages/node_modules/

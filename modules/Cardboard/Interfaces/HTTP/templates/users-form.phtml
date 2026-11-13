@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <?php echo $errorHtml . "\n"; ?>
+    <div class="m-card">
+        <form class="m-form" method="POST" action="<?php echo $action; ?>" enctype="multipart/form-data"<?php echo $hxPost; ?>>
+            <?php echo $csrf . "\n"; ?>
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" value="<?php echo $name; ?>" required>
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" value="<?php echo $email; ?>" required>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autocomplete="new-password">
+            <?php echo $passwordHint . "\n"; ?>
+            <label for="role">Role</label>
+            <select id="role" name="role">
+                <option value="">— none —</option>
+                <?php echo $roleOptions . "\n"; ?>
+            </select>
+            <label for="avatar">Avatar</label>
+            <input type="hidden" id="avatar" name="avatar" value="<?php echo $avatarValue; ?>">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <button type="button" class="m-btn m-btn-ghost" data-action="open-media-picker" data-target="avatar">Choose from Media</button>
+            </div>
+            <?php echo $avatarPreview . "\n"; ?>
+            <?php echo $removeAvatar . "\n"; ?>
+            <div class="m-check">
+                <input type="checkbox" id="is_active" name="is_active" value="1"<?php echo $activeChecked; ?>>
+                <label for="is_active">Account active</label>
+            </div>
+            <div>
+                <button class="m-btn m-btn-primary" type="submit"><?php echo $spinner; ?><?php echo $submitLabel; ?></button>
+                <a class="m-btn m-btn-ghost" href="<?php echo $url('mark.users'); ?>">Cancel</a>
+            </div>
+        </form>
+    </div>

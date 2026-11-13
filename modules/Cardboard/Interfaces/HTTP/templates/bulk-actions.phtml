@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+$bulkScript = View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/bulk-actions.js');
+?>    <script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $bulkScript; ?></script>

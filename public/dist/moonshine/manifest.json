@@ -1,0 +1,29 @@
+{
+  "src/mark-switch.css": {
+    "file": "assets/mark-switch-Db3_0rHK.css",
+    "name": "mark-switch",
+    "names": [
+      "mark-switch.css"
+    ],
+    "src": "src/mark-switch.css",
+    "isEntry": true
+  },
+  "src/mark/index.css": {
+    "file": "assets/mark-DnqWibh8.css",
+    "name": "mark",
+    "names": [
+      "mark.css"
+    ],
+    "src": "src/mark/index.css",
+    "isEntry": true
+  },
+  "src/moonshine.ts": {
+    "file": "assets/moonshine-D0b_F2d6.js",
+    "name": "moonshine",
+    "src": "src/moonshine.ts",
+    "isEntry": true,
+    "css": [
+      "assets/moonshine-Cu_iM0YT.css"
+    ]
+  }
+}

@@ -1,0 +1,364 @@
+/*
+ * form.css — GENERATED, do not edit.
+ * Source: Frontend/packages/starter/src/form.css
+ * Regenerate: node bin/generate/generate-form-css.mjs
+ * Prefix: ms-
+ */
+
+/*
+ * form.css — the embedded form block.
+ *
+ * The markup comes from `FormBlockRenderer` in the Forms module, which builds
+ * every class from the ACTIVE THEME'S PREFIX — so a form on a magazine page
+ * renders under `mag-`, on erik under `er-`, never under the starter prefix.
+ * That is the same contract `CommentSection` has (erik ships `er-comments`),
+ * and it is why this file is written per theme rather than once.
+ *
+ * NOTE FOR THE GENERATOR: this comment deliberately names no concrete theme
+ * prefix. `bin/generate/generate-form-css.mjs` swaps the starter prefix textually, so
+ * a literal starter class name here would be rewritten into nonsense in the
+ * copies.
+ *
+ * The three generated copies come from this one by replacing the class prefix
+ * and the palette block (`node bin/generate/generate-form-css.mjs`);
+ * `FrontendFormParityTest` asserts they keep the same selector SET, so a rule
+ * added here cannot silently go missing in a theme.
+ *
+ * Palette indirection: the rules below never name a theme token directly,
+ * they name the locals declared in the palette block. A theme copy swaps that
+ * block and inherits everything else.
+ *
+ * Chrome 70 baseline:
+ *   - No @layer.
+ *   - flex/grid `gap` ships an @supports not (gap) margin fallback.
+ */
+
+:root {
+  /* --- palette (generated) --- */
+  --form-page-bg: var(--m-bg, var(--st-bg));
+  --form-surface: var(--m-surface);
+  --form-ink: var(--m-ink);
+  --form-hint: var(--m-muted);
+  --form-border: var(--m-border);
+  --form-accent: var(--m-primary);
+  --form-accent-bg: var(--m-primary);
+  --form-accent-hover: var(--m-primary-hover);
+  --form-error-bg: var(--m-error-bg);
+  --form-error-ink: var(--m-error-ink);
+  --form-accent-ink: #ffffff;
+  --form-radius: 8px;
+  /* --- end palette --- */
+}
+
+.ms-form {
+  margin: 32px 0;
+  padding: 24px;
+  background: var(--form-surface);
+  border: 1px solid var(--form-border);
+  border-radius: 10px;
+}
+
+.ms-form__title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.ms-form__intro {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--form-hint);
+}
+
+.ms-form__form {
+  display: grid;
+  gap: 16px;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .ms-form__form {
+    gap: 0;
+  }
+
+  .ms-form__form > * {
+    margin-bottom: 16px;
+  }
+
+  .ms-form__form > *:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.ms-form__field {
+  display: grid;
+  gap: 6px;
+  /* A radio group is a fieldset, and a fieldset arrives with a groove border,
+     padding and `min-inline-size: min-content` from the browser. That box is
+     the theme's to remove once, here, instead of every rule having to work
+     around a frame nobody asked for. */
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .ms-form__field {
+    gap: 0;
+  }
+
+  .ms-form__field > *:first-child {
+    margin-bottom: 6px;
+  }
+}
+
+.ms-form__label {
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--form-ink);
+}
+
+.ms-form__req {
+  color: var(--form-error-ink);
+}
+
+.ms-form__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--form-ink);
+  background: var(--form-page-bg);
+  border: 1px solid var(--form-border);
+  border-radius: var(--form-radius);
+}
+
+/*
+ * The focus state keeps an outline. `outline: none` plus a 1px border colour is
+ * a change most people cannot see on a white input, and it is the difference
+ * between a keyboard user finding the field and losing it.
+ */
+.ms-form__input:focus {
+  outline: 2px solid var(--form-accent);
+  outline-offset: 1px;
+  border-color: var(--form-accent);
+}
+
+.ms-form__input::placeholder {
+  color: var(--form-hint);
+}
+
+.ms-form__input[aria-invalid='true'] {
+  border-color: var(--form-error-ink);
+}
+
+textarea.ms-form__input {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/*
+ * The honeypot carries the native `hidden` attribute, so it needs no CSS to
+ * disappear. These two rules are the defence in depth for a browser that
+ * drops `hidden` on a styled element (`display` in a rule beats it), not the
+ * mechanism — the attribute is.
+ */
+.ms-form__hp {
+  display: none;
+}
+
+/* The summary is one region (renderer emits role="alert" on it), so the
+   messages are spaced by their container rather than by each message. */
+.ms-form__errors {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .ms-form__errors {
+    gap: 0;
+  }
+
+  .ms-form__errors > * {
+    margin-bottom: 8px;
+  }
+
+  .ms-form__errors > *:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.ms-form__error {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--form-error-ink);
+  background: var(--form-error-bg);
+  border-left: 3px solid var(--form-error-ink);
+  border-radius: var(--form-radius);
+}
+
+.ms-form__submit {
+  justify-self: start;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--form-accent-ink);
+  background: var(--form-accent-bg);
+  border: 0;
+  border-radius: var(--form-radius);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.ms-form__submit:hover,
+.ms-form__submit:active {
+  background: var(--form-accent-hover);
+}
+
+.ms-form__submit:focus-visible {
+  outline: 2px solid var(--form-accent);
+  outline-offset: 2px;
+}
+
+.ms-form__thanks {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--form-ink);
+  background: var(--form-page-bg);
+  border: 1px solid var(--form-border);
+  border-radius: var(--form-radius);
+}
+
+.ms-form__score {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--form-hint);
+}
+
+/* ── Poll / quiz questions ───────────────────────────────────────── */
+
+.ms-form__question {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--form-border);
+  border-radius: var(--form-radius);
+}
+
+.ms-form__prompt {
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--form-ink);
+}
+
+.ms-form__option {
+  display: flex;
+  gap: 8px;
+  /* Top-aligned, because the consent statement wraps to two or three lines on
+     a phone and a box centred against them floats in the middle of the text. */
+  align-items: flex-start;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--form-ink);
+  cursor: pointer;
+}
+
+.ms-form__option > input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  accent-color: var(--form-accent);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .ms-form__option {
+    gap: 0;
+  }
+
+  .ms-form__option > *:first-child {
+    margin-right: 8px;
+  }
+}
+
+/* ── Poll result bars ────────────────────────────────────────────── */
+
+.ms-form__result {
+  margin-bottom: 20px;
+}
+
+.ms-form__result:last-child {
+  margin-bottom: 0;
+}
+
+.ms-form__bar {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 2fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+  .ms-form__bar {
+    gap: 0;
+  }
+
+  .ms-form__bar > * {
+    margin-right: 10px;
+  }
+
+  .ms-form__bar > *:last-child {
+    margin-right: 0;
+  }
+}
+
+.ms-form__bar-label {
+  color: var(--form-ink);
+}
+
+.ms-form__bar-track {
+  display: block;
+  height: 10px;
+  background: var(--form-page-bg);
+  border: 1px solid var(--form-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+/*
+ * The fill width is a percentage `FormResultsService` computed from stored
+ * counts — it never carries visitor input, so it needs no escaping and no
+ * CSP consideration beyond being an inline style attribute.
+ */
+.ms-form__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--form-accent);
+}
+
+.ms-form__bar-value {
+  color: var(--form-hint);
+  white-space: nowrap;
+}
+
+/* moonshine override — MoonShine radii and its own muted token scale. */
+.ms-form__submit {
+  border-radius: 8px;
+}
+
+.ms-form__question {
+  background: var(--m-bg, var(--st-bg));
+}
+
+@media (max-width: 560px) {
+  .ms-form {
+    margin: 24px 0;
+    padding: 16px;
+  }
+}

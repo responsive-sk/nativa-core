@@ -1,0 +1,529 @@
+/* ── Content: container, page header (m-card idiom), sections, grids ── */
+.ms-container {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 var(--m-sp-5);
+}
+
+@media (max-width: 640px) {
+    .ms-container {
+        padding: 0 var(--m-sp-4);
+    }
+}
+
+/* MoonShine page-header idiom — a flush .m-card with title + description. */
+.ms-page-header {
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-r-lg);
+    padding: var(--m-sp-6);
+    margin-bottom: var(--m-sp-5);
+    font-family: var(--m-font);
+}
+
+.ms-page-header__title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 var(--m-sp-2);
+    color: var(--m-ink);
+}
+
+.ms-page-header__desc {
+    color: var(--m-muted);
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.ms-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: var(--m-sp-4);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-hero__actions > * + * {
+        margin-left: var(--m-sp-3);
+    }
+}
+
+.ms-hero__actions {
+    gap: var(--m-sp-3);
+}
+
+.ms-section {
+    padding: var(--m-sp-4) 0;
+}
+
+.ms-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--m-sp-4);
+    font-family: var(--m-font);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-section-header > * + * {
+        margin-left: var(--m-sp-4);
+    }
+}
+
+.ms-section-header {
+    gap: var(--m-sp-4);
+}
+
+.ms-section-header__title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--m-ink);
+}
+
+.ms-section-header__desc {
+    color: var(--m-muted);
+    margin: var(--m-sp-1) 0 0;
+    font-size: var(--m-text-md);
+}
+
+.ms-section-header--split .ms-section-link {
+    color: var(--m-primary-ink);
+    font-size: var(--m-text-base);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ms-section-header--split .ms-section-link:hover {
+    text-decoration: underline;
+}
+
+.ms-grid {
+    display: grid;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-grid > * + * {
+        margin-top: var(--m-sp-4);
+    }
+}
+
+.ms-grid {
+    gap: var(--m-sp-4);
+}
+
+.ms-grid--1col {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ms-grid--2col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ms-grid--3col {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+@media (max-width: 640px) {
+    .ms-grid--2col {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ── Article cards — m-card visual language, self-contained (no margins
+   inside grids; the .m-card class stays available for static blocks) ── */
+article.ms-card {
+    display: block;
+    color: inherit;
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-r-lg);
+    padding: var(--m-sp-5);
+    transition: border-color var(--m-transition), transform var(--m-transition),
+        box-shadow var(--m-transition);
+    font-family: var(--m-font);
+}
+
+article.ms-card:hover {
+    border-color: var(--m-primary);
+    transform: translateY(-3px);
+    box-shadow: var(--m-shadow-md);
+}
+
+.ms-card__badge {
+    margin-bottom: var(--m-sp-2);
+}
+
+.ms-card__badge.ms-badge:hover {
+    text-decoration: none;
+}
+
+.ms-card__title {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 var(--m-sp-2);
+    color: var(--m-ink);
+    line-height: 1.35;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.ms-card__title-link {
+    color: var(--m-ink);
+    text-decoration: none;
+}
+
+.ms-card__title-link:hover {
+    color: var(--m-primary-ink);
+}
+
+.ms-card__text {
+    color: var(--m-muted);
+    margin: 0 0 var(--m-sp-2);
+    font-size: var(--m-text-md);
+    line-height: 1.5;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.ms-card__img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    height: auto;
+    margin-bottom: var(--m-sp-3);
+    display: block;
+    border-radius: var(--m-r-sm);
+}
+
+.ms-card__img--placeholder {
+    aspect-ratio: 16/9;
+    border-radius: var(--m-r-sm);
+    background: var(--m-surface-2);
+    border: 1px solid var(--m-border);
+    width: 100%;
+    min-height: 100px;
+    margin-bottom: var(--m-sp-3);
+    display: block;
+}
+
+.ms-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    color: var(--m-muted);
+    margin-top: var(--m-sp-1);
+    font-size: var(--m-text-sm);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-card__meta > * + * {
+        margin-left: var(--m-sp-2);
+    }
+}
+
+.ms-card__meta {
+    gap: var(--m-sp-2);
+}
+
+.ms-card__meta a {
+    color: var(--m-primary-ink);
+    text-decoration: none;
+}
+
+.ms-card__meta-sep {
+    color: var(--m-border);
+}
+
+.ms-empty {
+    text-align: center;
+    color: var(--m-muted);
+    padding: 48px 0;
+    font-size: var(--m-text-lg);
+    font-family: var(--m-font);
+}
+
+/* ── CTA ── */
+.ms-cta {
+    text-align: center;
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-r-lg);
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 40px var(--m-sp-5);
+    font-family: var(--m-font);
+}
+
+.ms-cta__title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 var(--m-sp-3);
+    color: var(--m-ink);
+}
+
+.ms-cta__text {
+    color: var(--m-muted);
+    margin: 0 0 var(--m-sp-4);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.ms-cta__actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-cta__actions > * + * {
+        margin-left: var(--m-sp-3);
+    }
+}
+
+.ms-cta__actions {
+    gap: var(--m-sp-3);
+}
+
+.ms-link {
+    color: var(--m-primary-ink);
+    font-size: var(--m-text-base);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.ms-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Feature card (home) — ms-card + Read article link ── */
+.ms-feature-card .ms-link {
+    margin-top: auto;
+}
+
+.ms-feature-card {
+    display: flex;
+    flex-direction: column;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-feature-card .ms-link {
+        margin-top: var(--m-sp-3);
+    }
+}
+
+/* ── Main + sidebar layout ── */
+.ms-layout-with-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-layout-with-sidebar > * + * {
+        margin-left: var(--m-sp-6);
+    }
+}
+
+.ms-layout-with-sidebar {
+    gap: var(--m-sp-6);
+}
+
+@media (max-width: 1023px) {
+    .ms-layout-with-sidebar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ── Sidebar widgets — m-card visual language ── */
+.ms-sidebar-widget {
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-r-lg);
+    padding: var(--m-sp-5);
+    margin-bottom: var(--m-sp-5);
+    font-family: var(--m-font);
+}
+
+.ms-sidebar-widget__title {
+    font-size: var(--m-text-lg);
+    font-weight: 700;
+    margin: 0 0 14px;
+    color: var(--m-ink);
+}
+
+.ms-sidebar-popular {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-sidebar-popular > * + * {
+        margin-top: var(--m-sp-3);
+    }
+}
+
+.ms-sidebar-popular {
+    gap: var(--m-sp-3);
+}
+
+.ms-sidebar-popular__link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-sidebar-popular__link > * + * {
+        margin-left: var(--m-sp-3);
+    }
+}
+
+.ms-sidebar-popular__link {
+    gap: var(--m-sp-3);
+}
+
+.ms-sidebar-popular__image {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: var(--m-r-sm);
+    flex-shrink: 0;
+}
+
+.ms-sidebar-popular__info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-sidebar-popular__info > * + * {
+        margin-top: 2px;
+    }
+}
+
+.ms-sidebar-popular__info {
+    gap: 2px;
+}
+
+.ms-sidebar-popular__title {
+    color: var(--m-ink);
+    font-size: var(--m-text-md);
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.ms-sidebar-popular__date {
+    color: var(--m-muted);
+    font-size: var(--m-text-sm);
+}
+
+.ms-sidebar-tags {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-sidebar-tags > * + * {
+        margin: 0 0 6px 6px;
+    }
+}
+
+.ms-sidebar-tags {
+    gap: 6px;
+}
+
+.ms-sidebar-tag:hover,
+.ms-sidebar-tag--active {
+    text-decoration: none;
+}
+
+/* ── Tag / category chips grid ── */
+.ms-tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-tag-cloud > * + * {
+        margin: 0 0 var(--m-sp-2) var(--m-sp-2);
+    }
+}
+
+.ms-tag-cloud {
+    gap: var(--m-sp-2);
+}
+
+.ms-tag-cloud .ms-badge {
+    font-size: var(--m-text-md);
+    padding: 6px 12px;
+}
+
+/* ── Author card (profile page) ── */
+.ms-author-card {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--m-sp-6);
+    font-family: var(--m-font);
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-author-card > * + * {
+        margin-left: var(--m-sp-5);
+    }
+}
+
+.ms-author-card {
+    gap: var(--m-sp-5);
+}
+
+.ms-author-card img {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.ms-author-card__name {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 var(--m-sp-1);
+    color: var(--m-ink);
+}
+
+.ms-author-card__meta {
+    color: var(--m-muted);
+    margin: 0;
+    font-size: var(--m-text-md);
+}
+
+/* ── Article body tables ──
+   MarkdownRenderer emits a bare <table> with no class, so the public article
+   tables are reachable only through the article content wrapper; without these
+   rules they render completely unstyled. Lives here rather than in
+   article.css, which already sits at the 600-line cap enforced by
+   ThemeFileSizeTest (whose baseline list is empty by policy). Colours are
+   moonshine's own tokens; `th` uses --m-surface-2 because --m-surface is the
+   article background and the header would otherwise be invisible. */
+.ms-article__content table {
+    border-collapse: collapse;
+    margin: 0 0 var(--m-sp-4);
+    width: 100%;
+}
+
+.ms-article__content th,
+.ms-article__content td {
+    border: 1px solid var(--m-border);
+    font-size: var(--m-text-md);
+    padding: var(--m-sp-2) var(--m-sp-3);
+    text-align: left;
+    vertical-align: top;
+}
+
+.ms-article__content th {
+    background: var(--m-surface-2);
+    font-weight: 600;
+}

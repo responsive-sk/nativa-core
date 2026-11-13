@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <?php echo $errorHtml . "\n"; ?>
+    <div class="m-card">
+        <form class="m-form" method="POST" action="<?php echo $action; ?>">
+            <?php echo $csrf . "\n"; ?>
+            <label for="key">Key (group-prefixed, e.g. nav.home)</label>
+            <?php echo $keyField . "\n"; ?>
+            <label for="locale">Locale</label>
+            <?php echo $localeField . "\n"; ?>
+            <label for="value">Value</label>
+            <input type="text" id="value" name="value" value="<?php echo $value; ?>" required>
+            <label for="group">Group</label>
+            <input type="text" id="group" name="group" value="<?php echo $group; ?>">
+            <div>
+                <button class="m-btn m-btn-primary" type="submit"><?php echo $submitLabel; ?></button>
+                <a class="m-btn m-btn-ghost" href="<?php echo $url('mark.locales'); ?>">Cancel</a>
+            </div>
+        </form>
+    </div>

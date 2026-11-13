@@ -1,0 +1,121 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GILROY FONT
+   ═══════════════════════════════════════════════════════════════════ */
+
+@font-face {
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/mark/Gilroy-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/mark/Gilroy-Medium.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/mark/Gilroy-SemiBold.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/mark/Gilroy-Bold.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url('/fonts/mark/Gilroy-Black.woff2') format('woff2');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOKENS
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* ── Surface ── */
+    --m-bg: #0f172a; --m-surface: #1e293b; --m-surface-2: #1a2332;
+    --m-ink: #e2e8f0; --m-muted: #94a3b8; --m-border: #334155;
+    /* ── Accent (MoonShine purple) ── */
+    --m-primary: #7c3aed; --m-primary-hover: #6d28d9;
+    --m-primary-soft: rgba(124,58,237,.12); --m-primary-ink: #a78bfa;
+    /* ── Secondary ── */
+    --m-secondary: #475569; --m-secondary-hover: #334155;
+    /* ── Semantic ── */
+    --m-success: #22c55e; --m-success-bg: rgba(34,197,94,.12); --m-success-ink: #4ade80;
+    --m-warning: #f59e0b; --m-warning-bg: rgba(245,158,11,.12); --m-warning-ink: #fbbf24;
+    --m-error: #ef4444; --m-error-bg: rgba(239,68,68,.12); --m-error-ink: #fca5a5;
+    --m-info: #3b82f6; --m-info-bg: rgba(59,130,246,.12); --m-info-ink: #60a5fa;
+    /* ── Typography ── */
+    --m-font: 'Gilroy', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --m-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    /* ── Radius ── */
+    --m-r-sm: 6px; --m-r-md: 8px; --m-r-lg: 12px; --m-r-full: 9999px;
+    /* ── Spacing ── */
+    --m-sp-1: 4px; --m-sp-2: 8px; --m-sp-3: 12px; --m-sp-4: 16px;
+    --m-sp-5: 20px; --m-sp-6: 24px;
+    /* ── Shadow ── */
+    --m-shadow-sm: 0 1px 2px rgba(0,0,0,.15);
+    --m-shadow-md: 0 4px 12px rgba(0,0,0,.2);
+    /* ── Transition ── */
+    --m-transition: 150ms ease;
+    /* ── Nav ── */
+    --m-nav-bg: #020617;
+    /* ── cba-* backward compat aliases ── */
+    --cba-bg: var(--m-bg); --cba-card: var(--m-surface); --cba-ink: var(--m-ink);
+    --cba-muted: var(--m-muted); --cba-accent: var(--m-info);
+    --cba-accent-strong: var(--m-primary); --cba-border: var(--m-border);
+    --cba-nav-bg: var(--m-nav-bg); --cba-th-bg: var(--m-surface-2);
+    --cba-ok-bg: var(--m-success-bg); --cba-ok-ink: var(--m-success-ink);
+    --cba-err-bg: var(--m-error-bg); --cba-err-ink: var(--m-error-ink);
+}
+
+:root[data-theme="light"] {
+    --m-bg: #f8fafc; --m-surface: #ffffff; --m-surface-2: #f1f5f9;
+    --m-ink: #0f172a; --m-muted: #64748b; --m-border: #e2e8f0;
+    --m-primary: #7c3aed; --m-primary-hover: #6d28d9;
+    --m-primary-soft: rgba(124,58,237,.08); --m-primary-ink: #7c3aed;
+    --m-secondary: #64748b; --m-secondary-hover: #475569;
+    --m-success-bg: rgba(34,197,94,.1); --m-success-ink: #15803d;
+    --m-warning-bg: rgba(245,158,11,.1); --m-warning-ink: #b45309;
+    --m-error-bg: rgba(239,68,68,.1); --m-error-ink: #b91c1c;
+    --m-info-bg: rgba(59,130,246,.1); --m-info-ink: #1d4ed8;
+    --m-nav-bg: #1a2233;
+    --cba-bg: var(--m-bg); --cba-card: var(--m-surface); --cba-ink: var(--m-ink);
+    --cba-muted: var(--m-muted); --cba-accent: var(--m-info);
+    --cba-accent-strong: var(--m-primary); --cba-border: var(--m-border);
+    --cba-nav-bg: var(--m-nav-bg); --cba-th-bg: var(--m-surface-2);
+    --cba-ok-bg: var(--m-success-bg); --cba-ok-ink: var(--m-success-ink);
+    --cba-err-bg: var(--m-error-bg); --cba-err-ink: var(--m-error-ink);
+}
+
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+        --m-bg: #f8fafc; --m-surface: #ffffff; --m-surface-2: #f1f5f9;
+        --m-ink: #0f172a; --m-muted: #64748b; --m-border: #e2e8f0;
+        --m-primary: #7c3aed; --m-primary-hover: #6d28d9;
+        --m-primary-soft: rgba(124,58,237,.08); --m-primary-ink: #7c3aed;
+        --m-secondary: #64748b; --m-secondary-hover: #475569;
+        --m-success-bg: rgba(34,197,94,.1); --m-success-ink: #15803d;
+        --m-warning-bg: rgba(245,158,11,.1); --m-warning-ink: #b45309;
+        --m-error-bg: rgba(239,68,68,.1); --m-error-ink: #b91c1c;
+        --m-info-bg: rgba(59,130,246,.1); --m-info-ink: #1d4ed8;
+        --m-nav-bg: #1a2233;
+        --cba-bg: var(--m-bg); --cba-card: var(--m-surface); --cba-ink: var(--m-ink);
+        --cba-muted: var(--m-muted); --cba-accent: var(--m-info);
+        --cba-accent-strong: var(--m-primary); --cba-border: var(--m-border);
+        --cba-nav-bg: var(--m-nav-bg); --cba-th-bg: var(--m-surface-2);
+        --cba-ok-bg: var(--m-success-bg); --cba-ok-ink: var(--m-success-ink);
+        --cba-err-bg: var(--m-error-bg); --cba-err-ink: var(--m-error-ink);
+    }
+}

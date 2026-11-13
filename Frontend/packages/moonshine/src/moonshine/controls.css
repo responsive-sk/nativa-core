@@ -1,0 +1,122 @@
+/*
+ * moonshine/controls.css — blog controls section (search / feed / pagination).
+ *
+ * The theme-section-split discipline: moonshine.css stays at its recorded
+ * baseline; each new section gets its own file imported in cascade order.
+ * `ms-blog-*` BEM classes render from Themes\moonshine\Sections\Controls.php.
+ *
+ * Chrome 70 baseline: flex `gap` rules ship an @supports margin fallback;
+ * the search box stacks below 640px.
+ */
+
+.ms-blog-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--m-sp-3);
+}
+
+.ms-blog-search__label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-ink);
+}
+
+.ms-blog-search__input {
+    flex: 1;
+    min-width: 0;
+    background: var(--m-bg);
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-r-md);
+    padding: 10px var(--m-sp-4);
+    font-size: 14px;
+    font-family: var(--m-font);
+    color: var(--m-ink);
+}
+
+.ms-blog-search__input:focus {
+    outline: 2px solid var(--m-primary);
+    outline-offset: 1px;
+}
+
+.ms-blog-search__button {
+    background: var(--m-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--m-r-md);
+    padding: 10px var(--m-sp-5);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--m-font);
+    cursor: pointer;
+    transition: background var(--m-transition);
+}
+
+.ms-blog-search__button:hover {
+    background: var(--m-primary-hover);
+}
+
+.ms-blog-feed {
+    color: var(--m-muted);
+    font-size: 13px;
+    margin: var(--m-sp-3) 0 0;
+}
+
+.ms-blog-feed__link {
+    color: var(--m-primary-ink);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.ms-blog-feed__link:hover {
+    text-decoration: underline;
+}
+
+.ms-blog-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--m-sp-3);
+    margin-top: var(--m-sp-5);
+    font-size: 14px;
+}
+
+.ms-blog-pagination__link {
+    color: var(--m-primary-ink);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.ms-blog-pagination__link:hover {
+    text-decoration: underline;
+}
+
+.ms-blog-pagination__page a {
+    color: var(--m-muted);
+    text-decoration: none;
+    padding: 2px 8px;
+    border-radius: var(--m-r-sm);
+}
+
+.ms-blog-pagination__page--current a {
+    background: var(--m-primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+@supports not ((gap: 1px) and (inset: 0)) {
+    .ms-blog-search > * + * {
+        margin-left: var(--m-sp-3);
+    }
+
+    .ms-blog-pagination > * + * {
+        margin-left: var(--m-sp-3);
+    }
+}
+
+@media (max-width: 640px) {
+    .ms-blog-search {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

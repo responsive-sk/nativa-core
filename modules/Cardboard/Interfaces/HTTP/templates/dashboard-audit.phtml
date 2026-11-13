@@ -1,0 +1,44 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ *
+ * `$url` resolves a route NAME, and `$has` says whether that name exists in
+ * this tree. The actions below belong to Users, Blog, Pages, Media and
+ * Settings; a catalogue tree can carry Cardboard without any of them, and
+ * resolving a name that is not there throws. Measured 2026-11-09: that turned
+ * `/mark` into a 500 in a tree with Cardboard and no Blog.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+$has = $has ?? static fn (string $name): bool => true;
+
+$actions = [
+    ['mark.users.create', 'New user'],
+    ['articles.create', 'New article'],
+    ['pages.create', 'New page'],
+    ['media.upload', 'Upload media'],
+    ['mark.settings', 'Settings'],
+];
+
+$available = array_values(array_filter(
+    $actions,
+    static fn (array $action): bool => $has($action[0]),
+));
+
+if ([] !== $available) : ?>
+    <div class="m-card">
+        <h2 class="m-heading">Quick actions</h2>
+        <div class="m-filter-bar">
+<?php foreach ($available as [$name, $label]) : ?>
+            <a class="m-btn m-btn-primary" href="<?php echo htmlspecialchars($url($name), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></a>
+<?php endforeach; ?>
+        </div>
+    </div>
+<?php endif;

@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <tr>
+        <td><code><?php echo $key; ?></code></td>
+        <td><?php echo $value; ?></td>
+        <td><?php echo $rowGroup; ?></td>
+        <td>
+            <?php if ('file' === $source): ?>
+                <?php /* No id, so no edit link and no delete button: the row lives in
+                         storage/locales/<locale>.json. Editing it in place would
+                         silently create a database row that then shadows the file. */ ?>
+                <span class="m-pill m-pill--muted" title="Read from the locale JSON file — no database row">file</span>
+            <?php else: ?>
+                <div class="m-btn-group">
+                    <a class="m-btn m-btn-sm m-btn-icon" href="<?php echo $url('mark.locales.edit', ['id' => $id]); ?>" title="Edit"><?php echo $iconEdit; ?></a>
+                    <form method="POST" action="<?php echo $url('mark.locales.delete', ['id' => $id]); ?>" class="m-inline-form">
+                        <?php echo $csrf . "\n"; ?>
+                        <button class="m-btn m-btn-error m-btn-sm m-btn-icon"
+                                data-confirm="Delete this translation?" title="Delete"><?php echo $iconDelete; ?></button>
+                    </form>
+                </div>
+            <?php endif; ?>
+        </td>
+    </tr>
