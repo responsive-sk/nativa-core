@@ -18,6 +18,7 @@ use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigra
 use Modules\Settings\Infrastructure\Persistence\Repositories\SettingsRepository;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\ThemeSetting;
 use Themes\ThemeSettings;
 
 /**
@@ -28,7 +29,8 @@ use Themes\ThemeSettings;
  * 1. **The card renders something other than the theme's schema** — a form
  *    offering a field no theme reads, or opening on a value the renderer would
  *    reject. The card is rendered from the schema and vetted the same way the
- *    page vets it, so `meatball` opens selected only when the theme accepts it.
+ *    page vets it, so a non-default option opens selected only when the theme
+ *    accepts it.
  * 2. **A theme without settings gets an empty form** — indistinguishable from a
  *    broken one, so it says so in words.
  * 3. **The save writes the wrong theme's row.** The POST body never names a
@@ -82,7 +84,10 @@ final class ThemeSettingsAdminTest extends TestCase
         putenv('DB_USERS');
         DatabaseConnectionManager::resetInstance();
         CardboardServices::reset();
-        \Modules\Audit\Interfaces\HTTP\AuditServices::reset();
+
+        if (class_exists(\Modules\Audit\Interfaces\HTTP\AuditServices::class)) {
+            \Modules\Audit\Interfaces\HTTP\AuditServices::reset();
+        }
 
         foreach (glob($this->tmpDir . '/*') ?: [] as $file) {
             @unlink($file);
@@ -100,19 +105,20 @@ final class ThemeSettingsAdminTest extends TestCase
 
         self::assertStringContainsString('name="theme_settings[nav_toggle_icon]"', $html);
         self::assertStringContainsString('action="/route/mark.settings.theme"', $html);
-        self::assertStringContainsString('<option value="auto" selected>', $html);
-        self::assertStringContainsString('Meatball (three dots)', $html);
+        self::assertStringContainsString('<option value="' . $this->defaultValue() . '" selected>', $html);
+        self::assertStringContainsString($this->field()->optionLabel($this->nonDefaultOption()), $html);
         self::assertStringContainsString('Theme settings — ' . $this->theme, $html);
     }
 
     #[Test]
     public function aStoredValueOpensSelected(): void
     {
-        $html = $this->card(['nav_toggle_icon' => 'meatball']);
+        $value = $this->nonDefaultOption();
+        $html = $this->card(['nav_toggle_icon' => $value]);
 
-        self::assertStringContainsString('<option value="meatball" selected>', $html);
+        self::assertStringContainsString('<option value="' . $value . '" selected>', $html);
         self::assertStringNotContainsString(
-            '<option value="auto" selected>',
+            '<option value="' . $this->defaultValue() . '" selected>',
             $html,
             'Two selected options would render the first one and ignore the stored value.',
         );
@@ -123,7 +129,7 @@ final class ThemeSettingsAdminTest extends TestCase
     {
         $html = $this->card(['nav_toggle_icon' => 'banana']);
 
-        self::assertStringContainsString('<option value="auto" selected>', $html);
+        self::assertStringContainsString('<option value="' . $this->defaultValue() . '" selected>', $html);
         self::assertStringNotContainsString(
             'banana',
             $html,
@@ -176,11 +182,12 @@ final class ThemeSettingsAdminTest extends TestCase
         $this->bootDatabases();
         $this->storeTheme($this->theme);
 
-        $this->save(['nav_toggle_icon' => 'meatball']);
+        $value = $this->nonDefaultOption();
+        $this->save(['nav_toggle_icon' => $value]);
 
         $key = ThemeSettingValues::storageKey($this->theme, 'nav_toggle_icon');
 
-        self::assertSame('meatball', $this->repository()->get($key), 'The active theme row is what the renderer reads.');
+        self::assertSame($value, $this->repository()->get($key), 'The active theme row is what the renderer reads.');
         self::assertNull(
             $this->repository()->get(ThemeSettingValues::storageKey(ThemeResolver::KERNEL_THEME, 'nav_toggle_icon')),
             'The row must be scoped to the active theme, not written for whichever theme is the fallback.',
@@ -196,7 +203,7 @@ final class ThemeSettingsAdminTest extends TestCase
         $this->save(['nav_toggle_icon' => 'banana']);
 
         self::assertSame(
-            'auto',
+            $this->defaultValue(),
             $this->repository()->get(ThemeSettingValues::storageKey($this->theme, 'nav_toggle_icon')),
         );
     }
@@ -226,6 +233,46 @@ final class ThemeSettingsAdminTest extends TestCase
             $this->repository()->get(ThemeSettingValues::storageKey(ThemeResolver::KERNEL_THEME, 'nav_toggle_icon')),
             'The kernel theme declares no settings; a hand-made POST must not invent a row for it.',
         );
+    }
+
+    /**
+     * The theme's nav-icon field, the one every configurable theme declares.
+     */
+    private function field(): ThemeSetting
+    {
+        $module = ThemeKernel::for($this->theme);
+        self::assertInstanceOf(ThemeSettings::class, $module);
+
+        foreach ($module->settingsSchema() as $field) {
+            if ('nav_toggle_icon' === $field->key) {
+                return $field;
+            }
+        }
+
+        self::fail('The active theme declares no nav_toggle_icon field.');
+    }
+
+    private function defaultValue(): string
+    {
+        return $this->field()->fallbackValue();
+    }
+
+    /**
+     * An option the schema accepts and that is not the default, so "selected"
+     * measures the stored value rather than the fallback.
+     */
+    private function nonDefaultOption(): string
+    {
+        $field = $this->field();
+        $default = $this->defaultValue();
+
+        foreach (array_keys($field->options) as $value) {
+            if ($default !== (string) $value) {
+                return (string) $value;
+            }
+        }
+
+        self::fail('The active theme declares no non-default nav_toggle_icon option.');
     }
 
     /**
@@ -299,6 +346,10 @@ final class ThemeSettingsAdminTest extends TestCase
     {
         $this->tmpDir = sys_get_temp_dir() . '/nativa-theme-settings-' . bin2hex(random_bytes(6));
         mkdir($this->tmpDir, 0o775, true);
+
+        if (!class_exists(\Modules\Audit\Interfaces\HTTP\AuditServices::class)) {
+            $this->markTestSkipped('Audit is not installed — the save path writes its ledger.');
+        }
 
         putenv('DB_CONFIG=' . $this->tmpDir . '/config.db');
         putenv('DB_AUDIT=' . $this->tmpDir . '/audit.db');

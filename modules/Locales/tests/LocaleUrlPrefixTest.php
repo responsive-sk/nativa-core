@@ -210,10 +210,12 @@ final class LocaleUrlPrefixTest extends TestCase
      */
     public static function prefixedKernelPaths(): iterable
     {
-        yield 'unprefixed'        => ['/docs'];
-        yield 'short prefix'      => ['/sk/docs'];
-        yield 'full code prefix'  => ['/sk_SK/docs'];
-        yield 'second locale'     => ['/en/docs'];
+        // The homepage is the one routed page every tree carries; Docs is a
+        // module and is not part of the catalogue this test also runs in.
+        yield 'unprefixed'        => ['/'];
+        yield 'short prefix'      => ['/sk/'];
+        yield 'full code prefix'  => ['/sk_SK/'];
+        yield 'second locale'     => ['/en/'];
     }
 
     #[Test]
@@ -225,30 +227,30 @@ final class LocaleUrlPrefixTest extends TestCase
         $this->assertSame(
             200,
             $response->getStatusCode(),
-            sprintf('%s must reach the docs route — before 2026-10-17 every prefixed URL answered 404', $uri),
+            sprintf('%s must reach the homepage route — before 2026-10-17 every prefixed URL answered 404', $uri),
         );
     }
 
     /**
      * Task 3.1/3.2: the href a theme renders for another language is the
-     * owner's prefix plus the UNPREFIXED path — `/docs` for the default
-     * locale, `/en/docs` for the other one. The raw prefix contract above
-     * being green says nothing about this: the switcher used to prepend the
-     * full code (`/sk_SK/docs`), so the link was a second spelling of the
-     * same URL. Each shape is followed through the kernel, because a
-     * switcher href that 404s is dead navigation.
+     * owner's prefix plus the UNPREFIXED path — `/` for the default locale,
+     * `/en/` for the other one. The raw prefix contract above being green
+     * says nothing about this: the switcher used to prepend the full code
+     * (`/sk_SK/`), so the link was a second spelling of the same URL. Each
+     * shape is followed through the kernel, because a switcher href that 404s
+     * is dead navigation.
      */
     #[Test]
     public function theLocaleLinkAThemeBuildsReachesARoute(): void
     {
         $mapper = ContentLocaleServices::mapper();
         $paths = array_map(
-            static fn (string $code): string => $mapper->urlPrefix($code) . '/docs',
+            static fn (string $code): string => $mapper->urlPrefix($code) . '/',
             $mapper->locales(),
         );
 
         $this->assertSame(
-            ['/docs', '/en/docs'],
+            ['/', '/en/'],
             $paths,
             'the default locale owns the bare path; the other locale gets its short code — never the full sk_SK.',
         );
@@ -259,7 +261,7 @@ final class LocaleUrlPrefixTest extends TestCase
             $this->assertSame(
                 200,
                 $response->getStatusCode(),
-                sprintf('%s is what the switcher puts in href; it must reach the docs route, not 404', $path),
+                sprintf('%s is what the switcher puts in href; it must reach the homepage route, not 404', $path),
             );
         }
     }
