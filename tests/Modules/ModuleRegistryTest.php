@@ -137,6 +137,33 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function updateAllUpdatesDependenciesFirst(): void
+    {
+        $this->writeModule('Zeta', 'final class Zeta {}');
+        $this->writeModule(
+            'Alpha',
+            "use Modules\\Zeta\\Zeta;\n\nfinal class Alpha\n{\n    public function dependency(): string\n    {\n        return Zeta::class;\n    }\n}",
+        );
+
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Alpha');
+
+        $this->writeModule('Zeta', 'final class Zeta { public function version(): string { return "2.0.0"; } }');
+        $this->writeModule(
+            'Alpha',
+            "use Modules\\Zeta\\Zeta;\n\nfinal class Alpha\n{\n    public function version(): string\n    {\n        return Zeta::class . ' 2.0.0';\n    }\n}",
+        );
+        $second = $this->buildRegistry('2.0.0', true);
+
+        $result = $this->registry($second)->updateAll();
+
+        self::assertNull($result['failed']);
+        self::assertSame(['Zeta', 'Alpha'], array_column($result['updated'], 'name'));
+        self::assertStringContainsString('2.0.0', (string) file_get_contents($this->root . '/modules/Alpha/src/Alpha.php'));
+        self::assertStringContainsString('2.0.0', (string) file_get_contents($this->root . '/modules/Zeta/src/Zeta.php'));
+    }
+
+    #[Test]
     public function updatesEveryRegistryModuleInOneRun(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');

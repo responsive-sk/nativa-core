@@ -370,7 +370,7 @@ final readonly class ModuleRegistry
         $updates = $this->state()['updates'];
         $updated = [];
 
-        foreach (array_keys($updates) as $name) {
+        foreach ($this->updateOrder($updates) as $name) {
             try {
                 $result = $this->update($name);
             } catch (RuntimeException $e) {
@@ -384,6 +384,65 @@ final readonly class ModuleRegistry
         }
 
         return ['updated' => $updated, 'failed' => null];
+    }
+
+    /**
+     * Dependencies first: a module in this run must not be reinstalled against
+     * an older copy of another module that is waiting in the same run.
+     *
+     * @param array<string, array{current: ?string, entry: array{requires: list<string>, archive: string, sha256: string, version: ?string}}> $updates
+     *
+     * @return list<string>
+     */
+    private function updateOrder(array $updates): array
+    {
+        /** @var list<string> $order */
+        $order = [];
+        /** @var array<string, true> $visiting */
+        $visiting = [];
+        /** @var array<string, true> $done */
+        $done = [];
+
+        foreach (array_keys($updates) as $name) {
+            $this->orderUpdate($name, $updates, $order, $visiting, $done);
+        }
+
+        return $order;
+    }
+
+    /**
+     * @param array<string, array{current: ?string, entry: array{requires: list<string>, archive: string, sha256: string, version: ?string}}> $updates
+     * @param list<string>                                                                                                  $order
+     * @param array<string, true>                                                                                           $visiting
+     * @param array<string, true>                                                                                           $done
+     */
+    private function orderUpdate(
+        string $name,
+        array $updates,
+        array &$order,
+        array &$visiting,
+        array &$done,
+    ): void {
+        if (isset($done[$name]) || !isset($updates[$name])) {
+            return;
+        }
+
+        if (isset($visiting[$name])) {
+            throw new RuntimeException(sprintf(
+                "Cannot update all: dependency cycle involving '%s'. Nothing was updated.",
+                $name,
+            ));
+        }
+
+        $visiting[$name] = true;
+
+        foreach ($updates[$name]['entry']['requires'] as $dependency) {
+            $this->orderUpdate($dependency, $updates, $order, $visiting, $done);
+        }
+
+        unset($visiting[$name]);
+        $done[$name] = true;
+        $order[] = $name;
     }
 
     /**
