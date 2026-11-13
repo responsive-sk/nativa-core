@@ -461,7 +461,7 @@ final readonly class ModuleRegistry
         $staged = [];
         /** @var list<string> $temporary */
         $temporary = [];
-        /** @var list<string> $copied */
+        /** @var array<string, string> $copied module name => catalogue target */
         $copied = [];
 
         try {
@@ -493,7 +493,7 @@ final readonly class ModuleRegistry
                     }
 
                     ModuleInstaller::copyTree($directory, $target);
-                    $copied[] = $target;
+                    $copied[$module] = $target;
                 }
             } catch (\Throwable $e) {
                 foreach ($copied as $target) {
@@ -512,6 +512,18 @@ final readonly class ModuleRegistry
             try {
                 $result = $this->installer->addWithDependencies($name);
             } catch (\Throwable $e) {
+                foreach ($copied as $module => $target) {
+                    // An installed slice is keeping this catalogue entry alive; only
+                    // a module the installer never installed may be removed.
+                    if (!$this->catalog->isInstalled($module) && is_dir($target)) {
+                        try {
+                            ModuleInstaller::deleteTree($target);
+                        } catch (\Throwable) {
+                            // Best effort: the install refusal is the failure worth reporting.
+                        }
+                    }
+                }
+
                 try {
                     (new ModuleCatalogueIndex($this->catalog))->write();
                 } catch (\Throwable) {

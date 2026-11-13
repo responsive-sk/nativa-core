@@ -137,6 +137,35 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function removesCopiedCataloguesWhenTheInstallerRefuses(): void
+    {
+        $this->writeModule('Alpha', 'final class Alpha {}');
+        $this->writeModule('Beta', 'final class Beta {}');
+
+        $registryDir = $this->buildRegistry();
+
+        // A file where the slice directory belongs makes ModuleInstaller::add()
+        // fail after the registry has already copied modules/Beta. The failed
+        // install must not leave that catalogue entry behind as installable code.
+        file_put_contents($this->root . '/src/Modules/Beta', 'blocked');
+
+        try {
+            $this->registry($registryDir)->install('Beta');
+            $this->fail('The installer should refuse a slice path occupied by a file.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('Cannot create directory', $e->getMessage());
+        }
+
+        self::assertDirectoryDoesNotExist($this->root . '/modules/Beta');
+        self::assertFileExists($this->root . '/src/Modules/Beta');
+        self::assertFileDoesNotExist($this->root . '/storage/module-registry.json');
+
+        /** @var array{schema_version: int, modules: array<string, array{source: string, requires: list<string>}>} $index */
+        $index = json_decode((string) file_get_contents($this->root . '/modules/catalogue.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertArrayNotHasKey('Beta', $index['modules']);
+    }
+
+    #[Test]
     public function refusesAChecksumMismatchBeforeCopying(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');
