@@ -1,0 +1,153 @@
+{
+    "schema_version": 1,
+    "modules": {
+        "Audit": {
+            "source": "modules/Audit",
+            "requires": [
+                "Cardboard",
+                "Outbox",
+                "Security",
+                "Users"
+            ]
+        },
+        "Auth": {
+            "source": "modules/Auth",
+            "requires": []
+        },
+        "Blog": {
+            "source": "modules/Blog",
+            "requires": [
+                "Audit",
+                "Cardboard",
+                "ContentLocale",
+                "Locales",
+                "Markdown",
+                "Media",
+                "Outbox",
+                "PageCache",
+                "Queue",
+                "Settings",
+                "Uploads",
+                "Users",
+                "Validation"
+            ]
+        },
+        "Cardboard": {
+            "source": "modules/Cardboard",
+            "requires": [
+                "Navigation",
+                "Notifications",
+                "PageCache",
+                "Pagination",
+                "Security",
+                "Settings",
+                "Uploads",
+                "Validation"
+            ]
+        },
+        "ContentLocale": {
+            "source": "modules/ContentLocale",
+            "requires": []
+        },
+        "Locales": {
+            "source": "modules/Locales",
+            "requires": [
+                "Auth",
+                "Cardboard",
+                "ContentLocale",
+                "PageCache",
+                "Settings",
+                "Validation"
+            ]
+        },
+        "Markdown": {
+            "source": "modules/Markdown",
+            "requires": []
+        },
+        "Media": {
+            "source": "modules/Media",
+            "requires": [
+                "Audit",
+                "Cardboard",
+                "PageCache",
+                "Uploads"
+            ]
+        },
+        "Nativa": {
+            "source": "modules/Themes/Nativa",
+            "requires": [
+                "ContentLocale"
+            ]
+        },
+        "Navigation": {
+            "source": "modules/Navigation",
+            "requires": []
+        },
+        "Notifications": {
+            "source": "modules/Notifications",
+            "requires": [
+                "Navigation"
+            ]
+        },
+        "Outbox": {
+            "source": "modules/Outbox",
+            "requires": [
+                "Cardboard",
+                "PageCache"
+            ]
+        },
+        "PageCache": {
+            "source": "modules/PageCache",
+            "requires": [
+                "ContentLocale"
+            ]
+        },
+        "Pagination": {
+            "source": "modules/Pagination",
+            "requires": []
+        },
+        "Queue": {
+            "source": "modules/Queue",
+            "requires": [
+                "Audit",
+                "Cardboard",
+                "PageCache"
+            ]
+        },
+        "RestAdmin": {
+            "source": "modules/RestAdmin",
+            "requires": [
+                "Cardboard"
+            ]
+        },
+        "Security": {
+            "source": "modules/Security",
+            "requires": []
+        },
+        "Settings": {
+            "source": "modules/Settings",
+            "requires": []
+        },
+        "Uploads": {
+            "source": "modules/Uploads",
+            "requires": []
+        },
+        "Users": {
+            "source": "modules/Users",
+            "requires": [
+                "Auth",
+                "Cardboard",
+                "Locales",
+                "Notifications",
+                "Outbox",
+                "Security",
+                "Settings",
+                "Validation"
+            ]
+        },
+        "Validation": {
+            "source": "modules/Validation",
+            "requires": []
+        }
+    }
+}

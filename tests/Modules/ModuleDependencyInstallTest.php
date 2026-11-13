@@ -16,98 +16,96 @@ use RuntimeException;
  */
 final class ModuleDependencyInstallTest extends TestCase
 {
-    private const string ROOT = 'TempRoot';
-
-    private const string DEPENDENCY = 'TempDep';
-
-    private const string CYCLE_A = 'TempCycleA';
-
-    private const string CYCLE_B = 'TempCycleB';
-
-    private const string NEEDS_NOPE = 'TempNeedsNope';
-
     #[Test]
     public function installsDependenciesBeforeTheRequestedModule(): void
     {
-        self::cleanup(self::ROOT, self::DEPENDENCY);
+        $root = 'TempRoot';
+        $dependency = 'TempDep';
+
+        self::cleanup($root, $dependency);
 
         try {
             self::writeModule(
-                self::DEPENDENCY,
+                $dependency,
                 "namespace Modules\\TempDep;\n\nfinal class TempDep\n{\n}",
             );
             self::writeModule(
-                self::ROOT,
+                $root,
                 "namespace Modules\\TempRoot;\n\nuse Modules\\TempDep\\TempDep;\n\nfinal class TempRoot\n{\n    public function dependency(): string\n    {\n        return TempDep::class;\n    }\n}",
             );
 
-            $result = ModuleInstaller::fromAppPaths()->addWithDependencies(self::ROOT);
+            $result = ModuleInstaller::fromAppPaths()->addWithDependencies($root);
 
             $this->assertSame(
-                [self::DEPENDENCY, self::ROOT],
+                [$dependency, $root],
                 $result['installed'],
                 'The dependency must be copied before the module that imports it.',
             );
             $this->assertGreaterThanOrEqual(2, $result['copied']);
-            $this->assertDirectoryExists(APP_BASE_PATH . '/src/Modules/' . self::DEPENDENCY);
-            $this->assertDirectoryExists(APP_BASE_PATH . '/src/Modules/' . self::ROOT);
+            $this->assertDirectoryExists(APP_BASE_PATH . '/src/Modules/' . $dependency);
+            $this->assertDirectoryExists(APP_BASE_PATH . '/src/Modules/' . $root);
         } finally {
-            self::cleanup(self::ROOT, self::DEPENDENCY);
+            self::cleanup($root, $dependency);
         }
     }
 
     #[Test]
     public function refusesACycleBeforeCopyingAnything(): void
     {
-        self::cleanup(self::CYCLE_A, self::CYCLE_B);
+        $cycleA = 'TempCycleA';
+        $cycleB = 'TempCycleB';
+
+        self::cleanup($cycleA, $cycleB);
 
         try {
             self::writeModule(
-                self::CYCLE_A,
+                $cycleA,
                 "namespace Modules\\TempCycleA;\n\nuse Modules\\TempCycleB\\TempCycleB;\n\nfinal class TempCycleA\n{\n    public function dependency(): string\n    {\n        return TempCycleB::class;\n    }\n}",
             );
             self::writeModule(
-                self::CYCLE_B,
+                $cycleB,
                 "namespace Modules\\TempCycleB;\n\nuse Modules\\TempCycleA\\TempCycleA;\n\nfinal class TempCycleB\n{\n    public function dependency(): string\n    {\n        return TempCycleA::class;\n    }\n}",
             );
 
             try {
-                ModuleInstaller::fromAppPaths()->addWithDependencies(self::CYCLE_A);
+                ModuleInstaller::fromAppPaths()->addWithDependencies($cycleA);
                 $this->fail('A dependency cycle should refuse the install.');
             } catch (RuntimeException $e) {
                 $this->assertStringContainsString('dependency cycle', $e->getMessage());
-                $this->assertStringContainsString(self::CYCLE_A, $e->getMessage());
-                $this->assertStringContainsString(self::CYCLE_B, $e->getMessage());
+                $this->assertStringContainsString($cycleA, $e->getMessage());
+                $this->assertStringContainsString($cycleB, $e->getMessage());
             }
 
-            $this->assertDirectoryDoesNotExist(APP_BASE_PATH . '/src/Modules/' . self::CYCLE_A);
-            $this->assertDirectoryDoesNotExist(APP_BASE_PATH . '/src/Modules/' . self::CYCLE_B);
+            $this->assertDirectoryDoesNotExist(APP_BASE_PATH . '/src/Modules/' . $cycleA);
+            $this->assertDirectoryDoesNotExist(APP_BASE_PATH . '/src/Modules/' . $cycleB);
         } finally {
-            self::cleanup(self::CYCLE_A, self::CYCLE_B);
+            self::cleanup($cycleA, $cycleB);
         }
     }
 
     #[Test]
     public function refusesADependencyThatIsNotInTheCatalogue(): void
     {
-        self::cleanup(self::NEEDS_NOPE);
+        $needsNope = 'TempNeedsNope';
+
+        self::cleanup($needsNope);
 
         try {
             self::writeModule(
-                self::NEEDS_NOPE,
+                $needsNope,
                 "namespace Modules\\TempNeedsNope;\n\nuse Modules\\Nope\\Nope;\n\nfinal class TempNeedsNope\n{\n    public function dependency(): string\n    {\n        return Nope::class;\n    }\n}",
             );
 
             try {
-                ModuleInstaller::fromAppPaths()->addWithDependencies(self::NEEDS_NOPE);
+                ModuleInstaller::fromAppPaths()->addWithDependencies($needsNope);
                 $this->fail('A non-catalogued dependency should refuse the install.');
             } catch (RuntimeException $e) {
                 $this->assertStringContainsString('missing dependencies: Nope', $e->getMessage());
             }
 
-            $this->assertDirectoryDoesNotExist(APP_BASE_PATH . '/src/Modules/' . self::NEEDS_NOPE);
+            $this->assertDirectoryDoesNotExist(APP_BASE_PATH . '/src/Modules/' . $needsNope);
         } finally {
-            self::cleanup(self::NEEDS_NOPE);
+            self::cleanup($needsNope);
         }
     }
 

@@ -7,6 +7,7 @@ namespace Tests\Domain;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Themes\ThemePreference;
+use Themes\ThemeResolver;
 
 /**
  * ThemePreferenceTest — the stored-theme vote as a pure decision, no
@@ -21,10 +22,10 @@ final class ThemePreferenceTest extends TestCase
     #[Test]
     public function resolve(): void
     {
-        $available = ['kernel', 'erik'];
+        $available = [ThemeResolver::KERNEL_THEME, 'erik'];
 
-        $this->assertSame('erik', ThemePreference::resolve('erik', $available, 'kernel'));
-        $this->assertSame('kernel', ThemePreference::resolve('kernel', $available, 'fallback'));
+        $this->assertSame('erik', ThemePreference::resolve('erik', $available, ThemeResolver::KERNEL_THEME));
+        $this->assertSame(ThemeResolver::KERNEL_THEME, ThemePreference::resolve(ThemeResolver::KERNEL_THEME, $available, 'fallback'));
         $this->assertSame('fallback', ThemePreference::resolve(null, $available, 'fallback'));
         $this->assertSame('fallback', ThemePreference::resolve('', $available, 'fallback'));
         $this->assertSame('fallback', ThemePreference::resolve('mono', $available, 'fallback'), 'Stale stored name (theme module removed) must fall back.');
@@ -35,9 +36,9 @@ final class ThemePreferenceTest extends TestCase
     #[Test]
     public function isResolvable(): void
     {
-        $this->assertTrue(ThemePreference::isResolvable('erik', ['kernel', 'erik']));
-        $this->assertFalse(ThemePreference::isResolvable(null, ['kernel']));
-        $this->assertFalse(ThemePreference::isResolvable('', ['kernel']));
-        $this->assertFalse(ThemePreference::isResolvable('mono', ['kernel']));
+        $this->assertTrue(ThemePreference::isResolvable('erik', [ThemeResolver::KERNEL_THEME, 'erik']));
+        $this->assertFalse(ThemePreference::isResolvable(null, [ThemeResolver::KERNEL_THEME]));
+        $this->assertFalse(ThemePreference::isResolvable('', [ThemeResolver::KERNEL_THEME]));
+        $this->assertFalse(ThemePreference::isResolvable('mono', [ThemeResolver::KERNEL_THEME]));
     }
 }
