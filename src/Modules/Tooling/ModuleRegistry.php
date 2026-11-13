@@ -20,16 +20,17 @@ use RuntimeException;
  * the existing ModuleInstaller still owns installation and flush semantics.
  *
  * The registry is opt-in: `fromEnv()` returns null while MODULE_REGISTRY_URL is
- * empty. An archive is a gzip-compressed tar with the module's files at its
- * root; no archive may contain a symlink or a path outside that temporary
- * extraction directory.
+ * empty. Lock cleanup is not opt-in: `forUninstall()` needs no transport, so
+ * removing a slice clears its lock even after the URL is unset. An archive is a
+ * gzip-compressed tar with the module's files at its root; no archive may
+ * contain a symlink or a path outside that temporary extraction directory.
  */
 final readonly class ModuleRegistry
 {
     public function __construct(
         private ModuleCatalog $catalog,
         private ModuleInstaller $installer,
-        private RegistryTransport $transport,
+        private ?RegistryTransport $transport,
         private string $indexUrl,
         private string $catalogueRoot,
         private string $lockPath,
@@ -59,6 +60,22 @@ final readonly class ModuleRegistry
     }
 
     /**
+     * A handle for uninstall cleanup: it owns the lock and rollback backup but
+     * has no transport, because neither depends on MODULE_REGISTRY_URL.
+     */
+    public static function forUninstall(): self
+    {
+        return new self(
+            ModuleCatalog::fromAppPaths(),
+            ModuleInstaller::fromAppPaths(),
+            null,
+            '',
+            APP_BASE_PATH . '/modules',
+            AppPaths::instance()->data('module-registry.json'),
+        );
+    }
+
+    /**
      * Every entry in the registry, keyed by module name and sorted.
      *
      * @return array<string, array{requires: list<string>, archive: string, sha256: string, version: ?string}>
@@ -67,7 +84,7 @@ final readonly class ModuleRegistry
      */
     public function entries(): array
     {
-        $body = $this->transport->get($this->indexUrl, $this->maxIndexBytes);
+        $body = $this->transport()->get($this->indexUrl, $this->maxIndexBytes);
 
         try {
             $decoded = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
@@ -156,6 +173,15 @@ final readonly class ModuleRegistry
         ksort($entries);
 
         return $entries;
+    }
+
+    private function transport(): RegistryTransport
+    {
+        if (null === $this->transport) {
+            throw new RuntimeException('Registry transport is not configured; install and update need MODULE_REGISTRY_URL.');
+        }
+
+        return $this->transport;
     }
 
     /**
@@ -801,7 +827,7 @@ final readonly class ModuleRegistry
      */
     private function stage(string $module, array $entry): array
     {
-        $body = $this->transport->get($entry['archive'], $this->maxArchiveBytes);
+        $body = $this->transport()->get($entry['archive'], $this->maxArchiveBytes);
 
         if (!hash_equals($entry['sha256'], hash('sha256', $body))) {
             throw new RuntimeException(sprintf(

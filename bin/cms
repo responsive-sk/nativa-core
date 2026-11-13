@@ -357,14 +357,10 @@ function cmdRemove(ModuleInstaller $installer, string $name, bool $force): void
         }
     }
 
-    $registry = ModuleRegistry::fromEnv();
-
-    if (null !== $registry) {
-        try {
-            $registry->forget($name);
-        } catch (RuntimeException $e) {
-            out('Warning: the slice was removed, but its registry lock could not be cleared: ' . $e->getMessage());
-        }
+    try {
+        ModuleRegistry::forUninstall()->forget($name);
+    } catch (RuntimeException $e) {
+        out('Warning: the slice was removed, but its registry lock could not be cleared: ' . $e->getMessage());
     }
 }
 

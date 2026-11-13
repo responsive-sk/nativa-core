@@ -404,20 +404,14 @@ final class ModulesAction
     }
 
     /**
-     * A successful uninstall removes the slice; when a registry is configured,
-     * drop the lock and rollback backup that described it too. Cleanup is best
-     * effort because the uninstall itself already succeeded.
+     * A successful uninstall removes the slice and the lock and rollback
+     * backup that described it. Cleanup does not need MODULE_REGISTRY_URL and
+     * is best effort because the uninstall itself already succeeded.
      */
     private function forgetRegistryInstall(string $name): void
     {
-        $registry = ModuleRegistry::fromEnv();
-
-        if (null === $registry) {
-            return;
-        }
-
         try {
-            $registry->forget($name);
+            ModuleRegistry::forUninstall()->forget($name);
         } catch (\Throwable) {
             // A stale lock is ignored while the module is absent; do not turn a
             // successful uninstall into an error.

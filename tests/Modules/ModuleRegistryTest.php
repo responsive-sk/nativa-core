@@ -279,7 +279,15 @@ final class ModuleRegistryTest extends TestCase
         $backup = $this->root . '/storage/' . $rollbackEntry['catalogue'];
         self::assertDirectoryExists($backup);
 
-        $registry->forget('Beta');
+        $lockOnly = new ModuleRegistry(
+            $this->catalog(),
+            new ModuleInstaller($this->catalog()),
+            null,
+            '',
+            $this->root . '/modules',
+            $this->root . '/storage/module-registry.json',
+        );
+        $lockOnly->forget('Beta');
 
         /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
         $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
