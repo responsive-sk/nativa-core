@@ -47,7 +47,7 @@ final class CompactLayout
         $currentUserName = AdminLayout::e(self::currentUserName());
         $csrf = AdminLayout::csrfField();
 
-        $navHtml = self::navHtml($activeSection);
+        $navHtml = self::navHtml($activeSection, $router);
 
         // Recent items for command palette
         $recentJson = json_encode($recentItems, JSON_HEX_TAG | JSON_HEX_AMP) ?: '[]';
@@ -73,10 +73,14 @@ final class CompactLayout
      * dropdown is never auto-opened: it would stay pinned open on every page
      * inside the group. It opens on hover, focus or click.
      */
-    private static function navHtml(string $activeSection): string
+    private static function navHtml(string $activeSection, ?RouterInterface $router): string
     {
         try {
-            $navItems = CardboardServices::adminNav()->hierarchicalItems($activeSection, self::grantedPermissions());
+            $navItems = CardboardServices::adminNav()->hierarchicalItems(
+                $activeSection,
+                self::grantedPermissions(),
+                AdminLayout::reachablePaths($router),
+            );
         } catch (\Throwable) {
             $navItems = [];
         }

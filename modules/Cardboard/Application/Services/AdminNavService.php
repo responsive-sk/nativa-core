@@ -67,16 +67,17 @@ final readonly class AdminNavService
      * screen that configures the nav itself) render the full tree.
      *
      * @param list<string>|null $granted
+     * @param (\Closure(string): bool)|null $reachable answers whether a path is served
      *
      * @return list<NavTreeItem>
      */
-    public function hierarchicalItems(string $activeSection = '', ?array $granted = null): array
+    public function hierarchicalItems(string $activeSection = '', ?array $granted = null, ?\Closure $reachable = null): array
     {
         $index = $this->indexItems(null === $granted ? $this->activeItems() : $this->permittedItems($granted));
 
         $activeId = $this->resolveActiveId($index, $activeSection);
         $expandedGroups = $this->expandedGroups($index, $activeId);
-        $tree = $this->buildTree($index['byId']);
+        $tree = $this->withoutUnreachable($this->buildTree($index['byId']), $reachable);
 
         // Set is_expanded on group items.
         foreach ($tree as &$group) {
@@ -85,6 +86,47 @@ final readonly class AdminNavService
         unset($group);
 
         return $tree;
+    }
+
+    /**
+     * Drop admin links no route serves, and groups left with no children.
+     *
+     * The route table is the install manifest at request time: `Pages` is
+     * absent from a tree that did not install it, so `/mark/pages` has no GET
+     * route and its menu item goes with it. This is deliberately not a list of
+     * module names — the seed may know about every catalogue module, while the
+     * running tree knows only the routes it actually carries.
+     *
+     * Paths outside `/mark` are kept: they are custom links configured in the
+     * admin-nav screen, and the router is not the authority for an external
+     * URL. A group survives when at least one child survives.
+     *
+     * @param list<NavTreeItem> $tree
+     * @param (\Closure(string): bool)|null $reachable
+     *
+     * @return list<NavTreeItem>
+     */
+    private function withoutUnreachable(array $tree, ?\Closure $reachable): array
+    {
+        if (null === $reachable) {
+            return $tree;
+        }
+
+        $kept = [];
+
+        foreach ($tree as $item) {
+            $children = $this->withoutUnreachable($item['children'], $reachable);
+            $served = !str_starts_with($item['href'], '/mark') || $reachable($item['href']);
+
+            if (!$served && [] === $children) {
+                continue;
+            }
+
+            $item['children'] = $children;
+            $kept[] = $item;
+        }
+
+        return $kept;
     }
 
     /**

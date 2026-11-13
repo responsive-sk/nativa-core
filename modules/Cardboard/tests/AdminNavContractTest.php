@@ -7,6 +7,7 @@ namespace Modules\Cardboard\Tests;
 use Modules\Cardboard\Interfaces\HTTP\CardboardServices;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Core\Interfaces\HTTP\Router;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator;
 use PDO;
@@ -80,6 +81,45 @@ final class AdminNavContractTest extends TestCase
 
         self::assertNotEmpty($items, 'a fresh install renders the nav before the seed runs');
         self::assertContains('_dashboard', array_column($items, 'id'));
+    }
+
+    /**
+     * A module that is not installed has no route, so its seeded menu item
+     * must not survive. The group test uses `Blog`'s Categories child: the
+     * parent's own href is absent too, and the group stays because a child is
+     * served.
+     */
+    #[Test]
+    public function anItemWithoutAServedRouteIsDroppedWithItsGroupIntact(): void
+    {
+        $this->clearAdminMenu();
+
+        $router = Router::fromEntries([], [
+            ['path' => '/mark', 'method' => 'GET', 'name' => 'mark.dashboard', 'handlerMethod' => null, 'action' => self::class],
+            ['path' => '/mark/categories', 'method' => 'GET', 'name' => 'categories.manage', 'handlerMethod' => null, 'action' => self::class],
+        ]);
+
+        $tree = CardboardServices::adminNav()->hierarchicalItems(
+            '',
+            null,
+            static fn (string $href): bool => $router->hasPath($href),
+        );
+
+        $ids = array_column($tree, 'id');
+        self::assertContains('_dashboard', $ids);
+        self::assertContains('_blog', $ids, 'a group survives when one child is served');
+        self::assertNotContains('_questions', $ids);
+        self::assertNotContains('_pages', $ids);
+
+        $blog = null;
+        foreach ($tree as $item) {
+            if ('_blog' === $item['id']) {
+                $blog = $item;
+            }
+        }
+
+        self::assertNotNull($blog);
+        self::assertSame(['_categories'], array_column($blog['children'], 'id'));
     }
 
     #[Test]

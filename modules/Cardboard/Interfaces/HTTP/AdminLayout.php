@@ -13,6 +13,7 @@ use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\CsrfMiddleware;
 use Themes\ThemeResolver;
 use Modules\Core\Kernel\Contracts\RouterInterface;
+use Modules\Core\Interfaces\HTTP\Router;
 use Shell\ShellContextProviderRegistry;
 
 /**
@@ -62,7 +63,11 @@ final class AdminLayout
         // the admin app itself, so the layout calls its own services directly.
         // No provider, no personalized nav, still a page.
         try {
-            $adminNavItems = CardboardServices::adminNav()->hierarchicalItems($activeSection, self::grantedPermissions());
+            $adminNavItems = CardboardServices::adminNav()->hierarchicalItems(
+                $activeSection,
+                self::grantedPermissions(),
+                self::reachablePaths($router),
+            );
         } catch (\Throwable) {
             $adminNavItems = [];
         }
@@ -112,6 +117,23 @@ final class AdminLayout
 
             return $router->url($name, $params);
         };
+    }
+
+    /**
+     * The route table's answer to "does this tree serve that menu link?"
+     *
+     * A callback rather than a Router dependency in `AdminNavService`: the
+     * service stays connection-only and the layout decides what a served path
+     * means. A non-Router implementation (a test double) gets no filter, the
+     * same no-filter contract the service already has without a user.
+     *
+     * @return (\Closure(string): bool)|null
+     */
+    public static function reachablePaths(?RouterInterface $router): ?\Closure
+    {
+        return $router instanceof Router
+            ? static fn (string $href): bool => $router->hasPath($href)
+            : null;
     }
 
     /**
