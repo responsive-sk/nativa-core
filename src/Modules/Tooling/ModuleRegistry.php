@@ -441,6 +441,46 @@ final readonly class ModuleRegistry
     }
 
     /**
+     * Drop a module's registry lock entry and its rollback backup.
+     *
+     * This is the lifecycle counterpart to ModuleInstaller::remove(): once the
+     * slice is gone, keeping a lock entry would describe code that no longer
+     * exists, and keeping the backup would leave an orphan in storage. It is
+     * deliberately explicit rather than a side effect of state(), which must
+     * remain a read.
+     */
+    public function forget(string $name): void
+    {
+        if (!ModuleCatalog::isValidName($name)) {
+            throw new RuntimeException(sprintf("Invalid module name '%s'.", $name));
+        }
+
+        $lock = $this->readLock();
+
+        if (!isset($lock['modules'][$name])) {
+            return;
+        }
+
+        $rollback = $lock['modules'][$name]['rollback'];
+        unset($lock['modules'][$name]);
+
+        if ([] === $lock['modules']) {
+            $lock['snapshot'] = null;
+        }
+
+        $this->writeLock($lock);
+
+        if (null !== $rollback) {
+            try {
+                self::remove($this->resolveBackup($rollback['catalogue']));
+            } catch (\Throwable) {
+                // The lock is already clear; an orphan backup is not worth turning
+                // a successful uninstall into a failure.
+            }
+        }
+    }
+
+    /**
      * Download the closure, stage every remote module and install it.
      *
      * @return array{copied: int, flushed: int, installed: list<string>}

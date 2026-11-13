@@ -137,6 +137,42 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function forgettingARegistryInstallClearsItsLockAndBackup(): void
+    {
+        $this->writeModule('Alpha', 'final class Alpha {}');
+        $this->writeModule('Beta', 'final class Beta {}');
+
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Beta');
+
+        $this->writeModule('Beta', 'final class Beta { public function version(): string { return "2.0.0"; } }');
+        $second = $this->buildRegistry('2.0.0', true);
+        $registry = $this->registry($second);
+        $registry->update('Beta');
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        $rollbackEntry = $lock['modules']['Beta']['rollback'];
+        self::assertNotNull($rollbackEntry);
+
+        $backup = $this->root . '/storage/' . $rollbackEntry['catalogue'];
+        self::assertDirectoryExists($backup);
+
+        $registry->forget('Beta');
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertArrayNotHasKey('Beta', $lock['modules']);
+        self::assertNull($lock['snapshot']);
+        self::assertDirectoryDoesNotExist($backup);
+
+        $state = $registry->state();
+        self::assertArrayNotHasKey('Beta', $state['available']);
+        self::assertSame([], $state['updates']);
+        self::assertSame([], $state['rollbacks']);
+    }
+
+    #[Test]
     public function restoresTheCurrentVersionWhenARollbackFails(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');

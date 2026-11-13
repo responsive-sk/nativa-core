@@ -68,6 +68,7 @@ use Modules\Core\Interfaces\CLI\Support\DatabaseMigrator;
 use Modules\Tooling\ModuleCatalog;
 use Modules\Tooling\ModuleInstaller;
 use Modules\Tooling\ModuleManifest;
+use Modules\Tooling\ModuleRegistry;
 
 require_once __DIR__ . '/../src/init.php';
 require_once __DIR__ . '/../src/composition.php';
@@ -353,6 +354,16 @@ function cmdRemove(ModuleInstaller $installer, string $name, bool $force): void
         out('Note: removed with --force while still imported by:');
         foreach ($result['holders'] as $holder) {
             out('  - ' . $holder);
+        }
+    }
+
+    $registry = ModuleRegistry::fromEnv();
+
+    if (null !== $registry) {
+        try {
+            $registry->forget($name);
+        } catch (RuntimeException $e) {
+            out('Warning: the slice was removed, but its registry lock could not be cleared: ' . $e->getMessage());
         }
     }
 }

@@ -340,6 +340,8 @@ final class ModulesAction
             return $this->back($request, error: $name . ': ' . $e->getMessage());
         }
 
+        $this->forgetRegistryInstall($name);
+
         $this->audit('module.uninstall', $name, sprintf(
             'Uninstalled %s: %d cached page(s) flushed, %d leftovers kept.',
             $name,
@@ -350,6 +352,27 @@ final class ModulesAction
         return $this->back($request, ok: [] === $result['leftovers']
             ? sprintf('Uninstalled %s. No module data was left on disk.', $name)
             : sprintf('Uninstalled %s. Kept: %s', $name, implode(', ', $result['leftovers'])));
+    }
+
+    /**
+     * A successful uninstall removes the slice; when a registry is configured,
+     * drop the lock and rollback backup that described it too. Cleanup is best
+     * effort because the uninstall itself already succeeded.
+     */
+    private function forgetRegistryInstall(string $name): void
+    {
+        $registry = ModuleRegistry::fromEnv();
+
+        if (null === $registry) {
+            return;
+        }
+
+        try {
+            $registry->forget($name);
+        } catch (\Throwable) {
+            // A stale lock is ignored while the module is absent; do not turn a
+            // successful uninstall into an error.
+        }
     }
 
     /**
