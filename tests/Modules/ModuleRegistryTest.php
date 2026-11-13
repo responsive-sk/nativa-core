@@ -164,6 +164,42 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function refusesUpdateAllOnADependencyCycle(): void
+    {
+        $this->writeModule('Alpha', 'final class Alpha {}');
+        $this->writeModule('Beta', 'final class Beta {}');
+
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Alpha');
+        $this->registry($first)->install('Beta');
+
+        $this->writeModule(
+            'Alpha',
+            "use Modules\\Beta\\Beta;\n\nfinal class Alpha\n{\n    public function dependency(): string\n    {\n        return Beta::class;\n    }\n}",
+        );
+        $this->writeModule(
+            'Beta',
+            "use Modules\\Alpha\\Alpha;\n\nfinal class Beta\n{\n    public function dependency(): string\n    {\n        return Alpha::class;\n    }\n}",
+        );
+        $second = $this->buildRegistry('2.0.0', true);
+
+        try {
+            $this->registry($second)->updateAll();
+            $this->fail('A dependency cycle should refuse update all before the first update.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('dependency cycle involving', $e->getMessage());
+        }
+
+        self::assertStringContainsString('final class Alpha {}', (string) file_get_contents($this->root . '/modules/Alpha/src/Alpha.php'));
+        self::assertStringContainsString('final class Beta {}', (string) file_get_contents($this->root . '/modules/Beta/src/Beta.php'));
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('1.2.3', $lock['modules']['Alpha']['version']);
+        self::assertSame('1.2.3', $lock['modules']['Beta']['version']);
+    }
+
+    #[Test]
     public function updatesEveryRegistryModuleInOneRun(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');
