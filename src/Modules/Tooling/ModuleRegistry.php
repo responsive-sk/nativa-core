@@ -355,7 +355,8 @@ final readonly class ModuleRegistry
      * Update every registry-managed module whose archive changed.
      *
      * This is the same verified one-module transaction as update(), run in
-     * name order. It stops at the first failure: modules already updated keep
+     * dependency order, with independent modules in name order. It stops at
+     * the first failure: modules already updated keep
      * their new version, while the failing module is restored by update()
      * itself. This is not an atomic multi-module update, and dependencies are
      * still never upgraded implicitly.
