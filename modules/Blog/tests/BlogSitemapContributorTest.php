@@ -14,7 +14,10 @@ use Seo\SitemapEntry;
 
 final class BlogSitemapContributorTest extends TestCase
 {
-    private ?string $draft = null;
+    /** @var list<string> article fixtures this test created */
+    private array $created = [];
+
+    private ?string $createdDir = null;
 
     protected function setUp(): void
     {
@@ -25,19 +28,28 @@ final class BlogSitemapContributorTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (null !== $this->draft && is_file($this->draft)) {
-            unlink($this->draft);
+        foreach ($this->created as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+
+        if (null !== $this->createdDir) {
+            @rmdir($this->createdDir);
         }
     }
 
     #[Test]
     public function itListsTheBlogIndexAndPublishedArticlesForTheDefaultLocale(): void
     {
+        $slug = 'sitemap-published-' . bin2hex(random_bytes(4));
+        $this->writeArticle($slug, true);
+
         $paths = self::paths();
         $prefix = ContentLocaleServices::mapper()->urlPrefix(ContentLocaleServices::mapper()->defaultLocale());
 
         self::assertContains($prefix . '/blog', $paths);
-        self::assertContains($prefix . '/blog/nativa-php-core', $paths);
+        self::assertContains($prefix . '/blog/' . $slug, $paths);
         self::assertContains('/en/blog', $paths, 'The empty English index is still a served 200 surface.');
     }
 
@@ -57,11 +69,28 @@ final class BlogSitemapContributorTest extends TestCase
     public function aDraftArticleIsAbsent(): void
     {
         $slug = 'sitemap-draft-' . bin2hex(random_bytes(4));
-        $this->draft = AppPaths::instance()->storage('blog/' . $slug . '.md');
-
-        file_put_contents($this->draft, "---\ntitle: \"Draft\"\npublished: false\n---\n\nDraft body.\n");
+        $this->writeArticle($slug, false);
 
         self::assertNotContains('/blog/' . $slug, self::paths());
+    }
+
+    private function writeArticle(string $slug, bool $published): void
+    {
+        $dir = AppPaths::instance()->storage('blog');
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0o775, true);
+            $this->createdDir = $dir;
+        }
+
+        $path = $dir . DIRECTORY_SEPARATOR . $slug . '.md';
+
+        file_put_contents(
+            $path,
+            "---\ntitle: \"Sitemap fixture\"\ndate: 2026-01-01\npublished: " . ($published ? 'true' : 'false') . "\n---\n\nBody.\n",
+        );
+
+        $this->created[] = $path;
     }
 
     /**
