@@ -881,20 +881,20 @@ final readonly class ModuleRegistry
             $expanded = 0;
             $entries = 0;
 
-            foreach (new \RecursiveIteratorIterator($phar) as $file) {
+            foreach (new \RecursiveIteratorIterator($phar, \RecursiveIteratorIterator::SELF_FIRST) as $file) {
                 /** @var \PharFileInfo $file */
                 if ($file->isLink()) {
                     throw new RuntimeException('Registry archive contains a symlink.');
                 }
 
-                if (!$file->isDir()) {
-                    if (++$entries > $this->maxArchiveEntries) {
-                        throw new RuntimeException(sprintf(
-                            'Registry archive contains more than %d file entries.',
-                            $this->maxArchiveEntries,
-                        ));
-                    }
+                if (++$entries > $this->maxArchiveEntries) {
+                    throw new RuntimeException(sprintf(
+                        'Registry archive contains more than %d entries.',
+                        $this->maxArchiveEntries,
+                    ));
+                }
 
+                if (!$file->isDir()) {
                     $expanded += $file->getSize();
 
                     if ($expanded > $this->maxExtractedBytes) {

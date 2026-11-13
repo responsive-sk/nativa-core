@@ -454,10 +454,10 @@ final class ModuleRegistryTest extends TestCase
         $registryDir = $this->buildRegistry();
 
         try {
-            $this->registry($registryDir, maxArchiveEntries: 1)->install('Beta');
+            $this->registry($registryDir, maxArchiveEntries: 2)->install('Beta');
             $this->fail('An archive with too many entries should be refused.');
         } catch (RuntimeException $e) {
-            self::assertStringContainsString('more than 1 file entries', $e->getMessage());
+            self::assertStringContainsString('more than 2 entries', $e->getMessage());
         }
 
         self::assertDirectoryDoesNotExist($this->root . '/modules/Beta');
