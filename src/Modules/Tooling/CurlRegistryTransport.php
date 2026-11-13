@@ -32,61 +32,88 @@ final readonly class CurlRegistryTransport implements RegistryTransport
             ));
         }
 
-        $handle = curl_init();
+        $current = $url;
 
-        if (false === $handle) {
-            throw new RuntimeException('Could not initialise the registry HTTP client.');
-        }
+        for ($redirects = 0; ; ++$redirects) {
+            if (!self::isAllowedUrl($current)) {
+                throw new RuntimeException(sprintf(
+                    'Registry URL must use HTTPS (HTTP is allowed only for localhost): %s',
+                    $current,
+                ));
+            }
 
-        $body = '';
-        $tooLarge = false;
+            $handle = curl_init();
 
-        $options = [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER         => false,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 3,
-            CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
-            CURLOPT_TIMEOUT        => $this->timeout,
-            CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_USERAGENT      => 'nativa-module-registry/1',
-            CURLOPT_HTTPHEADER     => ['Accept: */*'],
-            CURLOPT_WRITEFUNCTION  => static function ($curl, string $chunk) use (&$body, &$tooLarge, $limit): int {
-                if (strlen($body) + strlen($chunk) > $limit) {
-                    $tooLarge = true;
+            if (false === $handle) {
+                throw new RuntimeException('Could not initialise the registry HTTP client.');
+            }
 
-                    return 0;
+            $body = '';
+            $tooLarge = false;
+
+            $options = [
+                CURLOPT_URL            => $current,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HEADER         => false,
+                // Redirects are followed by this loop, one hop at a time, so
+                // every Location is checked by isAllowedUrl() instead of
+                // allowing cURL to downgrade HTTPS or leave localhost.
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
+                CURLOPT_TIMEOUT        => $this->timeout,
+                CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_USERAGENT      => 'nativa-module-registry/1',
+                CURLOPT_HTTPHEADER     => ['Accept: */*'],
+                CURLOPT_WRITEFUNCTION  => static function ($curl, string $chunk) use (&$body, &$tooLarge, $limit): int {
+                    if (strlen($body) + strlen($chunk) > $limit) {
+                        $tooLarge = true;
+
+                        return 0;
+                    }
+
+                    $body .= $chunk;
+
+                    return strlen($chunk);
+                },
+            ];
+
+            curl_setopt_array($handle, $options);
+
+            $sent = curl_exec($handle);
+            $error = curl_error($handle);
+            $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+            $redirect = (string) curl_getinfo($handle, CURLINFO_REDIRECT_URL);
+
+            curl_close($handle);
+
+            if ($tooLarge) {
+                throw new RuntimeException(sprintf('Registry response exceeds %d bytes: %s', $limit, $current));
+            }
+
+            if (false === $sent) {
+                throw new RuntimeException(sprintf('Registry request failed: %s (%s)', $current, $error));
+            }
+
+            if ($status >= 300 && $status < 400) {
+                if ($redirects >= 3) {
+                    throw new RuntimeException(sprintf('Registry redirected too many times: %s', $url));
                 }
 
-                $body .= $chunk;
+                if ('' === $redirect) {
+                    throw new RuntimeException(sprintf('Registry redirect has no location: %s', $current));
+                }
 
-                return strlen($chunk);
-            },
-        ];
+                $current = $redirect;
 
-        curl_setopt_array($handle, $options);
+                continue;
+            }
 
-        $sent = curl_exec($handle);
-        $error = curl_error($handle);
-        $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+            if ($status < 200 || $status >= 300) {
+                throw new RuntimeException(sprintf('Registry request returned HTTP %d: %s', $status, $current));
+            }
 
-        curl_close($handle);
-
-        if ($tooLarge) {
-            throw new RuntimeException(sprintf('Registry response exceeds %d bytes: %s', $limit, $url));
+            return $body;
         }
-
-        if (false === $sent) {
-            throw new RuntimeException(sprintf('Registry request failed: %s (%s)', $url, $error));
-        }
-
-        if ($status < 200 || $status >= 300) {
-            throw new RuntimeException(sprintf('Registry request returned HTTP %d: %s', $status, $url));
-        }
-
-        return $body;
     }
 
     private static function isAllowedUrl(string $url): bool
