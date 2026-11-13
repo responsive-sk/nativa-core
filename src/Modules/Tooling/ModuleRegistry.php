@@ -35,6 +35,7 @@ final readonly class ModuleRegistry
         private string $lockPath,
         private int $maxIndexBytes = 1_048_576,
         private int $maxArchiveBytes = 20_971_520,
+        private int $maxExtractedBytes = 134_217_728,
     ) {
     }
 
@@ -850,11 +851,23 @@ final readonly class ModuleRegistry
         try {
             $phar = new \PharData($archive);
             $prefix = 'phar://' . $archive . '/';
+            $expanded = 0;
 
             foreach (new \RecursiveIteratorIterator($phar) as $file) {
                 /** @var \PharFileInfo $file */
                 if ($file->isLink()) {
                     throw new RuntimeException('Registry archive contains a symlink.');
+                }
+
+                if (!$file->isDir()) {
+                    $expanded += $file->getSize();
+
+                    if ($expanded > $this->maxExtractedBytes) {
+                        throw new RuntimeException(sprintf(
+                            'Registry archive expands beyond %d bytes.',
+                            $this->maxExtractedBytes,
+                        ));
+                    }
                 }
 
                 $path = str_replace('\\', '/', $file->getPathname());

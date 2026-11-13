@@ -383,6 +383,23 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function refusesAnArchiveThatExpandsBeyondTheLimit(): void
+    {
+        $this->writeModule('Beta', 'final class Beta {}');
+        $registryDir = $this->buildRegistry();
+
+        try {
+            $this->registry($registryDir, maxExtractedBytes: 16)->install('Beta');
+            $this->fail('An archive larger than the extraction limit should be refused.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('expands beyond 16 bytes', $e->getMessage());
+        }
+
+        self::assertDirectoryDoesNotExist($this->root . '/modules/Beta');
+        self::assertDirectoryDoesNotExist($this->root . '/src/Modules/Beta');
+    }
+
+    #[Test]
     public function refusesAChecksumMismatchBeforeCopying(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');
@@ -450,8 +467,11 @@ final class ModuleRegistryTest extends TestCase
         return $registryDir;
     }
 
-    private function registry(string $registryDir, ?RegistryTransport $transport = null): ModuleRegistry
-    {
+    private function registry(
+        string $registryDir,
+        ?RegistryTransport $transport = null,
+        int $maxExtractedBytes = 134_217_728,
+    ): ModuleRegistry {
         $catalog = $this->catalog();
 
         return new ModuleRegistry(
@@ -461,6 +481,7 @@ final class ModuleRegistryTest extends TestCase
             'https://registry.test/registry.json',
             $this->root . '/modules',
             $this->root . '/storage/module-registry.json',
+            maxExtractedBytes: $maxExtractedBytes,
         );
     }
 
