@@ -214,6 +214,20 @@ final class ModuleRegistryTest extends TestCase
         /** @var array{schema_version: int, modules: array<string, array{source: string, requires: list<string>}>} $index */
         $index = json_decode((string) file_get_contents($this->root . '/modules/catalogue.json'), true, 512, JSON_THROW_ON_ERROR);
         self::assertArrayNotHasKey('Ghost', $index['modules']);
+
+        // The failed rollback left its backup in place, so fixing the cause is
+        // enough to retry without another update first.
+        unlink($backup . '/src/Ghost.php');
+        $retry = $this->registry($second)->rollback('Beta');
+
+        self::assertSame('1.2.3', $retry['version']);
+        self::assertStringContainsString('final class Beta {}', (string) file_get_contents($this->root . '/modules/Beta/src/Beta.php'));
+        self::assertDirectoryDoesNotExist($backup);
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('1.2.3', $lock['modules']['Beta']['version']);
+        self::assertNull($lock['modules']['Beta']['rollback']);
     }
 
     #[Test]
