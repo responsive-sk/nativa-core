@@ -74,6 +74,12 @@ use Modules\Tooling\ModuleInstaller;
     handlerMethod: 'install',
 )]
 #[Route(
+    path: '/mark/settings/modules/{name}/install-with-dependencies',
+    method: 'POST',
+    name: 'mark.settings.modules.installDependencies',
+    handlerMethod: 'installWithDependencies',
+)]
+#[Route(
     path: '/mark/settings/modules/{name}/uninstall',
     method: 'POST',
     name: 'mark.settings.modules.uninstall',
@@ -128,6 +134,43 @@ final class ModulesAction
         ), $request);
 
         return $this->back($request, ok: sprintf('Installed %s: %d file(s) copied.', $name, $result['copied']));
+    }
+
+    /**
+     * Copy the requested module and every catalogued dependency it needs, in
+     * closure order. The installer preflights the whole plan before copying, so
+     * a cycle or a non-catalogued dependency leaves the tree untouched.
+     */
+    public function installWithDependencies(Request $request): Response
+    {
+        $name = $this->cataloguedName($request);
+
+        if (null === $name) {
+            return $this->back($request, error: 'That is not a catalogued module name.');
+        }
+
+        try {
+            $result = ModuleInstaller::fromAppPaths()->addWithDependencies($name);
+        } catch (\Throwable $e) {
+            return $this->back($request, error: $name . ': ' . $e->getMessage());
+        }
+
+        $installed = implode(', ', $result['installed']);
+
+        $this->audit('module.install', $name, sprintf(
+            'Installed %s with dependencies: %s (%d file(s) copied, %d cached page(s) flushed).',
+            $name,
+            $installed,
+            $result['copied'],
+            $result['flushed'],
+        ), $request);
+
+        return $this->back($request, ok: sprintf(
+            'Installed %s with dependencies: %s (%d file(s) copied).',
+            $name,
+            $installed,
+            $result['copied'],
+        ));
     }
 
     /**
@@ -290,8 +333,21 @@ final class ModulesAction
         $rows = '';
         $fixable = [];
 
+        $catalog = ModuleCatalog::fromAppPaths();
+
         foreach ($state->all() as $module) {
-            $rows .= $this->row($module, $csrf);
+            $missing = [];
+
+            if ('not-installed' === $module['state']) {
+                try {
+                    $missing = $catalog->missingDependencies($catalog->manifest($module['name']));
+                } catch (\RuntimeException) {
+                    // The row still renders; Install reports the real refusal.
+                    $missing = [];
+                }
+            }
+
+            $rows .= $this->row($module, $csrf, $missing);
 
             if ('drifted' === $module['state']) {
                 $fixable[] = $module['name'];
@@ -331,8 +387,9 @@ final class ModulesAction
 
     /**
      * @param array{name: string, installed: bool, state: 'identical'|'drifted'|'not-installed', drifted: list<string>} $module
+     * @param list<string>                                                                                                      $missingDependencies
      */
-    private function row(array $module, string $csrf): string
+    private function row(array $module, string $csrf, array $missingDependencies = []): string
     {
         [$badge, $label] = match ($module['state']) {
             'identical' => ['success', 'in sync'],
@@ -347,6 +404,17 @@ final class ModulesAction
         $action = 'not-installed' === $module['state']
             ? $this->postButton('mark.settings.modules.install', $module['name'], $csrf, 'Install')
             : $this->postButton('mark.settings.modules.uninstall', $module['name'], $csrf, 'Uninstall');
+
+        if ('not-installed' === $module['state'] && [] !== $missingDependencies) {
+            // One meaningful action for an incomplete closure: plain Install
+            // would only repeat the refusal this button resolves.
+            $action = $this->postButton(
+                'mark.settings.modules.installDependencies',
+                $module['name'],
+                $csrf,
+                'Install with dependencies',
+            );
+        }
 
         if ('drifted' === $module['state']) {
             $action = $this->postButton('mark.settings.modules.reinstall', $module['name'], $csrf, 'Reinstall')

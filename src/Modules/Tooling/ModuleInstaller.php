@@ -81,6 +81,129 @@ final readonly class ModuleInstaller
     }
 
     /**
+     * Install a module and every catalogued dependency it needs, dependencies
+     * first.
+     *
+     * The plan is resolved in full BEFORE the first copy: a cycle or a
+     * dependency that is neither installed nor catalogued refuses the whole
+     * operation and leaves the tree untouched. Already-installed dependencies
+     * are skipped, not reinstalled — this is an install step, not a repair.
+     *
+     * @throws RuntimeException on refusal (unknown / invalid / installed / closure / cycle)
+     *
+     * @return array{copied: int, flushed: int, installed: list<string>}
+     */
+    public function addWithDependencies(string $name): array
+    {
+        $plan = $this->installPlan($name);
+
+        $copied = 0;
+        $flushed = 0;
+
+        foreach ($plan as $module) {
+            $result = $this->add($module);
+            $copied += $result['copied'];
+            $flushed += $result['flushed'];
+        }
+
+        return ['copied' => $copied, 'flushed' => $flushed, 'installed' => $plan];
+    }
+
+    /**
+     * Dependencies in install order, the requested module last.
+     *
+     * @throws RuntimeException on refusal (unknown / invalid / installed / closure / cycle)
+     *
+     * @return list<string>
+     */
+    private function installPlan(string $name): array
+    {
+        if (!ModuleCatalog::isValidName($name)) {
+            throw new RuntimeException(sprintf("Invalid module name '%s'.", $name));
+        }
+
+        if ($this->catalog->isInstalled($name)) {
+            throw new RuntimeException(sprintf("Module '%s' is already installed — refusing to overwrite the installed slice.", $name));
+        }
+
+        $plan = [];
+        $visiting = [];
+        $done = [];
+
+        $this->walkDependency($name, $name, $plan, $visiting, $done);
+
+        return $plan;
+    }
+
+    /**
+     * Post-order walk: every dependency is appended before the module that
+     * imports it. The visiting set is what turns a cycle into a refusal rather
+     * than infinite recursion, and it names the cycle in the message.
+     *
+     * @param list<string>        $plan
+     * @param array<string, true> $visiting
+     * @param array<string, true> $done
+     *
+     * @throws RuntimeException on refusal (unknown / closure / cycle)
+     */
+    private function walkDependency(
+        string $module,
+        string $root,
+        array &$plan,
+        array &$visiting,
+        array &$done,
+    ): void {
+        if (in_array($module, ModuleCatalog::KERNEL_MODULES, true) || isset($done[$module])) {
+            return;
+        }
+
+        if (isset($visiting[$module])) {
+            $path = array_keys($visiting);
+            $start = array_search($module, $path, true);
+            $cycle = false === $start ? [$module] : array_slice($path, $start);
+            $cycle[] = $module;
+
+            throw new RuntimeException(sprintf(
+                "Cannot install '%s': dependency cycle: %s. Nothing was copied.",
+                $root,
+                implode(' -> ', $cycle),
+            ));
+        }
+
+        $visiting[$module] = true;
+
+        try {
+            $manifest = $this->catalog->manifest($module);
+
+            foreach ($manifest->closure() as $dependency) {
+                if (in_array($dependency, ModuleCatalog::KERNEL_MODULES, true)
+                    || $this->catalog->isInstalled($dependency)
+                ) {
+                    continue;
+                }
+
+                if (!$this->catalog->isCatalogued($dependency)) {
+                    throw new RuntimeException(sprintf(
+                        "Cannot install '%s': missing dependencies: %s (not in the catalog). Nothing was copied.",
+                        $root,
+                        $dependency,
+                    ));
+                }
+
+                $this->walkDependency($dependency, $root, $plan, $visiting, $done);
+            }
+        } finally {
+            unset($visiting[$module]);
+        }
+
+        $done[$module] = true;
+
+        if (!$this->catalog->isInstalled($module)) {
+            $plan[] = $module;
+        }
+    }
+
+    /**
      * Remove an installed slice. Refuses while another installed module
      * imports it (unless forced), and never touches module data: the code
      * is not the data, so leftovers are reported, not deleted.
