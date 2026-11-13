@@ -137,6 +137,50 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function restoresTheCurrentVersionWhenARollbackFails(): void
+    {
+        $this->writeModule('Alpha', 'final class Alpha {}');
+        $this->writeModule('Beta', 'final class Beta {}');
+
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Beta');
+
+        $this->writeModule('Beta', 'final class Beta { public function version(): string { return "2.0.0"; } }');
+        $second = $this->buildRegistry('2.0.0', true);
+        $this->registry($second)->update('Beta');
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        $rollbackEntry = $lock['modules']['Beta']['rollback'];
+        self::assertNotNull($rollbackEntry);
+
+        $backup = $this->root . '/storage/' . $rollbackEntry['catalogue'];
+        self::assertDirectoryExists($backup);
+        $this->addUnknownImport($backup, 'Beta');
+
+        try {
+            $this->registry($second)->rollback('Beta');
+            $this->fail('A rollback that imports an unavailable module should fail.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('current version restored', $e->getMessage());
+            self::assertStringContainsString('Ghost', $e->getMessage());
+        }
+
+        self::assertStringContainsString('2.0.0', (string) file_get_contents($this->root . '/modules/Beta/src/Beta.php'));
+        self::assertFileDoesNotExist($this->root . '/modules/Beta/src/Ghost.php');
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('2.0.0', $lock['modules']['Beta']['version']);
+        self::assertNotNull($lock['modules']['Beta']['rollback']);
+        self::assertDirectoryExists($backup);
+
+        /** @var array{schema_version: int, modules: array<string, array{source: string, requires: list<string>}>} $index */
+        $index = json_decode((string) file_get_contents($this->root . '/modules/catalogue.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertArrayNotHasKey('Ghost', $index['modules']);
+    }
+
+    #[Test]
     public function restoresThePreviousVersionWhenAnUpdateFailsAfterReplacement(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');
@@ -359,10 +403,7 @@ final class ModuleRegistryTest extends TestCase
         mkdir($extract, 0o775, true);
         (new \PharData($archive))->extractTo($extract);
 
-        file_put_contents(
-            $extract . '/src/Ghost.php',
-            "<?php\n\ndeclare(strict_types = 1);\n\nnamespace Modules\\" . $name . ";\n\nuse Modules\\Ghost\\Ghost;\n\nfinal class GhostImport\n{\n    public function dependency(): string\n    {\n        return Ghost::class;\n    }\n}\n",
-        );
+        $this->addUnknownImport($extract, $name);
 
         $tarPath = $registryDir . '/archives/' . $name . '-tampered.tar';
         $tar = new \PharData($tarPath);
@@ -393,6 +434,14 @@ final class ModuleRegistryTest extends TestCase
         file_put_contents(
             $registryDir . '/registry.json',
             json_encode($index, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . PHP_EOL,
+        );
+    }
+
+    private function addUnknownImport(string $directory, string $name): void
+    {
+        file_put_contents(
+            $directory . '/src/Ghost.php',
+            "<?php\n\ndeclare(strict_types = 1);\n\nnamespace Modules\\" . $name . ";\n\nuse Modules\\Ghost\\Ghost;\n\nfinal class GhostImport\n{\n    public function dependency(): string\n    {\n        return Ghost::class;\n    }\n}\n",
         );
     }
 
