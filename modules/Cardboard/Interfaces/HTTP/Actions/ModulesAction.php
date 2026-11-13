@@ -87,6 +87,18 @@ use Modules\Tooling\ModuleRegistry;
     handlerMethod: 'installFromRegistry',
 )]
 #[Route(
+    path: '/mark/settings/modules/{name}/update-from-registry',
+    method: 'POST',
+    name: 'mark.settings.modules.updateFromRegistry',
+    handlerMethod: 'updateFromRegistry',
+)]
+#[Route(
+    path: '/mark/settings/modules/{name}/rollback-from-registry',
+    method: 'POST',
+    name: 'mark.settings.modules.rollbackFromRegistry',
+    handlerMethod: 'rollbackFromRegistry',
+)]
+#[Route(
     path: '/mark/settings/modules/{name}/uninstall',
     method: 'POST',
     name: 'mark.settings.modules.uninstall',
@@ -223,6 +235,89 @@ final class ModulesAction
             'Installed %s from the registry with dependencies: %s (%d file(s) copied).',
             $name,
             $installed,
+            $result['copied'],
+        ));
+    }
+
+    /**
+     * Replace one registry-managed module with the current archive. The
+     * registry verifies the checksum, backs up the catalogue and restores it if
+     * any step fails; the panel only reports the result.
+     */
+    public function updateFromRegistry(Request $request): Response
+    {
+        $name = $this->cataloguedName($request);
+
+        if (null === $name) {
+            return $this->back($request, error: 'That is not a catalogued module name.');
+        }
+
+        $registry = ModuleRegistry::fromEnv();
+
+        if (null === $registry) {
+            return $this->back($request, error: 'No module registry is configured (MODULE_REGISTRY_URL is empty).');
+        }
+
+        try {
+            $result = $registry->update($name);
+        } catch (\Throwable $e) {
+            return $this->back($request, error: $name . ': ' . $e->getMessage());
+        }
+
+        $this->audit('module.update', $name, sprintf(
+            'Updated %s from registry version %s to %s: %d file(s) copied, %d cached page(s) flushed.',
+            $name,
+            $result['from'] ?? 'unknown',
+            $result['to'] ?? 'unknown',
+            $result['copied'],
+            $result['flushed'],
+        ), $request);
+
+        return $this->back($request, ok: sprintf(
+            'Updated %s from version %s to %s: %d file(s) copied.',
+            $name,
+            $result['from'] ?? 'unknown',
+            $result['to'] ?? 'unknown',
+            $result['copied'],
+        ));
+    }
+
+    /**
+     * Restore the catalogue backup captured before the last update and
+     * reinstall its slice. The backup is consumed; this is a one-step rollback.
+     */
+    public function rollbackFromRegistry(Request $request): Response
+    {
+        $name = $this->cataloguedName($request);
+
+        if (null === $name) {
+            return $this->back($request, error: 'That is not a catalogued module name.');
+        }
+
+        $registry = ModuleRegistry::fromEnv();
+
+        if (null === $registry) {
+            return $this->back($request, error: 'No module registry is configured (MODULE_REGISTRY_URL is empty).');
+        }
+
+        try {
+            $result = $registry->rollback($name);
+        } catch (\Throwable $e) {
+            return $this->back($request, error: $name . ': ' . $e->getMessage());
+        }
+
+        $this->audit('module.rollback', $name, sprintf(
+            'Rolled %s back to registry version %s: %d file(s) copied, %d cached page(s) flushed.',
+            $name,
+            $result['version'] ?? 'unknown',
+            $result['copied'],
+            $result['flushed'],
+        ), $request);
+
+        return $this->back($request, ok: sprintf(
+            'Rolled %s back to version %s: %d file(s) copied.',
+            $name,
+            $result['version'] ?? 'unknown',
             $result['copied'],
         ));
     }
@@ -496,39 +591,86 @@ final class ModulesAction
         }
 
         try {
-            $available = $registry->available();
+            $state = $registry->state();
         } catch (\Throwable $e) {
             return '<div class="m-table-toolbar"><p class="m-muted">'
                 . AdminLayout::e('Registry unavailable: ' . $e->getMessage())
                 . '</p></div>';
         }
 
-        if ([] === $available) {
+        if ([] === $state['available'] && [] === $state['updates'] && [] === $state['rollbacks']) {
             return '';
         }
 
-        $rows = '';
+        $sections = '';
 
-        foreach ($available as $name => $entry) {
-            $requires = [] === $entry['requires']
-                ? '<span class="m-muted">—</span>'
-                : AdminLayout::e(implode(', ', $entry['requires']));
-            $version = null === $entry['version']
-                ? ''
-                : ' <span class="m-muted">v' . AdminLayout::e($entry['version']) . '</span>';
+        if ([] !== $state['available']) {
+            $rows = '';
 
-            $rows .= '<tr><td>' . AdminLayout::e($name) . $version . '</td>'
-                . '<td>' . $requires . '</td>'
-                . '<td>' . $this->postButton('mark.settings.modules.installFromRegistry', $name, $csrf, 'Install from registry') . '</td></tr>';
+            foreach ($state['available'] as $name => $entry) {
+                $requires = [] === $entry['requires']
+                    ? '<span class="m-muted">—</span>'
+                    : AdminLayout::e(implode(', ', $entry['requires']));
+                $version = null === $entry['version']
+                    ? ''
+                    : ' <span class="m-muted">v' . AdminLayout::e($entry['version']) . '</span>';
+
+                $rows .= '<tr><td>' . AdminLayout::e($name) . $version . '</td>'
+                    . '<td>' . $requires . '</td>'
+                    . '<td>' . $this->postButton('mark.settings.modules.installFromRegistry', $name, $csrf, 'Install from registry') . '</td></tr>';
+            }
+
+            $sections .= '<div class="m-table-toolbar"><p class="m-muted">'
+                . AdminLayout::e('Modules available from the configured registry, not in the local catalogue.')
+                . '</p></div>'
+                . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-table">'
+                . '<thead><tr><th>Module</th><th>Requires</th><th></th></tr></thead>'
+                . '<tbody>' . $rows . '</tbody></table></div>';
         }
 
-        return '<h2 class="m-heading">Registry</h2>'
-            . '<div class="m-table-toolbar"><p class="m-muted">'
-            . AdminLayout::e('Modules available from the configured registry, not in the local catalogue.')
-            . '</p></div>'
-            . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-table">'
-            . '<thead><tr><th>Module</th><th>Requires</th><th></th></tr></thead>'
-            . '<tbody>' . $rows . '</tbody></table></div>';
+        if ([] !== $state['updates']) {
+            $rows = '';
+
+            foreach ($state['updates'] as $name => $update) {
+                $from = null === $update['current'] ? '—' : 'v' . AdminLayout::e($update['current']);
+                $to = null === $update['entry']['version'] ? '—' : 'v' . AdminLayout::e($update['entry']['version']);
+
+                $rows .= '<tr><td>' . AdminLayout::e($name) . '</td>'
+                    . '<td>' . $from . ' → ' . $to . '</td>'
+                    . '<td>' . $this->postButton('mark.settings.modules.updateFromRegistry', $name, $csrf, 'Update') . '</td></tr>';
+            }
+
+            $sections .= '<h3 class="m-heading">Updates</h3>'
+                . '<div class="m-table-toolbar"><p class="m-muted">'
+                . AdminLayout::e('The registry has a different archive for these modules. Updating discards edits in the installed slice.')
+                . '</p></div>'
+                . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-updates-table">'
+                . '<thead><tr><th>Module</th><th>Version</th><th></th></tr></thead>'
+                . '<tbody>' . $rows . '</tbody></table></div>';
+        }
+
+        if ([] !== $state['rollbacks']) {
+            $rows = '';
+
+            foreach ($state['rollbacks'] as $name => $rollback) {
+                $current = null === $rollback['current'] ? '—' : 'v' . AdminLayout::e($rollback['current']);
+                $previous = null === $rollback['version'] ? '—' : 'v' . AdminLayout::e($rollback['version']);
+
+                $rows .= '<tr><td>' . AdminLayout::e($name) . '</td>'
+                    . '<td>' . $current . ' → ' . $previous . '</td>'
+                    . '<td>' . $this->postButton('mark.settings.modules.rollbackFromRegistry', $name, $csrf, 'Rollback') . '</td></tr>';
+            }
+
+            $sections .= '<h3 class="m-heading">Rollback</h3>'
+                . '<div class="m-table-toolbar"><p class="m-muted">'
+                . AdminLayout::e('Restore the catalogue backup from before the last update. The backup is consumed.')
+                . '</p></div>'
+                . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-rollbacks-table">'
+                . '<thead><tr><th>Module</th><th>Version</th><th></th></tr></thead>'
+                . '<tbody>' . $rows . '</tbody></table></div>';
+        }
+
+        return '<h2 class="m-heading">Registry</h2>' . $sections;
     }
 
     /**

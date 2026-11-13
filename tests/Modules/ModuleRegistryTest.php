@@ -61,6 +61,79 @@ final class ModuleRegistryTest extends TestCase
         $index = json_decode((string) file_get_contents($this->root . '/modules/catalogue.json'), true, 512, JSON_THROW_ON_ERROR);
         self::assertSame(['Alpha', 'Beta'], array_keys($index['modules']));
         self::assertSame(['Alpha'], $index['modules']['Beta']['requires']);
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('1.2.3', $lock['modules']['Beta']['version']);
+        self::assertSame('1.2.3', $lock['modules']['Alpha']['version']);
+    }
+
+    #[Test]
+    public function refusesAnUpdateChecksumBeforeTouchingTheInstalledModule(): void
+    {
+        $this->writeModule('Alpha', 'final class Alpha {}');
+        $this->writeModule('Beta', 'final class Beta {}');
+
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Beta');
+
+        $this->writeModule('Beta', 'final class Beta { public function version(): string { return "2.0.0"; } }');
+        $second = $this->buildRegistry('2.0.0', true);
+        $transport = $this->transport($second, corrupt: 'Beta.tar.gz');
+
+        try {
+            $this->registry($second, $transport)->update('Beta');
+            $this->fail('A bad update checksum should refuse the update.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('sha256 mismatch', $e->getMessage());
+        }
+
+        self::assertStringContainsString('final class Beta {}', (string) file_get_contents($this->root . '/modules/Beta/src/Beta.php'));
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('1.2.3', $lock['modules']['Beta']['version']);
+    }
+
+    #[Test]
+    public function updatesAndRollsBackARegistryModule(): void
+    {
+        $this->writeModule('Alpha', 'final class Alpha {}');
+        $this->writeModule('Beta', 'final class Beta {}');
+
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Beta');
+
+        $this->writeModule('Beta', 'final class Beta { public function version(): string { return "2.0.0"; } }');
+        $second = $this->buildRegistry('2.0.0', true);
+
+        $state = $this->registry($second)->state();
+        self::assertSame('1.2.3', $state['updates']['Beta']['current']);
+        self::assertSame('2.0.0', $state['updates']['Beta']['entry']['version']);
+
+        $result = $this->registry($second)->update('Beta');
+
+        self::assertSame('1.2.3', $result['from']);
+        self::assertSame('2.0.0', $result['to']);
+        self::assertStringContainsString('2.0.0', (string) file_get_contents($this->root . '/modules/Beta/src/Beta.php'));
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('2.0.0', $lock['modules']['Beta']['version']);
+        $rollbackEntry = $lock['modules']['Beta']['rollback'];
+        self::assertNotNull($rollbackEntry);
+        self::assertSame('1.2.3', $rollbackEntry['version']);
+        self::assertSame([], $this->registry($second)->state()['updates']);
+
+        $rollback = $this->registry($second)->rollback('Beta');
+
+        self::assertSame('1.2.3', $rollback['version']);
+        self::assertStringContainsString('final class Beta {}', (string) file_get_contents($this->root . '/modules/Beta/src/Beta.php'));
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('1.2.3', $lock['modules']['Beta']['version']);
+        self::assertNull($lock['modules']['Beta']['rollback']);
     }
 
     #[Test]
@@ -111,14 +184,20 @@ final class ModuleRegistryTest extends TestCase
         self::assertDirectoryDoesNotExist($this->root . '/modules/Beta');
     }
 
-    private function buildRegistry(): string
+    private function buildRegistry(string $version = '1.2.3', bool $force = false): string
     {
         $registryDir = $this->root . '/registry';
-        [$exit, $output] = $this->runBuilder(
+        $arguments = [
             '--root=' . $this->root . '/source',
             '--out=' . $registryDir,
-            '--version=1.2.3',
-        );
+            '--version=' . $version,
+        ];
+
+        if ($force) {
+            $arguments[] = '--force';
+        }
+
+        [$exit, $output] = $this->runBuilder(...$arguments);
 
         self::assertSame(0, $exit, $output);
 
@@ -135,6 +214,7 @@ final class ModuleRegistryTest extends TestCase
             $transport ?? $this->transport($registryDir),
             'https://registry.test/registry.json',
             $this->root . '/modules',
+            $this->root . '/storage/module-registry.json',
         );
     }
 

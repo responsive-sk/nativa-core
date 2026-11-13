@@ -209,6 +209,9 @@ if (!is_dir($root . '/modules')) {
     fail(sprintf('no modules/ catalogue under %s', $root));
 }
 
+// Required before --force: replacing the output calls ModuleInstaller::deleteTree.
+require_once dirname(__DIR__, 2) . '/src/init.php';
+
 $out = str_starts_with($options['out'], '/')
     ? $options['out']
     : getcwd() . '/' . $options['out'];
@@ -232,8 +235,6 @@ if (file_exists($out) && !is_dir($out)) {
 if (!is_dir($out . '/archives') && !mkdir($out . '/archives', 0o775, true) && !is_dir($out . '/archives')) {
     fail(sprintf('cannot create %s/archives', $out));
 }
-
-require_once dirname(__DIR__, 2) . '/src/init.php';
 
 $catalog = new ModuleCatalog($root . '/modules', $root . '/src/Modules');
 $modules = [];
