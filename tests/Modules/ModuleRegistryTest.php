@@ -137,6 +137,64 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function updatesEveryRegistryModuleInOneRun(): void
+    {
+        $this->writeModule('Alpha', 'final class Alpha {}');
+        $this->writeModule('Beta', 'final class Beta {}');
+
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Alpha');
+        $this->registry($first)->install('Beta');
+
+        $this->writeModule('Alpha', 'final class Alpha { public function version(): string { return "2.0.0"; } }');
+        $this->writeModule('Beta', 'final class Beta { public function version(): string { return "2.0.0"; } }');
+        $second = $this->buildRegistry('2.0.0', true);
+
+        $result = $this->registry($second)->updateAll();
+
+        self::assertNull($result['failed']);
+        self::assertSame(['Alpha', 'Beta'], array_column($result['updated'], 'name'));
+        self::assertStringContainsString('2.0.0', (string) file_get_contents($this->root . '/modules/Alpha/src/Alpha.php'));
+        self::assertStringContainsString('2.0.0', (string) file_get_contents($this->root . '/modules/Beta/src/Beta.php'));
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('2.0.0', $lock['modules']['Alpha']['version']);
+        self::assertSame('2.0.0', $lock['modules']['Beta']['version']);
+    }
+
+    #[Test]
+    public function updateAllStopsAtTheFirstFailureAndKeepsCompletedUpdates(): void
+    {
+        $this->writeModule('Alpha', 'final class Alpha {}');
+        $this->writeModule('Beta', 'final class Beta {}');
+
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Alpha');
+        $this->registry($first)->install('Beta');
+
+        $this->writeModule('Alpha', 'final class Alpha { public function version(): string { return "2.0.0"; } }');
+        $this->writeModule('Beta', 'final class Beta { public function version(): string { return "2.0.0"; } }');
+        $second = $this->buildRegistry('2.0.0', true);
+        $this->addUnknownDependency($second, 'Beta');
+
+        $result = $this->registry($second)->updateAll();
+
+        self::assertSame(['Alpha'], array_column($result['updated'], 'name'));
+        self::assertNotNull($result['failed']);
+        self::assertSame('Beta', $result['failed']['name']);
+        self::assertStringContainsString('Ghost', $result['failed']['error']);
+        self::assertStringContainsString('2.0.0', (string) file_get_contents($this->root . '/modules/Alpha/src/Alpha.php'));
+        self::assertStringContainsString('final class Beta {}', (string) file_get_contents($this->root . '/modules/Beta/src/Beta.php'));
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('2.0.0', $lock['modules']['Alpha']['version']);
+        self::assertSame('1.2.3', $lock['modules']['Beta']['version']);
+        self::assertSame(['Beta'], array_keys($this->registry($second)->state()['updates']));
+    }
+
+    #[Test]
     public function forgettingARegistryInstallClearsItsLockAndBackup(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');

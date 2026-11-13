@@ -352,6 +352,41 @@ final readonly class ModuleRegistry
     }
 
     /**
+     * Update every registry-managed module whose archive changed.
+     *
+     * This is the same verified one-module transaction as update(), run in
+     * name order. It stops at the first failure: modules already updated keep
+     * their new version, while the failing module is restored by update()
+     * itself. This is not an atomic multi-module update, and dependencies are
+     * still never upgraded implicitly.
+     *
+     * @return array{
+     *     updated: list<array{name: string, from: ?string, to: ?string, copied: int, flushed: int}>,
+     *     failed: ?array{name: string, error: string}
+     * }
+     */
+    public function updateAll(): array
+    {
+        $updates = $this->state()['updates'];
+        $updated = [];
+
+        foreach (array_keys($updates) as $name) {
+            try {
+                $result = $this->update($name);
+            } catch (RuntimeException $e) {
+                return [
+                    'updated' => $updated,
+                    'failed'  => ['name' => $name, 'error' => $e->getMessage()],
+                ];
+            }
+
+            $updated[] = ['name' => $name, ...$result];
+        }
+
+        return ['updated' => $updated, 'failed' => null];
+    }
+
+    /**
      * Restore the catalogue copy captured before the last update and reinstall
      * it. Rollback is one step: the backup is consumed, so an operator cannot
      * walk arbitrarily far back through versions that were never kept.

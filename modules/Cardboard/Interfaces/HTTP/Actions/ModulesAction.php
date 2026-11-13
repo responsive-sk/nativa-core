@@ -93,6 +93,12 @@ use Modules\Tooling\ModuleRegistry;
     handlerMethod: 'updateFromRegistry',
 )]
 #[Route(
+    path: '/mark/settings/modules/update-all-from-registry',
+    method: 'POST',
+    name: 'mark.settings.modules.updateAllFromRegistry',
+    handlerMethod: 'updateAllFromRegistry',
+)]
+#[Route(
     path: '/mark/settings/modules/{name}/rollback-from-registry',
     method: 'POST',
     name: 'mark.settings.modules.rollbackFromRegistry',
@@ -280,6 +286,49 @@ final class ModulesAction
             $result['to'] ?? 'unknown',
             $result['copied'],
         ));
+    }
+
+    /**
+     * Update every registry-managed module with a different archive. The
+     * registry applies the same verified one-module transaction in sequence
+     * and stops at the first failure, so the report names both sides.
+     */
+    public function updateAllFromRegistry(Request $request): Response
+    {
+        $registry = ModuleRegistry::fromEnv();
+
+        if (null === $registry) {
+            return $this->back($request, error: 'No module registry is configured (MODULE_REGISTRY_URL is empty).');
+        }
+
+        try {
+            $result = $registry->updateAll();
+        } catch (\Throwable $e) {
+            return $this->back($request, error: 'Registry update failed: ' . $e->getMessage());
+        }
+
+        $updated = count($result['updated']);
+
+        if (null !== $result['failed']) {
+            $message = sprintf(
+                'Updated %d module(s) from the registry; %s failed: %s',
+                $updated,
+                $result['failed']['name'],
+                $result['failed']['error'],
+            );
+            $this->audit('module.update', 'all', $message, $request);
+
+            return $this->back($request, error: $message);
+        }
+
+        if (0 === $updated) {
+            return $this->back($request, ok: 'No registry updates were available.');
+        }
+
+        $message = sprintf('Updated %d module(s) from the registry.', $updated);
+        $this->audit('module.update', 'all', $message, $request);
+
+        return $this->back($request, ok: $message);
     }
 
     /**
@@ -663,10 +712,17 @@ final class ModulesAction
                     . '<td>' . $this->postButton('mark.settings.modules.updateFromRegistry', $name, $csrf, 'Update') . '</td></tr>';
             }
 
+            $updateAll = count($state['updates']) > 1
+                ? '<div class="m-table-toolbar">'
+                    . $this->postButton('mark.settings.modules.updateAllFromRegistry', null, $csrf, 'Update all')
+                    . '</div>'
+                : '';
+
             $sections .= '<h3 class="m-heading">Updates</h3>'
                 . '<div class="m-table-toolbar"><p class="m-muted">'
                 . AdminLayout::e('The registry has a different archive for these modules. Updating discards edits in the installed slice.')
                 . '</p></div>'
+                . $updateAll
                 . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-updates-table">'
                 . '<thead><tr><th>Module</th><th>Version</th><th></th></tr></thead>'
                 . '<tbody>' . $rows . '</tbody></table></div>';
@@ -701,9 +757,11 @@ final class ModulesAction
      * attributes swap the panel in place, and a browser without them still
      * submits the same POST to the same route and lands on the redirect.
      */
-    private function postButton(string $route, string $name, string $csrf, string $label): string
+    private function postButton(string $route, ?string $name, string $csrf, string $label): string
     {
-        $url = AdminLayout::e($this->url($route, ['name' => $name]));
+        $url = AdminLayout::e(null === $name
+            ? $this->url($route)
+            : $this->url($route, ['name' => $name]));
 
         return '<form method="post" action="' . $url . '" style="display:inline"'
             . ' hx-post="' . $url . '" hx-target="#modules-panel" hx-swap="innerHTML"'
