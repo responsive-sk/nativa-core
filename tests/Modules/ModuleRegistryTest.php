@@ -46,6 +46,7 @@ final class ModuleRegistryTest extends TestCase
         );
 
         $registryDir = $this->buildRegistry();
+        self::assertSame('1.2.3', $this->registry($registryDir)->available()['Beta']['version']);
 
         $result = $this->registry($registryDir)->install('Beta');
 
@@ -113,7 +114,11 @@ final class ModuleRegistryTest extends TestCase
     private function buildRegistry(): string
     {
         $registryDir = $this->root . '/registry';
-        [$exit, $output] = $this->runBuilder('--root=' . $this->root . '/source', '--out=' . $registryDir);
+        [$exit, $output] = $this->runBuilder(
+            '--root=' . $this->root . '/source',
+            '--out=' . $registryDir,
+            '--version=1.2.3',
+        );
 
         self::assertSame(0, $exit, $output);
 

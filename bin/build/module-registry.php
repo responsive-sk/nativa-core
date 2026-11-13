@@ -39,11 +39,12 @@ function fail(string $message): void
 function usage(): void
 {
     fwrite(STDOUT, <<<'TEXT'
-Usage: php bin/build/module-registry.php --out=<dir> [--root=<dir>] [--force]
+Usage: php bin/build/module-registry.php --out=<dir> [--root=<dir>] [--version=<label>] [--force]
 
-  --out=    directory to write registry.json and archives/ into
-  --root=   catalogue tree to package (default: this repository)
-  --force   replace a non-empty output directory
+  --out=      directory to write registry.json and archives/ into
+  --root=     catalogue tree to package (default: this repository)
+  --version=  snapshot label, such as 2026.11.13 (default: snapshot)
+  --force     replace a non-empty output directory
 
 TEXT);
 }
@@ -51,13 +52,14 @@ TEXT);
 /**
  * @param list<string> $argv
  *
- * @return array{root: string, out: string, force: bool}
+ * @return array{root: string, out: string, force: bool, version: string}
  */
 function options(array $argv): array
 {
     $root = dirname(__DIR__, 2);
     $out = null;
     $force = false;
+    $version = 'snapshot';
 
     foreach ($argv as $argument) {
         if ('--help' === $argument || '-h' === $argument) {
@@ -83,6 +85,16 @@ function options(array $argv): array
             continue;
         }
 
+        if (str_starts_with($argument, '--version=')) {
+            $version = substr($argument, strlen('--version='));
+
+            if ('' === trim($version)) {
+                fail('--version= needs a label');
+            }
+
+            continue;
+        }
+
         fail(sprintf('unknown argument: %s (see --help)', $argument));
     }
 
@@ -90,7 +102,7 @@ function options(array $argv): array
         fail('--out=<dir> is required');
     }
 
-    return ['root' => $root, 'out' => $out, 'force' => $force];
+    return ['root' => $root, 'out' => $out, 'force' => $force, 'version' => $version];
 }
 
 /**
@@ -243,7 +255,7 @@ try {
 ksort($modules);
 
 $json = json_encode(
-    ['schema_version' => 1, 'modules' => $modules],
+    ['schema_version' => 1, 'version' => $options['version'], 'modules' => $modules],
     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
 );
 

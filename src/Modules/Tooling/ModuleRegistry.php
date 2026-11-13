@@ -78,6 +78,12 @@ final readonly class ModuleRegistry
             throw new RuntimeException('Registry index must be an object with schema_version 1 and a modules object.');
         }
 
+        $snapshotVersion = $decoded['version'] ?? null;
+
+        if (null !== $snapshotVersion && (!is_string($snapshotVersion) || '' === trim($snapshotVersion))) {
+            throw new RuntimeException('Registry index version must be a non-empty string.');
+        }
+
         $entries = [];
 
         foreach ($decoded['modules'] as $name => $raw) {
@@ -114,7 +120,7 @@ final readonly class ModuleRegistry
 
             $archive = $raw['archive'] ?? null;
             $sha256 = $raw['sha256'] ?? null;
-            $version = $raw['version'] ?? null;
+            $version = $raw['version'] ?? $snapshotVersion;
 
             if (!is_string($archive) || '' === trim($archive)) {
                 throw new RuntimeException(sprintf('Registry entry for %s has no archive.', $name));
@@ -124,8 +130,8 @@ final readonly class ModuleRegistry
                 throw new RuntimeException(sprintf('Registry entry for %s has no lowercase sha256.', $name));
             }
 
-            if (null !== $version && !is_string($version)) {
-                throw new RuntimeException(sprintf('Registry entry for %s has a non-string version.', $name));
+            if (null !== $version && (!is_string($version) || '' === trim($version))) {
+                throw new RuntimeException(sprintf('Registry entry for %s has an invalid version.', $name));
             }
 
             $archive = $this->resolveArchive($archive);

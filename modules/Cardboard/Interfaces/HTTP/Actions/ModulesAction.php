@@ -513,8 +513,11 @@ final class ModulesAction
             $requires = [] === $entry['requires']
                 ? '<span class="m-muted">—</span>'
                 : AdminLayout::e(implode(', ', $entry['requires']));
+            $version = null === $entry['version']
+                ? ''
+                : ' <span class="m-muted">v' . AdminLayout::e($entry['version']) . '</span>';
 
-            $rows .= '<tr><td>' . AdminLayout::e($name) . '</td>'
+            $rows .= '<tr><td>' . AdminLayout::e($name) . $version . '</td>'
                 . '<td>' . $requires . '</td>'
                 . '<td>' . $this->postButton('mark.settings.modules.installFromRegistry', $name, $csrf, 'Install from registry') . '</td></tr>';
         }
