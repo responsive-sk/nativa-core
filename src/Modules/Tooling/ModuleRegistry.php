@@ -585,6 +585,8 @@ final readonly class ModuleRegistry
         }
 
         $rollback = $lock['modules'][$name]['rollback'];
+        // Resolve before writing: an unsafe path must not clear the lock first.
+        $backup = null !== $rollback ? $this->resolveBackup($rollback['catalogue']) : null;
         unset($lock['modules'][$name]);
 
         if ([] === $lock['modules']) {
@@ -593,9 +595,9 @@ final readonly class ModuleRegistry
 
         $this->writeLock($lock);
 
-        if (null !== $rollback) {
+        if (null !== $backup) {
             try {
-                self::remove($this->resolveBackup($rollback['catalogue']));
+                self::remove($backup);
             } catch (\Throwable) {
                 // The lock is already clear; an orphan backup is not worth turning
                 // a successful uninstall into a failure.
@@ -1194,14 +1196,13 @@ final readonly class ModuleRegistry
 
     private function resolveBackup(string $relative): string
     {
-        if ('' === $relative
-            || str_starts_with($relative, '/')
-            || in_array('..', explode('/', str_replace('\\', '/', $relative)), true)
-        ) {
+        $normalized = str_replace('\\', '/', $relative);
+
+        if (1 !== preg_match('#^module-registry-backups/[A-Za-z0-9][A-Za-z0-9._-]*$#', $normalized)) {
             throw new RuntimeException('Registry lock contains an unsafe backup path.');
         }
 
-        return dirname($this->lockPath) . '/' . $relative;
+        return dirname($this->lockPath) . '/' . $normalized;
     }
 
     /**

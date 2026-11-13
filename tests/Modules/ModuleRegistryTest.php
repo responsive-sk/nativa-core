@@ -302,6 +302,47 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function refusesAnUnsafeBackupPathWithoutClearingTheLock(): void
+    {
+        $this->writeModule('Beta', 'final class Beta {}');
+        $first = $this->buildRegistry();
+        $this->registry($first)->install('Beta');
+
+        $this->writeModule('Beta', 'final class Beta { public function version(): string { return "2.0.0"; } }');
+        $second = $this->buildRegistry('2.0.0', true);
+        $this->registry($second)->update('Beta');
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertNotNull($lock['modules']['Beta']['rollback']);
+        $lock['modules']['Beta']['rollback']['catalogue'] = '../outside';
+        file_put_contents(
+            $this->root . '/storage/module-registry.json',
+            json_encode($lock, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL,
+        );
+
+        $lockOnly = new ModuleRegistry(
+            $this->catalog(),
+            new ModuleInstaller($this->catalog()),
+            null,
+            '',
+            $this->root . '/modules',
+            $this->root . '/storage/module-registry.json',
+        );
+
+        try {
+            $lockOnly->forget('Beta');
+            $this->fail('An unsafe backup path should be refused.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('unsafe backup path', $e->getMessage());
+        }
+
+        /** @var array{schema_version: int, snapshot: ?string, modules: array<string, array{version: ?string, sha256: string, archive: string, rollback: ?array{version: ?string, sha256: string, archive: string, catalogue: string}}>} $lock */
+        $lock = json_decode((string) file_get_contents($this->root . '/storage/module-registry.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertArrayHasKey('Beta', $lock['modules']);
+    }
+
+    #[Test]
     public function restoresTheCurrentVersionWhenARollbackFails(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');
