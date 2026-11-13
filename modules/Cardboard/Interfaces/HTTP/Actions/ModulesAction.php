@@ -13,6 +13,7 @@ use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
 use Modules\Tooling\ModuleCatalog;
 use Modules\Tooling\ModuleInstaller;
+use Modules\Tooling\ModuleRegistry;
 
 /**
  * ModulesAction — the module list, and the three lifecycle steps the panel may
@@ -78,6 +79,12 @@ use Modules\Tooling\ModuleInstaller;
     method: 'POST',
     name: 'mark.settings.modules.installDependencies',
     handlerMethod: 'installWithDependencies',
+)]
+#[Route(
+    path: '/mark/settings/modules/{name}/install-from-registry',
+    method: 'POST',
+    name: 'mark.settings.modules.installFromRegistry',
+    handlerMethod: 'installFromRegistry',
 )]
 #[Route(
     path: '/mark/settings/modules/{name}/uninstall',
@@ -167,6 +174,53 @@ final class ModulesAction
 
         return $this->back($request, ok: sprintf(
             'Installed %s with dependencies: %s (%d file(s) copied).',
+            $name,
+            $installed,
+            $result['copied'],
+        ));
+    }
+
+    /**
+     * Install a module that is not in the local catalogue from the configured
+     * registry. The registry stages and verifies the whole closure before it
+     * copies anything, then hands the local catalogue to the same installer.
+     */
+    public function installFromRegistry(Request $request): Response
+    {
+        $name = (string) $request->routeParam('name', '');
+
+        if (!ModuleCatalog::isValidName($name)) {
+            return $this->back($request, error: 'That is not a valid module name.');
+        }
+
+        if (in_array($name, ModuleCatalog::fromAppPaths()->catalogued(), true)) {
+            return $this->back($request, error: $name . ': already in the local catalogue — use Install.');
+        }
+
+        $registry = ModuleRegistry::fromEnv();
+
+        if (null === $registry) {
+            return $this->back($request, error: 'No module registry is configured (MODULE_REGISTRY_URL is empty).');
+        }
+
+        try {
+            $result = $registry->install($name);
+        } catch (\Throwable $e) {
+            return $this->back($request, error: $name . ': ' . $e->getMessage());
+        }
+
+        $installed = implode(', ', $result['installed']);
+
+        $this->audit('module.install', $name, sprintf(
+            'Installed %s from the registry with dependencies: %s (%d file(s) copied, %d cached page(s) flushed).',
+            $name,
+            $installed,
+            $result['copied'],
+            $result['flushed'],
+        ), $request);
+
+        return $this->back($request, ok: sprintf(
+            'Installed %s from the registry with dependencies: %s (%d file(s) copied).',
             $name,
             $installed,
             $result['copied'],
@@ -366,6 +420,7 @@ final class ModulesAction
                 : '<div class="m-table-toolbar"><p class="m-muted">'
                     . AdminLayout::e('Reinstall replaces the slice with the catalogue and drops any edit made inside it: ' . implode(', ', $fixable))
                     . '</p></div>')
+            . $this->registryPanel($csrf)
             . '</div>';
     }
 
@@ -425,6 +480,52 @@ final class ModulesAction
             . '<td><span class="m-badge m-badge--' . $badge . '">' . $label . '</span></td>'
             . '<td>' . $drifted . '</td>'
             . '<td>' . $action . '</td></tr>';
+    }
+
+    /**
+     * The opt-in half of the page. An empty MODULE_REGISTRY_URL removes the
+     * section entirely; a registry that cannot be reached is a message inside
+     * the panel, not a 500 on the whole Modules screen.
+     */
+    private function registryPanel(string $csrf): string
+    {
+        $registry = ModuleRegistry::fromEnv();
+
+        if (null === $registry) {
+            return '';
+        }
+
+        try {
+            $available = $registry->available();
+        } catch (\Throwable $e) {
+            return '<div class="m-table-toolbar"><p class="m-muted">'
+                . AdminLayout::e('Registry unavailable: ' . $e->getMessage())
+                . '</p></div>';
+        }
+
+        if ([] === $available) {
+            return '';
+        }
+
+        $rows = '';
+
+        foreach ($available as $name => $entry) {
+            $requires = [] === $entry['requires']
+                ? '<span class="m-muted">—</span>'
+                : AdminLayout::e(implode(', ', $entry['requires']));
+
+            $rows .= '<tr><td>' . AdminLayout::e($name) . '</td>'
+                . '<td>' . $requires . '</td>'
+                . '<td>' . $this->postButton('mark.settings.modules.installFromRegistry', $name, $csrf, 'Install from registry') . '</td></tr>';
+        }
+
+        return '<h2 class="m-heading">Registry</h2>'
+            . '<div class="m-table-toolbar"><p class="m-muted">'
+            . AdminLayout::e('Modules available from the configured registry, not in the local catalogue.')
+            . '</p></div>'
+            . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-table">'
+            . '<thead><tr><th>Module</th><th>Requires</th><th></th></tr></thead>'
+            . '<tbody>' . $rows . '</tbody></table></div>';
     }
 
     /**
