@@ -229,7 +229,7 @@ jobs:
   dist:
     name: Dist artifact (clean clone)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -245,6 +245,9 @@ jobs:
 
       - name: Build and smoke the artifact from a clean clone
         run: make dist-check
+
+      - name: Install the catalogue and build the module-set artifact
+        run: make dist-modules-check
 
   security-audit:
     name: Security audit (tracked tree)

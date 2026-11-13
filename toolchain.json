@@ -74,6 +74,12 @@
             "answers": "does a clean clone build a green artifact"
         },
         {
+            "target": "dist-modules-check",
+            "tier": "dist",
+            "can_fail": true,
+            "answers": "does a clean clone install the catalogue and ship an artifact carrying that module set"
+        },
+        {
             "target": "dist-profile-test",
             "tier": "dist",
             "can_fail": true,

@@ -107,6 +107,7 @@ make mago-guard           # the kernel-to-module dependency rule
 make mago-lint            # curated lint rules, ceiling zero
 make modules-install      # every catalogued module installs in closure order
 make dist-check           # a clean clone builds a green artifact
+make dist-modules-check  # clean clone + modules-install + module-set artifact
 ```
 
 `make core-export`, `make themes-check` and `make lekalo-check` do not exist

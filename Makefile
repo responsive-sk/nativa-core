@@ -65,6 +65,9 @@ modules-install: ## Install every catalogued module (closure order; refuses a cy
 dist-check: ## Gate: build dist from a clean clone (no vendor/) and smoke it
 	@bin/build/dist-check.sh
 
+dist-modules-check: ## Gate: a clean clone installs the catalogue and ships that module set
+	@bin/build/dist-check.sh --with-modules
+
 dist-profile-test: ## Gate: the three deployment-profile branches (skip / skip / fail)
 	@bin/build/dist-profile-test.sh
 
