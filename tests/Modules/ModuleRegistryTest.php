@@ -400,6 +400,27 @@ final class ModuleRegistryTest extends TestCase
     }
 
     #[Test]
+    public function refusesAnArchiveWithTooManyEntries(): void
+    {
+        $this->writeModule('Beta', 'final class Beta {}');
+        file_put_contents(
+            $this->root . '/source/modules/Beta/src/Extra.php',
+            "<?php\n\ndeclare(strict_types = 1);\n\nnamespace Modules\\Beta;\n\nfinal class Extra {}\n",
+        );
+        $registryDir = $this->buildRegistry();
+
+        try {
+            $this->registry($registryDir, maxArchiveEntries: 1)->install('Beta');
+            $this->fail('An archive with too many entries should be refused.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('more than 1 file entries', $e->getMessage());
+        }
+
+        self::assertDirectoryDoesNotExist($this->root . '/modules/Beta');
+        self::assertDirectoryDoesNotExist($this->root . '/src/Modules/Beta');
+    }
+
+    #[Test]
     public function refusesAChecksumMismatchBeforeCopying(): void
     {
         $this->writeModule('Alpha', 'final class Alpha {}');
@@ -471,6 +492,7 @@ final class ModuleRegistryTest extends TestCase
         string $registryDir,
         ?RegistryTransport $transport = null,
         int $maxExtractedBytes = 134_217_728,
+        int $maxArchiveEntries = 10_000,
     ): ModuleRegistry {
         $catalog = $this->catalog();
 
@@ -482,6 +504,7 @@ final class ModuleRegistryTest extends TestCase
             $this->root . '/modules',
             $this->root . '/storage/module-registry.json',
             maxExtractedBytes: $maxExtractedBytes,
+            maxArchiveEntries: $maxArchiveEntries,
         );
     }
 

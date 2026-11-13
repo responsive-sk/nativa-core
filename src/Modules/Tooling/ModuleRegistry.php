@@ -36,6 +36,7 @@ final readonly class ModuleRegistry
         private int $maxIndexBytes = 1_048_576,
         private int $maxArchiveBytes = 20_971_520,
         private int $maxExtractedBytes = 134_217_728,
+        private int $maxArchiveEntries = 10_000,
     ) {
     }
 
@@ -852,6 +853,7 @@ final readonly class ModuleRegistry
             $phar = new \PharData($archive);
             $prefix = 'phar://' . $archive . '/';
             $expanded = 0;
+            $entries = 0;
 
             foreach (new \RecursiveIteratorIterator($phar) as $file) {
                 /** @var \PharFileInfo $file */
@@ -860,6 +862,13 @@ final readonly class ModuleRegistry
                 }
 
                 if (!$file->isDir()) {
+                    if (++$entries > $this->maxArchiveEntries) {
+                        throw new RuntimeException(sprintf(
+                            'Registry archive contains more than %d file entries.',
+                            $this->maxArchiveEntries,
+                        ));
+                    }
+
                     $expanded += $file->getSize();
 
                     if ($expanded > $this->maxExtractedBytes) {
