@@ -1,0 +1,34 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <div class="m-card m-media-card">
+        <label class="m-media-card__check">
+            <input type="checkbox" name="ids[]" value="<?php echo $id; ?>" class="media-checkbox">
+        </label>
+        <a href="<?php echo $urlEscaped; ?>" target="_blank" rel="noopener" class="m-media-card__thumb">
+            <?php echo $thumb . "\n"; ?>
+        </a>
+        <div class="m-media-card__body">
+            <div class="m-media-card__header">
+                <div class="m-media-card__name" title="<?php echo $name; ?>"><?php echo $name; ?></div>
+                <?php echo $viewsHtml . "\n"; ?>
+            </div>
+            <div class="m-media-card__meta">
+                <?php echo $providerBadge; ?> <?php echo $categoryBadge; ?> <?php echo $tagsHtml . "\n"; ?>
+            </div>
+            <div class="m-media-card__info m-muted"><?php echo $folderInfo; ?><?php echo $size; ?> · <?php echo $mime; ?> · <?php echo $date; ?></div>
+        </div>
+        <div class="m-media-card__footer">
+            <a href="<?php echo $editHref; ?>" class="m-btn m-btn-sm m-btn-icon" title="Edit"><?php echo $iconEdit; ?></a>
+        </div>
+    </div>

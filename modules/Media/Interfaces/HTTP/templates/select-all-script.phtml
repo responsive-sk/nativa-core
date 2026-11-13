@@ -1,0 +1,26 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+?>    <form method="POST" action="<?php echo $url('media.batch-delete'); ?>">
+        <?php echo $csrf . "\n"; ?>
+        <div class="m-card m-card-flush">
+            <div class="m-toolbar">
+                <label>
+                    <input type="checkbox" id="select-all">
+                    Select all
+                </label>
+                <button class="m-btn m-btn-error m-btn-sm m-btn-icon" type="submit" data-confirm="Delete selected files?" title="Delete selected"><?php echo $iconDelete; ?></button>
+            </div>
+        </div>
+        <div class="m-media-grid"><?php echo $cells; ?></div>
+    </form>

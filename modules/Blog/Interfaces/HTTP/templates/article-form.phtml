@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+$articleFormScript = View\InlineJs::file('Modules/Blog/Interfaces/HTTP/assets/scripts/article-form.js');
+?><script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $articleFormScript; ?></script>

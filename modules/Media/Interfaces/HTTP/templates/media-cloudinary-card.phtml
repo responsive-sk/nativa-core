@@ -1,0 +1,44 @@
+<?php
+
+declare(strict_types = 1);
+
+/**
+ * Rendered via View\ViewRenderer.
+ * Variables are provided by the caller; $this is not available.
+ *
+ * Every value arrives already escaped from MediaCloudinaryAction.
+ */
+
+if (!isset($viewRendererGuard)) {
+    throw new \RuntimeException('Template must be rendered via ViewRenderer.');
+}
+
+$placeholderSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+
+?>    <div class="m-card m-media-card">
+        <label class="m-media-card__check">
+            <input type="checkbox" name="public_ids[]" value="<?php echo $publicId; ?>">
+        </label>
+        <?php if ($isImage): ?>
+        <a href="<?php echo $fullUrl; ?>" target="_blank" rel="noopener" class="m-media-card__thumb">
+            <img src="<?php echo $thumbUrl; ?>" alt="<?php echo $label; ?>" class="m-media-card__thumb-img">
+        </a>
+        <?php else: ?>
+        <div class="m-media-card__thumb">
+            <div class="m-media-card__thumb-icon"><?php echo $placeholderSvg; ?></div>
+        </div>
+        <?php endif; ?>
+        <div class="m-media-card__body">
+            <div class="m-media-card__header">
+                <div class="m-media-card__name" title="<?php echo $publicId; ?>"><?php echo $label; ?></div>
+            </div>
+            <div class="m-media-card__meta">
+                <?php if ($tracked): ?>
+                <span class="m-badge m-badge-gray">tracked</span>
+                <?php else: ?>
+                <span class="m-badge m-badge-info">new</span>
+                <?php endif; ?>
+            </div>
+            <div class="m-media-card__info m-muted"><?php echo $publicId; ?></div>
+        </div>
+    </div>

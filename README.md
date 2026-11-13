@@ -21,7 +21,9 @@ The kernel and the Nativa theme, with no site attached:
   REST panel under `/mark/rest`) and the admin stack its closure needs:
   `Cardboard`, `Users`, `Auth`, `Locales`, `Navigation`, `Notifications`,
   `Outbox`, `PageCache`, `Pagination`, `Security`, `Uploads` and `Validation`.
-  This is a catalogue, not a running set. `src/Modules/<Name>` (the installed
+  `Blog`, `Audit`, `Markdown`, `Media` and `Queue` carry `/blog` and the
+  articles admin at `/mark/articles`. This is a catalogue, not a running set.
+  `src/Modules/<Name>` (the installed
   copy) is gitignored. Docs is a module in the source repository and is pruned
   here: this tree carries no guides, and `/docs` answers 404.
 - `Frontend/packages/`: the pnpm workspace that builds the Nativa bundle.
@@ -40,15 +42,18 @@ it needed. Every row is a module that could be added, with its measured cost:
 |---|---|---|---|
 | Nativa on `/` | `Settings`, `ContentLocale` | +16 files | `/` renders `KernelTheme` |
 | Admin at `/mark` | `RestAdmin`, `Cardboard`, `Users` + their closure | +311 files | 404 |
-| `/blog`, `/cookies` | `Blog`, `Pages` | +373 files | 404 |
+| Blog and `/mark/articles` | `Blog`, `Audit`, `Markdown`, `Media`, `Queue` + their closure | +156 files | 404 |
+| `/cookies` | `Pages` | +18 files | 404 |
 
 `Settings` is kept because the theme vote is a kernel port with no kernel
 implementation. `ContentLocale` is kept because every theme asks it for the
 locale-to-URL-prefix rule; it has no routes, tables or admin screen. The admin
 stack is kept because `RestAdmin` is a product surface this tree ships, and it
-cannot install without `Cardboard` and `Users`. `Blog` and `Pages` remain
-product surfaces the catalogue does not carry. A module comes back only with a
-row here and a measurement behind it.
+cannot install without `Cardboard` and `Users`. `Blog` is kept because
+`/mark/articles` is the content admin surface, and its closure ships with it.
+`Pages` remains a product surface the catalogue does not carry, so `/cookies`
+answers 404. A module comes back only with a row here and a measurement behind
+it.
 
 ## Run it
 
