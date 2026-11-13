@@ -32,11 +32,6 @@ final class RecordingConnection implements ConnectionInterface
         return 'recording';
     }
 
-    public function driverName(): string
-    {
-        return 'sqlite';
-    }
-
     public function query(string $sql): StatementInterface
     {
         throw new \LogicException('RecordingConnection does not run SQL.');

@@ -10,6 +10,7 @@ use Modules\Core\Interfaces\HTTP\Attributes\Route;
 use Seo\SitemapContributorRegistry;
 use Seo\SitemapEntry;
 use Shell\ShellContextProviderRegistry;
+use Themes\FrontendLayout;
 
 /**
  * SitemapAction — XML sitemap (Google sitemap protocol 0.9) of the URLs the
@@ -20,9 +21,7 @@ use Shell\ShellContextProviderRegistry;
  * URL shape that serves it, so the kernel never guesses a path that might be a
  * 404. A contributor failure degrades to the kernel rows instead of a 500.
  *
- * All values are XML-escaped here, not through the layout: escaping is the
- * kernel's own job on the kernel's own surface, and importing the layout for a
- * one-line helper would make the sitemap a dependency of a module.
+ * All values are XML-escaped; output is deterministic per request.
  */
 #[Route(path: '/sitemap.xml', method: 'GET', name: 'sitemap')]
 final readonly class SitemapAction
@@ -107,17 +106,12 @@ final readonly class SitemapAction
 
         foreach ($entries as $entry) {
             $xml .= '  <url>' . "\n"
-                . '    <loc>' . self::e($base . $entry->path) . '</loc>' . "\n"
+                . '    <loc>' . FrontendLayout::e($base . $entry->path) . '</loc>' . "\n"
                 . '    <changefreq>' . $entry->changefreq . '</changefreq>' . "\n"
                 . '    <priority>' . $entry->priority . '</priority>' . "\n"
                 . '  </url>' . "\n";
         }
 
         return $xml;
-    }
-
-    private static function e(string $value): string
-    {
-        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }

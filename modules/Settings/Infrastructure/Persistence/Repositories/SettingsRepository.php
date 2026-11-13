@@ -44,13 +44,16 @@ final class SettingsRepository
             $stored = '';
         }
 
-        $stmt = Statement::prepare($this->connection, $this->upsert(
+        $stmt = Statement::prepare($this->connection,
             'INSERT INTO settings (id, setting_key, setting_value, value_type, group_name, is_public, created_at, updated_at)
-             VALUES (:id, :key, :value, :type, :group, :public, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-            'setting_key',
-            ['setting_value', 'value_type', 'group_name', 'is_public'],
-            ['updated_at'],
-        ));
+             VALUES (:id, :key, :value, :type, :group, :public, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             ON CONFLICT(setting_key) DO UPDATE SET
+               setting_value = excluded.setting_value,
+               value_type = excluded.value_type,
+               group_name = excluded.group_name,
+               is_public = excluded.is_public,
+               updated_at = CURRENT_TIMESTAMP',
+        );
         $stmt->execute([
             ':id'     => bin2hex(random_bytes(16)),
             ':key'    => $key,
@@ -138,48 +141,15 @@ final class SettingsRepository
         $encoded = json_encode($value);
         $json = false === $encoded ? '""' : $encoded;
 
-        Statement::prepare($this->connection, $this->upsert(
+        Statement::prepare($this->connection,
             'INSERT INTO design_tokens (id, token_key, token_value, created_at, updated_at)
-             VALUES (:id, :key, :value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-            'token_key',
-            ['token_value'],
-            ['updated_at'],
-        ))->execute([
+             VALUES (:id, :key, :value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             ON CONFLICT(token_key) DO UPDATE SET token_value = excluded.token_value, updated_at = CURRENT_TIMESTAMP',
+        )->execute([
             ':id'    => bin2hex(random_bytes(16)),
             ':key'   => $key,
             ':value' => $json,
         ]);
-    }
-
-    /**
-     * An INSERT with an upsert clause, in the dialect the connection speaks.
-     *
-     * SQLite spells it `ON CONFLICT (col) DO UPDATE SET col = excluded.col`;
-     * MariaDB and MySQL spell it `ON DUPLICATE KEY UPDATE col = VALUES(col)`.
-     * The two are not interchangeable, which is why the repository asks the
-     * connection for its driver instead of pinning the file dialect.
-     *
-     * @param list<string> $updates    columns overwritten from the proposed row
-     * @param list<string> $timestamps columns reset to now
-     */
-    private function upsert(string $insert, string $conflict, array $updates, array $timestamps = []): string
-    {
-        $mysql = 'mysql' === $this->connection->driverName();
-        $assignments = [];
-
-        foreach ($updates as $column) {
-            $assignments[] = $mysql
-                ? $column . ' = VALUES(' . $column . ')'
-                : $column . ' = excluded.' . $column;
-        }
-
-        foreach ($timestamps as $column) {
-            $assignments[] = $column . ' = CURRENT_TIMESTAMP';
-        }
-
-        return $insert . ($mysql
-            ? ' ON DUPLICATE KEY UPDATE ' . implode(', ', $assignments)
-            : ' ON CONFLICT(' . $conflict . ') DO UPDATE SET ' . implode(', ', $assignments));
     }
 
     private function detectType(mixed $value): string

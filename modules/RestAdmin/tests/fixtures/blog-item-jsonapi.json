@@ -1,0 +1,13 @@
+{
+    "data": {
+        "type": "posts",
+        "id": "1",
+        "attributes": {
+            "title": "Hello, Nativa",
+            "slug": "hello-nativa",
+            "body": "The first post.",
+            "status": "published",
+            "published_at": null
+        }
+    }
+}

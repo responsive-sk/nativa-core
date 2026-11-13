@@ -1,0 +1,14 @@
+{
+    "data": {
+        "id": 1,
+        "title": "Hello, Nativa",
+        "slug": "hello-nativa",
+        "body": "The first post.",
+        "status": "published",
+        "published_at": "2026-01-02T09:00:00Z",
+        "author": {
+            "id": 7,
+            "name": "Ada"
+        }
+    }
+}

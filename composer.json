@@ -13,6 +13,7 @@
     ],
     "minimum-stability": "stable",
     "require": {
+        "ext-curl": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
         "ext-pdo": "*",
@@ -33,13 +34,13 @@
             "Discovery\\": "src/Discovery/",
             "Modules\\": "src/Modules/",
             "Seo\\": "src/Seo/",
-            "Shell\\": "src/Shell/"
+            "Shell\\": "src/Shell/",
+            "Themes\\": "src/Themes/",
+            "View\\": "src/View/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Modules\\Layout\\": "modules/Layout/",
-            "Modules\\View\\": "modules/View/",
             "Tests\\": "tests/"
         }
     },

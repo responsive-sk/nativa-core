@@ -8,41 +8,23 @@ use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Database\Contracts\ConnectionInterface;
 
 /**
- * DatabaseConnectionManager — per-module connection factory.
+ * DatabaseConnectionManager — per-module SQLite connection factory.
  *
- * Each module owns its own database: a SQLite file (users.db, config.db, ...)
- * by default, or a server database when `DB_<NAME>_DSN` names one. Connections
- * are created lazily and cached for the request/process lifetime.
+ * Each module owns its own database file (users.db, config.db, ...),
+ * mirroring the Nativa per-module isolation model. Connections are
+ * created lazily and cached for the request/process lifetime.
  *
  * Two ways in:
  *
  *  - `connection($name)` returns the raw `\PDO`, the historical entry point
  *    every repository still uses;
  *  - `connect($name)` returns a `ConnectionInterface`. When
- *    `DB_<NAME>_READ` or `DB_<NAME>_READ_DSN` names one or more replicas, that
- *    is a ReadWriteConnection; otherwise it is the same handle behind
- *    PdoConnection.
+ *    `DB_<NAME>_READ` names one or more replica files, that is a
+ *    ReadWriteConnection; otherwise it is the same handle behind PdoConnection.
  *
  * The read side is opt-in per module on purpose: a replica is a deployment
  * decision, and an unset variable must mean "no routing", not "route to an
  * empty list".
- *
- * ## Configuration
- *
- *  - `DB_<NAME>_DSN`       primary DSN; unset means `sqlite:` plus the module file
- *  - `DB_<NAME>_USER`      user for a server DSN (falls back to `DB_USER`)
- *  - `DB_<NAME>_PASSWORD`  password for a server DSN (falls back to `DB_PASSWORD`)
- *  - `DB_<NAME>_READ`      comma-separated SQLite replica files
- *  - `DB_<NAME>_READ_DSN`  comma-separated replica DSNs, same credentials
- *  - `DB_READ_STRATEGY` and `DB_<NAME>_READ_WEIGHTS` as before
- *
- * A credential pair belongs to the module, not to a single DSN, because a
- * replica of a module database normally accepts the same user.
- *
- * SQLite-specific hardening (busy timeout, foreign keys, WAL, `query_only`)
- * applies only to a `sqlite:` DSN. A server connection is hardened by its
- * server, and a MariaDB/MySQL replica is made read-only through the grant it
- * connects with: there is no session-scoped `query_only` to set.
  */
 final class DatabaseConnectionManager
 {
@@ -101,8 +83,8 @@ final class DatabaseConnectionManager
     /**
      * Get the connection contract for a module database.
      *
-     * With no replica configured this is the plain handle, wrapped but not
-     * rerouted. With one configured, reads go to the replicas and writes to the
+     * With `DB_<NAME>_READ` unset this is the plain handle, wrapped but not
+     * rerouted. With it set, reads go to the listed replicas and writes to the
      * handle `connection()` returns, so both entry points share one primary.
      */
     public function connect(string $name): ConnectionInterface
@@ -181,30 +163,26 @@ final class DatabaseConnectionManager
     /**
      * The configured read replicas, opened read-only.
      *
-     * `DB_<NAME>_READ` keeps naming SQLite files, so a deployment that routed
-     * reads before this DSN seam still routes them. `DB_<NAME>_READ_DSN` adds
-     * server replicas; both lists are appended in that order.
-     *
      * @return list<ConnectionInterface>
      */
     private function readReplicas(string $name): array
     {
-        $upper = strtoupper($name);
-        $dsns = [];
+        $configured = $this->env('DB_' . strtoupper($name) . '_READ');
 
-        foreach ($this->entries($this->env('DB_' . $upper . '_READ')) as $path) {
-            $dsns[] = 'sqlite:' . $this->resolvePath($path);
-        }
-
-        foreach ($this->entries($this->env('DB_' . $upper . '_READ_DSN')) as $dsn) {
-            $dsns[] = $dsn;
+        if (null === $configured) {
+            return [];
         }
 
         $replicas = [];
-        foreach ($dsns as $index => $dsn) {
+        foreach (explode(',', $configured) as $index => $path) {
+            $path = trim($path);
+            if ('' === $path) {
+                continue;
+            }
+
             $key = $name . ':' . $index;
             $this->readConnections[$key] ??= new PdoConnection(
-                $this->openPdo($dsn, true, ...$this->credentials($name)),
+                $this->openPdo($this->resolvePath($path), readOnly: true),
                 $name . ':read' . ($index + 1),
             );
 
@@ -246,29 +224,25 @@ final class DatabaseConnectionManager
     }
 
     /**
-     * Create the primary handle for a module database.
+     * Create a hardened SQLite PDO connection for a module database.
      */
     private function createConnection(string $name): \PDO
     {
-        $dsn = $this->dsn($name);
+        $path = $this->paths->database($name);
+        $this->paths->ensureDir(dirname($path));
 
-        if (str_starts_with($dsn, 'sqlite:')) {
-            $this->paths->ensureDir(dirname(substr($dsn, \strlen('sqlite:'))));
-        }
-
-        return $this->openPdo($dsn, false, ...$this->credentials($name));
+        return $this->openPdo($path, readOnly: false);
     }
 
     /**
-     * Open and, for SQLite, harden one handle.
+     * Open and harden one SQLite handle.
      *
-     * A read-only SQLite handle still opens the file read-write at the OS
-     * level, then sets `query_only`: SQLite itself refuses every write from it.
-     * That is the loud failure a misrouted write needs, without the URI
-     * handling `mode=ro` would add. A server driver has no such switch, so its
-     * read-only-ness is the grant the DSN connects with.
+     * A read-only handle still opens the file read-write at the OS level, then
+     * sets `query_only`: SQLite itself refuses every write from it. That is the
+     * loud failure a misrouted write needs, without the URI handling `mode=ro`
+     * would add.
      */
-    private function openPdo(string $dsn, bool $readOnly, ?string $user = null, #[\SensitiveParameter] ?string $password = null): \PDO
+    private function openPdo(string $path, bool $readOnly): \PDO
     {
         $options = [
             \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
@@ -280,11 +254,7 @@ final class DatabaseConnectionManager
             $options[\PDO::ATTR_STATEMENT_CLASS] = [$this->statementClass, []];
         }
 
-        $pdo = new \PDO($dsn, $user, $password, $options);
-
-        if (!str_starts_with($dsn, 'sqlite:')) {
-            return $pdo;
-        }
+        $pdo = new \PDO('sqlite:' . $path, null, null, $options);
 
         // Robustness + integrity pragmas for concurrent web requests.
         $pdo->exec('PRAGMA busy_timeout = 5000');
@@ -298,7 +268,7 @@ final class DatabaseConnectionManager
         } catch (\PDOException $refusal) {
             error_log(sprintf(
                 '[db] %s: journal_mode WAL unavailable (%s), continuing without it',
-                $dsn,
+                $path,
                 $refusal->getMessage(),
             ));
         }
@@ -310,36 +280,6 @@ final class DatabaseConnectionManager
         return $pdo;
     }
 
-    /**
-     * The DSN for a module database: configured, or the SQLite file.
-     */
-    private function dsn(string $name): string
-    {
-        return $this->env('DB_' . strtoupper($name) . '_DSN')
-            ?? 'sqlite:' . $this->paths->database($name);
-    }
-
-    /**
-     * The user and password for a module DSN.
-     *
-     * A server DSN names a host and a database, never credentials; the two env
-     * vars are separate for that reason. A module may override them, and the
-     * global pair is the usual case: every module database of one deployment
-     * normally accepts the same user. SQLite ignores both, so two unset vars
-     * are the normal case there.
-     *
-     * @return array{0: ?string, 1: ?string}
-     */
-    private function credentials(string $name): array
-    {
-        $upper = strtoupper($name);
-
-        return [
-            $this->env('DB_' . $upper . '_USER') ?? $this->env('DB_USER'),
-            $this->env('DB_' . $upper . '_PASSWORD') ?? $this->env('DB_PASSWORD'),
-        ];
-    }
-
     private function resolvePath(string $path): string
     {
         if (str_starts_with($path, '/') || ':memory:' === $path) {
@@ -347,28 +287,6 @@ final class DatabaseConnectionManager
         }
 
         return $this->paths->join($path);
-    }
-
-    /**
-     * A comma-separated env value, blanks dropped.
-     *
-     * @return list<string>
-     */
-    private function entries(?string $configured): array
-    {
-        if (null === $configured) {
-            return [];
-        }
-
-        $entries = [];
-        foreach (explode(',', $configured) as $entry) {
-            $entry = trim($entry);
-            if ('' !== $entry) {
-                $entries[] = $entry;
-            }
-        }
-
-        return $entries;
     }
 
     /**

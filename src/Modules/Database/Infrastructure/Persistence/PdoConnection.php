@@ -8,9 +8,9 @@ use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Contracts\StatementInterface;
 
 /**
- * PdoConnection — one PDO handle behind the connection contract.
+ * PdoConnection — one SQLite handle behind the connection contract.
  *
- * This is the single-handle case: every read and every write goes to the handle
+ * This is the single-file case: every read and every write goes to the handle
  * the manager opened, so there is nothing to route. The hardening (exception
  * mode, fetch mode, busy timeout, foreign keys, WAL) stays in
  * DatabaseConnectionManager::openPdo(), which is where the handle is created;
@@ -32,13 +32,6 @@ final readonly class PdoConnection implements ConnectionInterface
     public function name(): string
     {
         return $this->name;
-    }
-
-    public function driverName(): string
-    {
-        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-
-        return \is_string($driver) ? strtolower($driver) : '';
     }
 
     public function query(string $sql): StatementInterface

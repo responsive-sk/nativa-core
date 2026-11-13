@@ -25,7 +25,7 @@ even when the tree boots on it.
 | Branch | `master` only; releases are commit hashes, there are no tagged versions |
 | Modules | the catalog in `modules/` — each module is supported with the kernel revision it ships beside |
 | Installed module slices (`src/Modules/<Name>/`) | **not** supported surface: operator state, gitignored, produced by `bin/cms module:add` |
-| Themes and page shell | `modules/Layout` and `modules/Themes/*` as committed |
+| Themes | `src/Themes/*` and `modules/Themes/*` as committed |
 
 Older PHP branches (8.2–8.4) receive upstream fixes, but this tree does not
 claim them: `mago.toml`, CI and the two tool configs are set to 8.5.
@@ -139,7 +139,7 @@ unreviewable mitigation is not a mitigation the next person can keep.
 | secret scan + tracked `.env` | `make security-audit` | tracked files; `audit-ok` marks a deliberate literal |
 | dependency advisories | `make dependency-audit` | `composer.lock` and `Frontend/packages/pnpm-lock.yaml`, high and critical |
 | live surface | `bin/build/admin-smoke.sh` (source repository; the export ships no admin module) | CSRF refusal, honeypot, moderation, admin access |
-| architecture | `make mago-guard` | the kernel may not import a module |
+| architecture | `make guard` | the kernel may not import a module |
 
 None of these reads the PHP interpreter's patch level. That is why the floor is
 in `composer.json` and why step 1 of the rule is a human with `ps`.

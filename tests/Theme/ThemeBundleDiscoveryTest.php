@@ -5,12 +5,12 @@ declare(strict_types = 1);
 namespace Tests\Theme;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Layout\AssetManager;
-use Modules\Layout\FrontendLayout;
-use Modules\Layout\ThemeRegistry;
-use Modules\Layout\ThemeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\AssetManager;
+use Themes\FrontendLayout;
+use Themes\ThemeRegistry;
+use Themes\ThemeResolver;
 
 /**
  * ThemeBundleDiscoveryTest (Boot 22) — the door the `erik` defect came through,
@@ -35,9 +35,9 @@ use PHPUnit\Framework\TestCase;
  * without one, and `AssetManager` degrades to critical CSS for both. The
  * direction that bit is the one asserted.
  *
- * `ThemeRegistry` is the catalogue's `Layout` slice: the dev autoloader
- * resolves it by name, but nothing installs it in a kernel-only checkout, so
- * the discovered set is empty there and only the kernel's own bundles are
+ * Kernel-only here, like the rest of `tests/`: nothing in this file names a
+ * module's class, so a tree with no theme installed still analyses and runs it
+ * — the discovered set is simply empty and only the kernel's own bundles are
  * checked.
  */
 final class ThemeBundleDiscoveryTest extends TestCase

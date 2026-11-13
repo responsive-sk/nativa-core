@@ -21,14 +21,6 @@
       make the analyser fail in a tree where that module is not installed.
       Such a test skips at runtime (see its `setUp()`) and is absent from the
       kernel's own analysis scope — the same shape as the module code itself.
-
-      `Layout` and `View` are the exception, and only in the dev autoloader:
-      the kernel theme implements `Layout`'s theme contract and the error
-      renderer asks its page-shell port, so `autoload-dev` resolves those two
-      catalogue slices by name. A test that needs them INSTALLED — the shell
-      that emits the home markup, the docs-reader asset — skips on
-      `is_dir('src/Modules/Layout')`, because the catalogue is text until
-      `module:add` copies it.
     -->
     <testsuites>
         <testsuite name="kernel">

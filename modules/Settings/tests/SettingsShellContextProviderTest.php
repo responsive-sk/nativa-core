@@ -6,9 +6,9 @@ namespace Modules\Settings\Tests;
 
 use Shell\ShellContextProviderRegistry;
 use Shell\ShellNavItem;
-use Modules\Layout\FrontendLayout;
-use Modules\Layout\ThemeRegistry;
-use Modules\Layout\ThemeResolver;
+use Themes\FrontendLayout;
+use Themes\ThemeRegistry;
+use Themes\ThemeResolver;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator;
@@ -112,7 +112,7 @@ final class SettingsShellContextProviderTest extends TestCase
         $items = (new SettingsShellContextProvider())->navigation('header', '/');
 
         $this->assertSame(
-            ['Home'],
+            ['Home', 'Articles'],
             self::labels($items),
             'The header slot must answer the seeded menu minus what a guest may not see.',
         );
@@ -122,13 +122,12 @@ final class SettingsShellContextProviderTest extends TestCase
         $this->assertInstanceOf(ShellNavItem::class, $items[0]);
         $this->assertSame('/', $items[0]->href);
         $this->assertTrue($items[0]->active, 'On `/` the Home item is the current one.');
+        $this->assertFalse($items[1]->active);
     }
 
     #[Test]
     public function theItemUnderTheCurrentPathIsTheActiveOne(): void
     {
-        $this->insertMenuItem('Articles', '/blog', 'header', 15);
-
         $byLabel = self::byLabel((new SettingsShellContextProvider())->navigation('header', '/blog/nativa-php-core'));
 
         $this->assertTrue($byLabel['Articles']->active, 'An article is under /blog, so Articles is current.');
@@ -151,16 +150,15 @@ final class SettingsShellContextProviderTest extends TestCase
 
     /**
      * The seed used to ship `Privacy -> /privacy` and `Cookies -> /cookies`,
-     * then `Articles -> /blog` and `Admin -> /mark`. A fresh export serves none
-     * of those paths — `/` is the only route a menu can point at — so the
-     * header and footer offered 404s on a brand-new site. This pins the rule
-     * that replaced them: every seeded public href is a route this tree owns.
+     * and a fresh kernel install serves neither path: two of the footer's links
+     * were 404s on a brand-new site. This pins the rule that replaced them —
+     * every seeded href is a route the kernel itself owns.
      */
     #[Test]
     public function theSeedAdvertisesNoRouteTheKernelDoesNotServe(): void
     {
         $this->assertSame(
-            ['/'],
+            ['/', '/blog', '/mark'],
             $this->seededPublicHrefs(),
             'A seeded menu item points at a path this tree does not serve.',
         );
@@ -173,8 +171,6 @@ final class SettingsShellContextProviderTest extends TestCase
     #[Test]
     public function adminLinksAreHiddenFromAnonymousVisitors(): void
     {
-        $this->insertMenuItem('Admin', '/mark', 'header', 20);
-
         $this->assertNotContains(
             'Admin',
             self::labels((new SettingsShellContextProvider())->navigation('header', '/')),
@@ -214,8 +210,6 @@ final class SettingsShellContextProviderTest extends TestCase
     #[Test]
     public function anAdminLinkStaysForASignedInEditor(): void
     {
-        $this->insertMenuItem('Admin', '/mark', 'header', 20);
-
         $this->assertNotContains('Admin', self::labels((new SettingsShellContextProvider())->navigation('header', '/')));
 
         $this->signIn();

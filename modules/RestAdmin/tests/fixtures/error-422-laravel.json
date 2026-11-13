@@ -1,0 +1,11 @@
+{
+    "message": "The given data was invalid.",
+    "errors": {
+        "title": [
+            "The title field is required."
+        ],
+        "published_at": [
+            "The published at must be a date."
+        ]
+    }
+}

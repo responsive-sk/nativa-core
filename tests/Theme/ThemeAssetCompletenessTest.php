@@ -5,9 +5,9 @@ declare(strict_types = 1);
 namespace Tests\Theme;
 
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Layout\ThemeRegistry;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\ThemeRegistry;
 
 /**
  * ThemeAssetCompletenessTest — every theme has the assets it claims, and
@@ -29,10 +29,9 @@ use PHPUnit\Framework\TestCase;
  *    until its author lists it with a reason — the gap Mono had, found by
  *    eye instead of by a test.
  *
- * `ThemeRegistry` is the catalogue's `Layout` slice: the dev autoloader
- * resolves it by name, but nothing installs it in a kernel-only checkout — the
- * discovered set is empty there, and every loop below skips. Themes arrive as
- * objects; everything else is text over file bodies.
+ * Kernel-only like the rest of tests/: nothing here names a module's class.
+ * Themes arrive through ThemeRegistry as objects; everything else is text
+ * over file bodies. An empty registry skips.
  */
 final class ThemeAssetCompletenessTest extends TestCase
 {

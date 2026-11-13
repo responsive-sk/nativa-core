@@ -4,15 +4,16 @@ declare(strict_types = 1);
 
 namespace Modules\Themes\Nativa\Theme;
 
+use Modules\Core\Domain\AdminRoutePolicy;
 use Shell\ShellNavItem;
-use Modules\Layout\ThemeSetting;
+use Themes\ThemeSetting;
 use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Shell\PageContext;
 use Shell\ShellContext;
-use Modules\Layout\AuthPageTheme;
-use Modules\Layout\DocsPageTheme;
-use Modules\Layout\ThemeModule;
-use Modules\Layout\ThemeSettings;
+use Themes\AuthPageTheme;
+use Themes\DocsPageTheme;
+use Themes\ThemeModule;
+use Themes\ThemeSettings;
 
 /**
  * NativaTheme — the house theme: Griffe's restraint, Boson's coverage.
@@ -188,6 +189,7 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
         $title = $context->copy['home.title'] ?? $context->copy['title'] ?? 'Home';
         $lede = $context->copy['home.message'] ?? $context->copy['lede'] ?? '';
         $cta = $context->copy['home.cta_start'] ?? $context->copy['cta'] ?? 'Read the blog';
+        $blog = self::blogBase($context);
 
         $hero = '<section class="na-hero"><div class="na-container na-hero__inner">'
             . '<div class="na-hero__lead">';
@@ -197,41 +199,17 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
         }
 
         $hero .= '<h1 class="na-hero__title">' . self::e($title) . '</h1>'
-            . '</div>';
-
-        $aside = '';
+            . '</div>'
+            . '<div class="na-hero__aside">';
 
         if ('' !== $lede) {
-            $aside .= '<p class="na-hero__lede">' . self::e($lede) . '</p>';
+            $hero .= '<p class="na-hero__lede">' . self::e($lede) . '</p>';
         }
 
-        // Only a surface this tree actually serves gets a button: a hero CTA
-        // that lands on a 404 is the same defect as a dead menu row. The
-        // layout answers which of the two exist (`$blogHref`/`$adminHref` are
-        // null when no route serves them), so a kernel-only tree renders the
-        // title and lede without advertising either module.
-        $actions = '';
-
-        if (null !== $context->blogHref) {
-            $actions .= '<a class="na-btn" href="' . self::e(self::blogBase($context)) . '">' . self::e($cta) . '</a>';
-        }
-
-        if (null !== $context->adminHref) {
-            $actions .= '<a class="na-btn na-btn--link" href="' . self::e($context->adminHref) . '">Open admin</a>';
-        }
-
-        if ('' !== $actions) {
-            $aside .= '<div class="na-hero__actions">' . $actions . '</div>';
-        }
-
-        // The aside is the right-hand column of a two-column hero. With no
-        // lede and no action there is nothing to put in it, and an empty
-        // column still costs the grid cell — so the whole column is omitted.
-        if ('' !== $aside) {
-            $hero .= '<div class="na-hero__aside">' . $aside . '</div>';
-        }
-
-        $hero .= '</div></section>';
+        $hero .= '<div class="na-hero__actions">'
+            . '<a class="na-btn" href="' . self::e($blog) . '">' . self::e($cta) . '</a>'
+            . '<a class="na-btn na-btn--link" href="' . self::e(AdminRoutePolicy::prefix()) . '">Open admin</a>'
+            . '</div></div></div></section>';
 
         $articles = [] !== $context->latestArticles ? $context->latestArticles : $context->articles;
 

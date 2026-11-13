@@ -24,23 +24,21 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
     /**
      * Default menu items seeded idempotently — label, href, location, sort[, icon].
      *
-     * The PUBLIC slots advertise only routes this tree serves. Measured on a
+     * Every href here must be a route the kernel itself serves: measured on a
      * fresh install, the seed used to ship `Privacy -> /privacy` and
-     * `Cookies -> /cookies`, and later `Articles -> /blog` and `Admin -> /mark`;
-     * none of those paths exists in this tree. A navbar that offers a dead end
-     * is the same defect the shell provider filters admin links for. The kernel
-     * serves `/` and nothing else a menu can point at: `/blog` belongs to Blog,
-     * `/mark` to the admin module, `/docs` to Docs, and a deployment that
-     * installs one adds its link in the panel's Navigation screen — the seed is
-     * a starting point, not a policy.
-     *
-     * The `admin` location is that panel's own nav, seeded here so the module
-     * rendering it has something to show; the kernel never reads that slot.
+     * `Cookies -> /cookies`, and neither path exists in this tree (both 404).
+     * A navbar that offers a dead end is the same defect the shell provider
+     * filters admin links for. The footer seeds no route: `/docs` belongs to
+     * the Docs module, and a module's link is added in `/mark` (Navigation) by
+     * the deployment that installs it — the seed is a starting point, not a
+     * policy.
      *
      * @var list<array{0: string, 1: string, 2: string, 3: int, 4?: string}>
      */
     private const array DEFAULT_MENU_ITEMS = [
         ['Home', '/', 'header', 10],
+        ['Articles', '/blog', 'header', 15],
+        ['Admin', '/mark', 'header', 20],
         // Admin panel navigation (location = 'admin') — label, href, location, sort, icon
         ['Dashboard', '/mark', 'admin', 10, 'dashboard'],
         ['Notifications', '/mark/notifications', 'admin', 15, 'bell'],
@@ -65,7 +63,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
 
     public function __construct(private \PDO $pdo)
     {
-        // DDL and the column probe stay on the raw handle, which is why the
+        // DDL and the PRAGMA probe stay on the raw handle, which is why the
         // migrator keeps `\PDO`. Everything that binds values goes through
         // the contract the repositories use, on this migrator's own
         // connection.
@@ -155,77 +153,25 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
      */
     private function addColumnIfMissing(string $table, string $column, string $definition): void
     {
-        if ($this->hasColumn($table, $column)) {
-            return;
+        $stmt = Statement::query($this->connection, "PRAGMA table_info({$table})");
+        $rows = $stmt->fetchAll();
+
+        foreach ($rows as $row) {
+            if (is_array($row) && ($row['name'] ?? '') === $column) {
+                return;
+            }
         }
 
         $this->pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
     }
 
-    /**
-     * Does the table already have the column?
-     *
-     * `PRAGMA table_info` exists only in SQLite; a server database answers the
-     * same question from `information_schema`.
-     */
-    private function hasColumn(string $table, string $column): bool
-    {
-        if ($this->isMysql()) {
-            $stmt = Statement::prepare($this->connection,
-                'SELECT 1 FROM information_schema.columns
-                 WHERE table_schema = DATABASE() AND table_name = :table AND column_name = :column',
-            );
-            $stmt->execute([':table' => $table, ':column' => $column]);
-
-            return false !== $stmt->fetch();
-        }
-
-        $stmt = Statement::query($this->connection, "PRAGMA table_info({$table})");
-
-        foreach ($stmt->fetchAll() as $row) {
-            if (is_array($row) && ($row['name'] ?? '') === $column) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function createIndexes(): void
     {
-        $this->createIndexIfMissing('idx_settings_group', 'settings', 'group_name');
-        $this->createIndexIfMissing('idx_settings_key', 'settings', 'setting_key');
-        $this->createIndexIfMissing('idx_menu_items_location', 'menu_items', 'location');
-        $this->createIndexIfMissing('idx_menu_items_parent', 'menu_items', 'parent_item_id');
-        $this->createIndexIfMissing('idx_menu_items_sort', 'menu_items', 'location, sort_order');
-    }
-
-    /**
-     * Create an index unless it already exists, in the dialect at hand.
-     *
-     * MySQL has no `CREATE INDEX IF NOT EXISTS`; MariaDB does. The
-     * information_schema probe answers for both, so one branch covers MySQL
-     * and MariaDB, and SQLite keeps the cheaper `IF NOT EXISTS`.
-     */
-    private function createIndexIfMissing(string $name, string $table, string $columns): void
-    {
-        if ($this->isMysql()) {
-            $stmt = Statement::prepare($this->connection,
-                'SELECT 1 FROM information_schema.statistics
-                 WHERE table_schema = DATABASE() AND table_name = :table AND index_name = :index',
-            );
-            $stmt->execute([':table' => $table, ':index' => $name]);
-
-            if (false !== $stmt->fetch()) {
-                return;
-            }
-
-            $this->pdo->exec("CREATE INDEX {$name} ON {$table}({$columns})");
-
-            return;
-        }
-
-        $this->pdo->exec("CREATE INDEX IF NOT EXISTS {$name} ON {$table}({$columns})");
+        $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_settings_group ON settings(group_name)');
+        $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(setting_key)');
+        $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_menu_items_location ON menu_items(location)');
+        $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_menu_items_parent ON menu_items(parent_item_id)');
+        $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_menu_items_sort ON menu_items(location, sort_order)');
     }
 
     /**
@@ -246,7 +192,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
 
         $inserted = 0;
         $stmt = Statement::prepare($this->connection,
-            ($this->isMysql() ? 'INSERT IGNORE' : 'INSERT OR IGNORE') . ' INTO settings (id, setting_key, setting_value, value_type, group_name, is_public, created_at, updated_at)
+            'INSERT OR IGNORE INTO settings (id, setting_key, setting_value, value_type, group_name, is_public, created_at, updated_at)
              VALUES (:id, :key, :value, :type, :group, :public, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
         );
 
@@ -271,11 +217,6 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
     /**
      * Seed a minimal navigation menu (header + footer) idempotently.
      */
-    private function isMysql(): bool
-    {
-        return 'mysql' === $this->connection->driverName();
-    }
-
     private function seedDefaultMenu(): int
     {
         $inserted = 0;

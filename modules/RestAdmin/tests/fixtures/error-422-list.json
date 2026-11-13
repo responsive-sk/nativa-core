@@ -1,0 +1,13 @@
+{
+    "detail": "Validation Error",
+    "errors": [
+        {
+            "field": "name",
+            "message": "This field is required."
+        },
+        {
+            "field": "price",
+            "message": "The price must be positive."
+        }
+    ]
+}

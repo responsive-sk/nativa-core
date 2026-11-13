@@ -1,0 +1,8 @@
+{
+    "title": [
+        "This field is required."
+    ],
+    "slug": [
+        "This field must be unique."
+    ]
+}

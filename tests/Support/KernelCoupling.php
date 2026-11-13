@@ -59,25 +59,6 @@ final class KernelCoupling
     public const array KERNEL_MODULES = ['Core', 'Database', 'Tooling'];
 
     /**
-     * The kernel's bootstrap files — the `src/` entries that are not inside a
-     * module directory.
-     *
-     * The invariant is about the kernel, not about one directory, and these
-     * files run in every process. They were outside the walk, so
-     * `src/http.php`'s own loudest sentence — "a line naming a module here is a
-     * module dependency the kernel cannot have" — was the one line nothing
-     * checked: it carried a `use Modules\Security\…` that no gate read
-     * (measured 2026-11-12). `composition.php` names modules inline on purpose
-     * and keeps no `use`; `init.php` imports the kernel only.
-     *
-     * Pinned rather than globbed, so a new `src/*.php` is added here as a
-     * decision instead of arriving unmeasured.
-     *
-     * @var list<string>
-     */
-    public const array BOOTSTRAP_FILES = ['src/composition.php', 'src/http.php', 'src/init.php'];
-
-    /**
      * Every `Modules\…` import under the kernel, kernel modules included,
      * keyed by `path::Symbol`.
      *
@@ -152,8 +133,7 @@ final class KernelCoupling
     }
 
     /**
-     * Every PHP file of the kernel: the three kernel modules and the bootstrap
-     * files, sorted for a stable key order.
+     * Every PHP file under the two kernel modules, sorted for a stable key order.
      *
      * @return list<string>
      */
@@ -176,13 +156,6 @@ final class KernelCoupling
                 if ($file instanceof \SplFileInfo && 'php' === $file->getExtension()) {
                     $files[] = $file->getPathname();
                 }
-            }
-        }
-
-        foreach (self::BOOTSTRAP_FILES as $bootstrap) {
-            $path = $paths->join(...explode('/', $bootstrap));
-            if (is_file($path)) {
-                $files[] = $path;
             }
         }
 

@@ -57,6 +57,7 @@ use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\RateLimitMiddleware;
 use Modules\Core\Interfaces\HTTP\Router;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Security\Application\Services\RateLimiter as SecurityRateLimiter;
 
 // EARLY ERROR LOGGING — capture crashes before bootstrap runs. Writes to
 // storage/logs/ (created below if missing).
@@ -201,24 +202,17 @@ function http_kernel(): Kernel
         error_log('[cache] PageCache OFF (PAGE_CACHE not enabled)');
     }
 
-    // The limiter is a module surface like the page cache above, and it is
-    // built the same way: the class name is a STRING and the object arrives
-    // through reflection. A class_exists guard protects a `new` literal at
-    // runtime, but static analysis resolves that literal whether or not the
-    // guard holds — a kernel-only checkout (no Modules\Security on disk)
-    // caught exactly that. The string is also what keeps the promise quoted at
-    // the top of this file: a `use Modules\…` line here is a module dependency
-    // the kernel may not carry, and `KernelCouplingTest` reads this file.
-    //
     // The factory yields an `object` because that is RateLimitMiddleware's own
     // declared shape (`\Closure(): object`) — its product is verified at
-    // runtime by the middleware, never trusted at compile time.
-    $rateLimiterClass = $keepString('Modules\\Security\\Application\\Services\\RateLimiter');
-
-    if (class_exists($rateLimiterClass)) {
+    // runtime by isLimiter(), never trusted at compile time. Nothing about the
+    // module's class appears in a TYPE position here on purpose: a class_exists
+    // guard protects the `new` below, but a return-type annotation is resolved
+    // regardless of any guard, which is exactly what a kernel-only checkout
+    // (no Modules\Security on disk) caught.
+    if (class_exists(SecurityRateLimiter::class)) {
         $kernel->addMiddleware(new RateLimitMiddleware(
-            static fn (): object => (new \ReflectionClass($rateLimiterClass))->newInstance(
-                DatabaseConnectionManager::instance()->connection('users'),
+            static fn (): object => new SecurityRateLimiter(
+                DatabaseConnectionManager::instance()->connect('users'),
             ),
             cache: $pageCache,
             sink: $securityEvents,

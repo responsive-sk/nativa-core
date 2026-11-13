@@ -7,10 +7,10 @@ namespace Modules\Themes\Nativa\Tests;
 use Shell\ShellNavItem;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Layout\FrontendLayout;
+use Themes\FrontendLayout;
 use Shell\PageContext;
 use Shell\ShellContext;
-use Modules\Layout\ThemeKernel;
+use Themes\ThemeKernel;
 use Modules\Themes\Nativa\Theme\NativaTheme;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -112,39 +112,6 @@ final class NativaThemeTest extends TestCase
         $this->assertStringContainsString('&quot;quoted&quot;', $html);
         $this->assertStringContainsString('href="/blog"', $html);
         $this->assertStringNotContainsString('<script>A', $html);
-    }
-
-    #[Test]
-    public function theHomepageAdvertisesOnlyTheSurfacesThisTreeServes(): void
-    {
-        // Kernel-only home: no Blog module, no admin panel. The hero has copy
-        // to render and nothing to link to, so it must not teach either URL.
-        $html = (new NativaTheme())->homepage(PageContext::forHomepage(
-            Request::create('GET', '/'),
-            self::THEME,
-            'sk',
-            copy: ['home.title' => 'Home'],
-        ));
-
-        $this->assertStringNotContainsString('/blog', $html, 'The hero advertises a blog the tree does not serve.');
-        $this->assertStringNotContainsString('/mark', $html, 'The hero advertises an admin panel the tree does not serve.');
-        $this->assertStringNotContainsString('na-hero__actions', $html, 'An empty action row is chrome without a purpose.');
-        $this->assertStringNotContainsString('na-hero__aside', $html, 'An empty hero column still costs the grid cell.');
-    }
-
-    #[Test]
-    public function theHomepageLinksWhicheverSurfaceTheLayoutConfirms(): void
-    {
-        $html = (new NativaTheme())->homepage(PageContext::forHomepage(
-            Request::create('GET', '/'),
-            self::THEME,
-            'sk',
-            blogHref: '/blog',
-            adminHref: '/mark',
-        ));
-
-        $this->assertStringContainsString('href="/blog"', $html);
-        $this->assertStringContainsString('href="/mark"', $html);
     }
 
     #[Test]

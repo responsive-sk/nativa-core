@@ -1,0 +1,31 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types = 1);
+
+/*
+ * bin/cardboard-rest-mcp — the REST admin's MCP server, over stdio.
+ *
+ * The protocol lives in the module (`Modules\RestAdmin\Interfaces\MCP\Server`),
+ * because that is the slice `module:add RestAdmin` copies. This file is the
+ * process: it boots the kernel the way `bin/cms` does, refuses politely when
+ * the module is not installed, and hands stdin/stdout to the server.
+ *
+ * One JSON document per line in, one per line out (a batch is one array on one
+ * line). Nothing is logged to stdout — a stray `echo` there is an invalid
+ * frame, and a client that cannot parse the first line gives up. Diagnostics
+ * go to stderr.
+ */
+
+require_once __DIR__ . '/../src/init.php';
+
+if (!class_exists('Modules\\RestAdmin\\Interfaces\\MCP\\Server')) {
+    fwrite(STDERR, 'cardboard-rest-mcp: the RestAdmin module is not installed. Run `php bin/cms module:add RestAdmin`.' . PHP_EOL);
+    exit(1);
+}
+
+$server = new \Modules\RestAdmin\Interfaces\MCP\Server(
+    \Modules\RestAdmin\Interfaces\MCP\ToolRegistry::default(),
+);
+
+$server->serve(STDIN, STDOUT);

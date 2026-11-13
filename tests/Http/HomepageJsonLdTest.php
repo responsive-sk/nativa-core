@@ -25,19 +25,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class HomepageJsonLdTest extends TestCase
 {
-    /**
-     * The block is emitted by the installed page shell; `PageShellRegistry`
-     * answers with `PlainPageShell` when no shell module is installed, and that
-     * page carries no JSON-LD. Skipping keeps the test from asserting the
-     * absence of the surface it exists to pin.
-     */
-    protected function setUp(): void
-    {
-        if (!is_dir(APP_BASE_PATH . '/src/Modules/Layout')) {
-            self::markTestSkipped('Layout is not installed — the home markup is the installed page shell\'s.');
-        }
-    }
-
     #[Test]
     public function theHomepageAnnouncesTheSiteWithOrganizationAndWebSite(): void
     {

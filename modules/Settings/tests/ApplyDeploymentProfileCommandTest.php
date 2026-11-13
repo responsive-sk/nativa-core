@@ -6,7 +6,7 @@ namespace Modules\Settings\Tests;
 
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Database\Infrastructure\Persistence\PdoConnection;
-use Modules\Layout\ThemeResolver;
+use Themes\ThemeResolver;
 use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator;
 use Modules\Settings\Infrastructure\Persistence\Statement;
 use Modules\Settings\Interfaces\CLI\Command\ApplyDeploymentProfileCommand;

@@ -37,6 +37,8 @@ spl_autoload_register(static function (string $class): void {
         'Seo\\'       => [__DIR__ . '/Seo/'],
         'Shell\\'     => [__DIR__ . '/Shell/'],
         'Templates\\' => [__DIR__ . '/Templates/'],
+        'Themes\\'    => [__DIR__ . '/Themes/'],
+        'View\\'      => [__DIR__ . '/View/'],
     ];
 
     foreach ($prefixMap as $prefix => $directories) {

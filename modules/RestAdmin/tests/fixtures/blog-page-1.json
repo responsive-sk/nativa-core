@@ -1,0 +1,38 @@
+{
+    "data": [
+        {
+            "id": 1,
+            "title": "Hello, Nativa",
+            "slug": "hello-nativa",
+            "body": "The first post.",
+            "status": "published",
+            "published_at": "2026-01-02T09:00:00Z",
+            "author": {
+                "id": 7,
+                "name": "Ada"
+            }
+        },
+        {
+            "id": 2,
+            "title": "Second post",
+            "slug": "second-post",
+            "body": "Another post.",
+            "status": "draft",
+            "published_at": null,
+            "author": {
+                "id": 7,
+                "name": "Ada"
+            }
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "last_page": 3,
+        "per_page": 2,
+        "total": 6
+    },
+    "links": {
+        "next": "https://api.blog.test/v1/posts?page=2",
+        "prev": null
+    }
+}

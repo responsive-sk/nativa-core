@@ -27,12 +27,6 @@ php-version = "8.5"
 # outside Core/Database/Tooling is operator state (gitignored, present only where
 # someone ran `bin/cms module:add`), so it is excluded by omission: naming only
 # the kernel keeps the verdict independent of what this checkout installed.
-#
-# `src/Modules/KernelTheme` is the tracked exception to that sentence: it ships
-# with the core export, yet it implements a contract owned by `modules/Layout`
-# and asks `ContentLocale`, so no kernel-only checkout can analyse it. It stays
-# out for the same reason as the installed slices; its import boundary is read
-# by `tests/Architecture/KernelThemeBoundaryTest.php` instead.
 paths = [
     "src/Modules/Core",
     "src/Modules/Database",
@@ -40,6 +34,8 @@ paths = [
     "src/Discovery",
     "src/Seo",
     "src/Shell",
+    "src/Themes",
+    "src/View",
     "src/composition.php",
     "src/http.php",
     "public/index.php",
@@ -168,8 +164,8 @@ single-class-per-file = { enabled = false }
 # namespace that has no rule is a violation (measured: `glob()` in a test read
 # as `Tests\Architecture\glob`, PHPUnit classes as illegal dependencies). So the
 # scope below is pinned to the kernel slice with `excludes`, and each kernel
-# namespace permits exactly its siblings, the port namespaces a module answers
-# through (`Discovery`, `Seo`, `Shell`), and `@global`.
+# namespace permits exactly its siblings, the theme tree the kernel renders for,
+# and `@global`.
 #
 # `KernelCouplingTest` guards the same sentence in PHP, and both catch the same
 # mutation — a `use Modules\Blog\…` typed into a Core file, named with the same
@@ -187,28 +183,28 @@ single-class-per-file = { enabled = false }
 [guard]
 mode = "default"
 # Kernel slice only: `tests`/`public`/`bin` are consumers of the rule, not
-# subjects of it, and the two composition roots name modules on purpose.
-# `modules/` is
+# subjects of it, `src/Themes` is a tree the kernel renders for (permitted
+# above), and the two composition roots name modules on purpose. `modules/` is
 # out because the perimeter below states a constraint on the KERNEL: modules are
 # the other side of it, and the model is a whitelist, so a module namespace
 # without a rule would report every one of its edges as a violation.
-excludes = ["tests", "public", "bin", "src/composition.php", "src/http.php", "modules"]
+excludes = ["tests", "public", "bin", "src/Themes", "src/composition.php", "src/http.php", "modules"]
 
 [guard.perimeter]
 
 [[guard.perimeter.rules]]
 namespace = 'Modules\Core'
-permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Discovery\**', 'Seo\**', 'Shell\**', '@global']
+permit = ['Modules\Core\**', 'Modules\Database\**', 'Modules\Tooling\**', 'Discovery\**', 'Seo\**', 'Shell\**', 'Themes\**', 'View\**', '@global']
 reason = 'The contract kernel may not see a module: modules are installed on top of it.'
 
 [[guard.perimeter.rules]]
 namespace = 'Modules\Database'
-permit = ['Modules\Database\**', 'Modules\Core\**', 'Modules\Tooling\**', '@global']
+permit = ['Modules\Database\**', 'Modules\Core\**', 'Modules\Tooling\**', 'Themes\**', 'View\**', '@global']
 reason = 'The concrete runtime sits on the kernel contracts; a module is still off limits.'
 
 [[guard.perimeter.rules]]
 namespace = 'Modules\Tooling'
-permit = ['Modules\Tooling\**', 'Modules\Core\**', 'Modules\Database\**', 'Discovery\**', '@global']
+permit = ['Modules\Tooling\**', 'Modules\Core\**', 'Modules\Database\**', 'Discovery\**', 'Themes\**', 'View\**', '@global']
 reason = 'The module tooling reads the kernel and the catalogue, never a module class.'
 
 [[guard.perimeter.rules]]
@@ -225,3 +221,8 @@ reason = 'The SEO primitives build head markup and sitemap values from kernel pa
 namespace = 'Shell'
 permit = ['Shell\**', 'Modules\Core\**', 'Discovery\**', '@global']
 reason = 'The shell port reads kernel paths and values; a module is on the answering side of it, not a dependency.'
+
+[[guard.perimeter.rules]]
+namespace = 'View'
+permit = ['View\**', 'Modules\Core\**', '@global']
+reason = 'The view helpers resolve template and asset paths through the kernel; a module is off limits.'

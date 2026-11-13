@@ -1,0 +1,21 @@
+{
+    "results": [
+        {
+            "id": 1,
+            "name": "Mug",
+            "sku": "SKU-1",
+            "price": 900,
+            "in_stock": true
+        },
+        {
+            "id": 2,
+            "name": "Bowl",
+            "sku": "SKU-2",
+            "price": 1200,
+            "in_stock": true
+        }
+    ],
+    "count": 5,
+    "next": "/api/products?page=2",
+    "previous": null
+}

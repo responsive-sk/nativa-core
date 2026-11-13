@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Tests\Http;
 
 use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\Permissions;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Interfaces\HTTP\Actions\RobotsAction;
 use Modules\Core\Interfaces\HTTP\Kernel;
@@ -18,13 +19,13 @@ use PHPUnit\Framework\TestCase;
  * Task 0.3 of `.ai-factory/plans/feature-constant-ownership.md`: two constants
  * both named `ADMIN_PATH` disagreed — `SettingsShellContextProvider` said
  * `'/mark'` and `AuthMiddlewareDenialTest` said the same string a second time,
- * while `AuthMiddleware`, `PageCacheService` and every hardcoded link each
- * carried their own copy. `AdminRoutePolicy` is the owner now, and
+ * while `AuthMiddleware`, `PageCacheService` and 17 rows of the permission
+ * table each carried their own copy. `AdminRoutePolicy` is the owner now, and
  * `ADMIN_PATH` is a validated value rather than a hardcoded fact:
  *
  *   - an unset value is `/mark`, exactly as before, so no deployment changes;
- *   - a configured value (`/admin`) is an ALIAS: it serves every admin route
- *     and 301s within itself;
+ *   - a configured value (`/admin`) is an ALIAS: it serves every admin route,
+ *     asks the same permission table, and 301s within itself;
  *   - a malformed value falls back to `/mark` instead of hiding the panel;
  *   - the internal `/mark/...` spelling keeps working, so hardcoded links and
  *     stored URLs do not 404 on a renamed prefix.
@@ -93,17 +94,23 @@ final class AdminPathPrefixTest extends TestCase
 
         self::assertSame('/mark/users', AdminRoutePolicy::canonicalPath('/mark/users'));
         self::assertSame('/mark/users', AdminRoutePolicy::publicPath('/mark/users'));
+
+        self::assertSame(Permissions::USERS, AdminRoutePolicy::requiredPermission('/mark/users'));
+        self::assertSame(Permissions::MARK_ACCESS, AdminRoutePolicy::requiredPermission('/mark'));
     }
 
-    public function testAConfiguredPrefixIsServedLikeTheDefault(): void
+    public function testAConfiguredPrefixIsServedAndClassifiedLikeTheDefault(): void
     {
         $this->configure('/admin');
 
         self::assertSame('/admin', AdminRoutePolicy::prefix());
 
-        // Both spellings are admin paths.
+        // Both spellings are admin paths, and the alias resolves to the same
+        // permission as the internal one.
         self::assertTrue(AdminRoutePolicy::isAdminPath('/admin/users'));
         self::assertTrue(AdminRoutePolicy::isAdminPath('/mark/users'));
+        self::assertSame(Permissions::USERS, AdminRoutePolicy::requiredPermission('/admin/users'));
+        self::assertSame(Permissions::MARK_ACCESS, AdminRoutePolicy::requiredPermission('/admin'));
 
         // Canonicalization is one-directional: the router sees `/mark/...`.
         self::assertSame('/mark', AdminRoutePolicy::canonicalPath('/admin'));
@@ -118,6 +125,7 @@ final class AdminPathPrefixTest extends TestCase
 
         // A prefix matches whole segments only.
         self::assertFalse(AdminRoutePolicy::isAdminPath('/adminfoo'));
+        self::assertNull(AdminRoutePolicy::requiredPermission('/adminfoo'));
     }
 
     /**

@@ -1,0 +1,17 @@
+{
+    "data": [
+        {
+            "id": "evt-1",
+            "action": "login",
+            "actor": "ada"
+        },
+        {
+            "id": "evt-2",
+            "action": "logout",
+            "actor": "ada"
+        }
+    ],
+    "cursor": {
+        "next": "Y3Vyc29yLTI"
+    }
+}

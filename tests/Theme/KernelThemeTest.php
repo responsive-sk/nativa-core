@@ -6,10 +6,10 @@ namespace Tests\Theme;
 
 use Modules\Core\Interfaces\HTTP\ErrorPageRenderer;
 use Modules\KernelTheme\Theme\KernelTheme;
-use Modules\Layout\FrontendLayout;
-use Modules\View\InlineCss;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Themes\FrontendLayout;
+use View\InlineCss;
 
 /**
  * KernelThemeTest (task 2.2) — the trimmed design, pinned.
@@ -60,10 +60,6 @@ final class KernelThemeTest extends TestCase
     #[Test]
     public function errorPageIsThemeVocabularyWithoutShowcase(): void
     {
-        if (!is_dir(APP_BASE_PATH . '/src/Modules/Layout')) {
-            $this->markTestSkipped('Layout is not installed — the error page wears the installed page shell.');
-        }
-
         $response = ErrorPageRenderer::response(404, 'Not Found', 'gone <script>');
 
         $this->assertSame(404, $response->getStatusCode());
