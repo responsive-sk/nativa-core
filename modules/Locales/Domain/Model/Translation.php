@@ -10,6 +10,9 @@ namespace Modules\Locales\Domain\Model;
  * Represents a single translation key-value pair for a specific locale.
  * A plain data entity — no domain events (the minimal kit has no listeners
  * for them; writes invalidate the request cache in TranslationService).
+ *
+ * Timestamps are UTC, the same clock as the column defaults and the
+ * migrator's `CURRENT_TIMESTAMP` seeds: one base in the table, not two.
  */
 final class Translation
 {
@@ -49,7 +52,7 @@ final class Translation
             ));
         }
 
-        $now = new \DateTimeImmutable();
+        $now = self::now();
         $instance = new self();
         $instance->id = bin2hex(random_bytes(13));
         $instance->key = $key;
@@ -76,8 +79,9 @@ final class Translation
         $instance->locale = '' !== $localeCode ? Locale::fromString($localeCode) : Locale::default();
         $instance->value = self::s($data['value'] ?? '');
         $instance->group = self::s($data['group_name'] ?? $data['group'] ?? 'general');
-        $instance->createdAt = new \DateTimeImmutable(self::s($data['created_at'] ?? 'now'));
-        $instance->updatedAt = new \DateTimeImmutable(self::s($data['updated_at'] ?? 'now'));
+        $utc = new \DateTimeZone('UTC');
+        $instance->createdAt = new \DateTimeImmutable(self::s($data['created_at'] ?? 'now'), $utc);
+        $instance->updatedAt = new \DateTimeImmutable(self::s($data['updated_at'] ?? 'now'), $utc);
 
         return $instance;
     }
@@ -126,7 +130,7 @@ final class Translation
     public function updateValue(string $value): void
     {
         $this->value = $value;
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->updatedAt = self::now();
     }
 
     /**
@@ -135,7 +139,7 @@ final class Translation
     public function updateGroup(string $group): void
     {
         $this->group = $group;
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->updatedAt = self::now();
     }
 
     /**
@@ -152,6 +156,11 @@ final class Translation
             'created_at'      => $this->createdAt->format('Y-m-d H:i:s'),
             'updated_at'      => $this->updatedAt->format('Y-m-d H:i:s'),
         ];
+    }
+
+    private static function now(): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     }
 
     private static function s(mixed $value): string

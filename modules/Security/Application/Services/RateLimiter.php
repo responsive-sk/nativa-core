@@ -112,6 +112,11 @@ final readonly class RateLimiter
 
     /**
      * Record a failed login attempt (per-email + per-IP audit trail).
+     *
+     * The row carries the column's own clock: `attempted_at` defaults to
+     * SQLite's UTC `CURRENT_TIMESTAMP`, so the explicit value is UTC too.
+     * A PHP `date()` here stamped the process timezone into a table whose
+     * other rows (and every future window query) are UTC.
      */
     public function recordLoginAttempt(string $email, string $ip): void
     {
@@ -120,7 +125,7 @@ final readonly class RateLimiter
                 'id'    => bin2hex(random_bytes(16)),
                 'email' => $email,
                 'ip'    => $ip,
-                'at'    => date('Y-m-d H:i:s'),
+                'at'    => gmdate('Y-m-d H:i:s'),
             ]);
     }
 

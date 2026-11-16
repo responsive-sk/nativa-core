@@ -146,6 +146,41 @@ final class RateLimitMiddlewareTest extends TestCase
     }
 
     /**
+     * The audit trail shares the column's clock. `attempted_at` defaults to
+     * SQLite's UTC `CURRENT_TIMESTAMP` and the row is written explicitly, so a
+     * PHP `date()` under a +14 zone put the attempt fourteen hours away from
+     * the same table's default — and from any later window query.
+     */
+    #[Test]
+    public function aFailedAttemptIsStampedInUtcNotInTheProcessTimezone(): void
+    {
+        $pdo = new PDO('sqlite::memory:');
+        $limiter = new RateLimiter(new PdoConnection($pdo, 'users'));
+
+        $original = date_default_timezone_get();
+        date_default_timezone_set('Pacific/Kiritimati');
+
+        try {
+            $limiter->recordLoginAttempt('operator@example.test', self::CLIENT_IP);
+        } finally {
+            date_default_timezone_set($original);
+        }
+
+        $stored = (string) $pdo->query('SELECT attempted_at FROM login_attempts')->fetchColumn();
+
+        self::assertNotSame('', $stored, 'the attempt row was not written');
+
+        $parsed = (int) strtotime($stored . ' UTC');
+
+        self::assertGreaterThan(0, $parsed, sprintf('attempted_at "%s" is not a parseable timestamp', $stored));
+        self::assertLessThanOrEqual(
+            5,
+            abs(time() - $parsed),
+            sprintf('attempted_at "%s" is not UTC now — the row was stamped with the process timezone', $stored),
+        );
+    }
+
+    /**
      * A fresh limiter per test over an in-memory database — the real class,
      * the real upsert, no shared state between the halves of the contract.
      *
