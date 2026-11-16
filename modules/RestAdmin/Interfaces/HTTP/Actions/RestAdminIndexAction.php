@@ -37,10 +37,11 @@ final class RestAdminIndexAction
 
         foreach ($services as $service) {
             $href = $this->url('mark.rest.service', ['id' => $service['id']]);
+            $updatedAt = (string) $service['updated_at'];
             $rows[] = [
                 ['html' => '<a href="' . AdminLayout::e($href) . '">' . AdminLayout::e($service['name']) . '</a>'],
                 $service['base_url'],
-                '' === $service['updated_at'] ? '—' : $service['updated_at'],
+                '' === $updatedAt ? '—' : AdminLayout::formatTime($updatedAt),
             ];
         }
 

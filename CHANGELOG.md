@@ -5,6 +5,55 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### UTC timestamps: one clock on disk, the operator's clock on screen
+
+The writers stamped `date()` and the panels printed the stored string back, so
+both ends depended on the process timezone while the columns they were compared
+with (`CURRENT_TIMESTAMP`, `datetime('now', …)`) are UTC. The three commits in
+this round move the write side to one base and give the read side exactly one
+seam.
+
+**Changed**
+
+- `Audit`, `Queue`, `Outbox`, `Notifications` and `Media` stamp their timestamps
+  with `gmdate()`: `audit_log.created_at`, the queue's `available_at`, the
+  outbox's `created_at`/`last_attempt_at`/`processed_at`, the inbox's
+  `created_at`/`read_at` and `assets.created_at`. `AuditEntry` also hydrates
+  `created_at` as a UTC `DateTimeImmutable`, so a row read back is the instant
+  that was written.
+- The two writers outside that set follow: `Security\RateLimiter` writes
+  `login_attempts.attempted_at` in UTC, and `Locales\Translation` creates,
+  hydrates and edits `created_at`/`updated_at` through one `now()` helper
+  pinned to UTC.
+- The read side converts once, in `AdminLayout`: `displayTimezone()` resolves
+  `APP_TIMEZONE`, `storedTime()` reads a zone-less column AS UTC (an ISO 8601
+  value keeps its own offset) and `formatTime()` renders it in that zone.
+  `relativeTime()` takes a `DateTimeImmutable`, and its `<time datetime="…">`
+  carries the display offset. The audit log, the outbox list and detail, the
+  queue detail, media dates and `RestAdmin`'s `updated_at` now go through it
+  instead of printing the column.
+
+**Added**
+
+- Eleven tests on both sides of that seam: a UTC stamp per write-side module
+  asserted under `Pacific/Kiritimati` (UTC+14), a failed login attempt stamped
+  in UTC, `TranslationTimestampTest` for create and edit, and
+  `AdminLayoutTimeTest` for UTC parsing, offset-bearing `<time>` values and an
+  empty timestamp that stays empty instead of becoming "now".
+
+**Measured**
+
+- `make test`: 884 tests, 3146 assertions, 3 skipped. `make mago-lint`: exit 0,
+  0 issues. On `localhost:8000` a queue probe and the audit rows were stored at
+  `23:21` UTC while the panels showed `00:21` CET.
+
+**Not changed, with the reason recorded**
+
+- `RestAdmin`'s `SpecStore` keeps `gmdate('c')`. The ISO 8601 string is the
+  documented snapshot contract (`SpecStoreTest` pins the offset shape) and is
+  never compared with a database column; only its presentation in the service
+  list converts.
+
 ### REST admin: a panel, a specification and an MCP server
 
 **Added**

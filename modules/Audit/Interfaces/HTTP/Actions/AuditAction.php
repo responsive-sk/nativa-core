@@ -50,8 +50,7 @@ final class AuditAction
 
     private function row(AuditEntry $entry): string
     {
-        $datetime = $entry->createdAt()->format('Y-m-d\TH:i:s');
-        $time = AdminLayout::relativeTime($datetime);
+        $time = AdminLayout::relativeTime($entry->createdAt());
         $actor = AdminLayout::e($entry->actorName());
         $action = '<span class="m-badge m-badge-success">' . AdminLayout::e($entry->action()) . '</span>';
         $target = AdminLayout::e($entry->target());

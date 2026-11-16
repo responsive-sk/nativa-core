@@ -125,7 +125,7 @@ final class MediaIndexAction
         $urlEscaped = AdminLayout::e('' !== $url ? $url : $editHref);
         $size = $this->formatSize($asset->size());
         $mime = AdminLayout::e($asset->mimeType());
-        $date = AdminLayout::e(substr($asset->createdAt(), 0, 10));
+        $date = AdminLayout::e(AdminLayout::formatTime($asset->createdAt(), 'Y-m-d'));
         $viewCount = $asset->viewCount();
         $category = $asset->category();
         $tags = $asset->tags();

@@ -261,8 +261,12 @@ final class QueueAdminAction
         $rows = '';
         foreach (['queue' => 'Queue', 'handler' => 'Handler', 'state' => 'State', 'available_at' => 'Available at', 'reserved_at' => 'Reserved at', 'created_at' => 'Created'] as $key => $label) {
             $value = $job[$key] ?? null;
+            $display = null === $value || '' === (string) $value
+                ? '—'
+                : (str_ends_with($key, '_at') ? AdminLayout::formatTime((string) $value) : (string) $value);
+
             $rows .= '<tr><td>' . $label . '</td><td class="m-mono">'
-                . AdminLayout::e(null !== $value ? (string) $value : '—') . '</td></tr>';
+                . AdminLayout::e($display) . '</td></tr>';
         }
 
         $rows .= '<tr><td>Attempts</td><td class="m-mono">'

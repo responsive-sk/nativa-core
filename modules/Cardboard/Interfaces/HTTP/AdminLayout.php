@@ -7,6 +7,7 @@ namespace Modules\Cardboard\Interfaces\HTTP;
 use Modules\Cardboard\Application\Services\IconRegistry;
 use Themes\AssetManager;
 use View\ViewRenderer;
+use Modules\Core\Infrastructure\Env;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
@@ -413,49 +414,117 @@ final class AdminLayout
     }
 
     /**
+     * The timezone the panels present stored times in.
+     *
+     * Storage is UTC — every writer stamps `gmdate()` — while `APP_TIMEZONE`
+     * is the operator's clock. `src/init.php` already makes it the process
+     * default, so the setting is read once here rather than repeated in each
+     * panel.
+     */
+    public static function displayTimezone(): \DateTimeZone
+    {
+        $name = Env::get('APP_TIMEZONE', 'Europe/Bratislava');
+
+        try {
+            return new \DateTimeZone(is_string($name) && '' !== $name ? $name : 'Europe/Bratislava');
+        } catch (\Throwable) {
+            return new \DateTimeZone('UTC');
+        }
+    }
+
+    /**
+     * Read a stored timestamp as an instant.
+     *
+     * A storage column holds UTC wall clock ("2026-11-17 08:00:00"). Parsed
+     * without a zone it would be read as the process timezone, hours off in
+     * both the relative label and the date shown. A string that already
+     * carries an offset (ISO 8601, `gmdate('c')`) keeps its own.
+     */
+    public static function storedTime(string|\DateTimeInterface $datetime): ?\DateTimeImmutable
+    {
+        if ($datetime instanceof \DateTimeInterface) {
+            return \DateTimeImmutable::createFromInterface($datetime);
+        }
+
+        if ('' === trim($datetime)) {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable($datetime, new \DateTimeZone('UTC'));
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Format a stored UTC timestamp in `APP_TIMEZONE`.
+     *
+     * A value the parser cannot read comes back unchanged — the panel shows
+     * the raw cell rather than inventing a date.
+     */
+    public static function formatTime(string|\DateTimeInterface|null $datetime, string $format = 'Y-m-d H:i:s'): string
+    {
+        if (null === $datetime) {
+            return '';
+        }
+
+        $time = self::storedTime($datetime);
+
+        if (null === $time) {
+            return is_string($datetime) ? $datetime : '';
+        }
+
+        return $time->setTimezone(self::displayTimezone())->format($format);
+    }
+
+    /**
      * Render a relative time string with a <time> element.
      *
      * Examples: "2 minutes ago", "3 hours ago", "yesterday", "5 days ago"
+     *
+     * The input is a stored UTC timestamp (or an already-zoned instant). The
+     * sentence is relative and timezone-free, but the machine-readable value
+     * and the fallback date belong to `APP_TIMEZONE`.
      */
-    public static function relativeTime(string $datetime): string
+    public static function relativeTime(string|\DateTimeInterface $datetime): string
     {
-        $now = time();
-        $then = strtotime($datetime);
+        $then = self::storedTime($datetime);
 
-        if (false === $then) {
-            return self::e($datetime);
+        if (null === $then) {
+            return self::e(is_string($datetime) ? $datetime : '');
         }
 
-        $diff = $now - $then;
-        $escaped = self::e($datetime);
+        $diff = time() - $then->getTimestamp();
+        $iso = self::e(self::formatTime($then, 'c'));
 
         if ($diff < 0) {
-            return '<time datetime="' . $escaped . '">just now</time>';
+            return '<time datetime="' . $iso . '">just now</time>';
         }
         if ($diff < 60) {
-            return '<time datetime="' . $escaped . '">just now</time>';
+            return '<time datetime="' . $iso . '">just now</time>';
         }
         if ($diff < 3600) {
             $mins = (int) floor($diff / 60);
 
-            return '<time datetime="' . $escaped . '">' . $mins . 'm ago</time>';
+            return '<time datetime="' . $iso . '">' . $mins . 'm ago</time>';
         }
         if ($diff < 86_400) {
             $hours = (int) floor($diff / 3600);
 
-            return '<time datetime="' . $escaped . '">' . $hours . 'h ago</time>';
+            return '<time datetime="' . $iso . '">' . $hours . 'h ago</time>';
         }
         if ($diff < 172_800) {
-            return '<time datetime="' . $escaped . '">yesterday</time>';
+            return '<time datetime="' . $iso . '">yesterday</time>';
         }
         if ($diff < 604_800) {
             $days = (int) floor($diff / 86_400);
 
-            return '<time datetime="' . $escaped . '">' . $days . 'd ago</time>';
+            return '<time datetime="' . $iso . '">' . $days . 'd ago</time>';
         }
 
         // Older than 7 days — show full date.
-        return '<time datetime="' . $escaped . '">' . self::e(date('M j', $then)) . '</time>';
+        return '<time datetime="' . $iso . '">' . self::e(self::formatTime($then, 'M j')) . '</time>';
     }
 
     /**
