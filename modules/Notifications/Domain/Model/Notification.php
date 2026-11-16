@@ -20,6 +20,9 @@ namespace Modules\Notifications\Domain\Model;
  * would describe a comment an admin has since rejected, or a panel that moved.
  *
  * Immutable after creation; reading it returns a new instance.
+ *
+ * Timestamps are UTC, like the `CURRENT_TIMESTAMP` defaults they replace: the
+ * inbox orders and windows them against SQLite's own clock.
  */
 final readonly class Notification
 {
@@ -57,7 +60,7 @@ final readonly class Notification
             body: $body,
             href: $href,
             readAt: null,
-            createdAt: date('Y-m-d H:i:s'),
+            createdAt: gmdate('Y-m-d H:i:s'),
         );
     }
 
@@ -118,7 +121,7 @@ final readonly class Notification
             title: $this->title,
             body: $this->body,
             href: $this->href,
-            readAt: $this->readAt ?? date('Y-m-d H:i:s'),
+            readAt: $this->readAt ?? gmdate('Y-m-d H:i:s'),
             createdAt: $this->createdAt,
         );
     }

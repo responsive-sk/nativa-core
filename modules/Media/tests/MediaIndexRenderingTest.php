@@ -148,6 +148,42 @@ final class MediaIndexRenderingTest extends TestCase
         self::assertStringContainsString('photos/cover.png', $response->getContent());
     }
 
+    /**
+     * `assets.created_at` is UTC: `MediaMetric` counts it against SQLite
+     * `datetime('now')` and the grid sorts on it. A local stamp is two hours
+     * younger than the row really is.
+     */
+    #[Test]
+    public function anUploadIsStampedInUtc(): void
+    {
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('Pacific/Kiritimati'); // UTC+14: a local stamp is half a day off
+
+        try {
+            MediaServices::repository()->insert(MediaAsset::create(
+                filename: 'utc-check.png',
+                originalName: 'utc-check.png',
+                path: 'utc/check.png',
+                size: 1,
+                mimeType: 'image/png',
+                uploadedBy: 'test',
+            ));
+        } finally {
+            date_default_timezone_set($previous);
+        }
+
+        $asset = MediaServices::repository()->findByPath('utc/check.png');
+
+        self::assertNotNull($asset);
+        $createdAt = new \DateTimeImmutable($asset->createdAt(), new \DateTimeZone('UTC'));
+
+        self::assertLessThanOrEqual(
+            5,
+            abs($createdAt->getTimestamp() - time()),
+            'assets.created_at must be UTC: the metric window is SQLite datetime(\'now\').',
+        );
+    }
+
     private function action(): MediaIndexAction
     {
         $router = Router::fromEntries([], [

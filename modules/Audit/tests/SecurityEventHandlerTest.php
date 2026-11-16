@@ -142,6 +142,37 @@ final class SecurityEventHandlerTest extends TestCase
         self::assertSame('/mark/users', $row['target']);
     }
 
+    /**
+     * `audit_log.created_at` is UTC because `AuditMetric` compares it with
+     * SQLite `datetime('now', ...)`. A local stamp lands two hours in the
+     * future, and the row falls outside the window it belongs to.
+     */
+    #[Test]
+    public function theAuditStampIsUtcNotTheProcessTimezone(): void
+    {
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('Pacific/Kiritimati'); // UTC+14: a local stamp is half a day off
+
+        try {
+            $this->handler()->handle(OutboxMessage::create(
+                SecurityEvents::USER_CHANGED,
+                ['userId' => str_repeat('c', 32), 'operation' => SecurityEventServices::OP_UPDATE, 'ip' => '198.51.100.12'],
+                ['actor_id' => 'admin-1', 'actor_name' => 'Admin Example', 'target' => 'jane@example.com'],
+            ));
+            $row = $this->row();
+        } finally {
+            date_default_timezone_set($previous);
+        }
+
+        $createdAt = new \DateTimeImmutable($row['created_at'], new \DateTimeZone('UTC'));
+
+        self::assertLessThanOrEqual(
+            5,
+            abs($createdAt->getTimestamp() - time()),
+            'audit_log.created_at must be UTC: the metric windows are SQLite datetime(\'now\').',
+        );
+    }
+
     private function handler(): SecurityEventHandler
     {
         return new SecurityEventHandler(new AuditService(
@@ -150,17 +181,17 @@ final class SecurityEventHandlerTest extends TestCase
     }
 
     /**
-     * @return array{actor_user_id: string, actor_name: string, target: string, detail: string, ip_address: string}
+     * @return array{actor_user_id: string, actor_name: string, target: string, detail: string, ip_address: string, created_at: string}
      */
     private function row(): array
     {
         $row = (new PdoConnection($this->pdo, 'audit'))->query(
-            'SELECT actor_user_id, actor_name, target, detail, ip_address FROM audit_log',
+            'SELECT actor_user_id, actor_name, target, detail, ip_address, created_at FROM audit_log',
         )->fetch(PDO::FETCH_ASSOC);
 
         self::assertIsArray($row, 'The handler wrote no audit row.');
 
-        /** @var array{actor_user_id: string, actor_name: string, target: string, detail: string, ip_address: string} $row */
+        /** @var array{actor_user_id: string, actor_name: string, target: string, detail: string, ip_address: string, created_at: string} $row */
         return $row;
     }
 }

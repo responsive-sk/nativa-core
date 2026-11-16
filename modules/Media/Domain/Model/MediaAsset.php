@@ -9,6 +9,9 @@ namespace Modules\Media\Domain\Model;
  *
  * Created by MediaService::upload(), stored in media.db, and served from
  * the existing LocalStorageProvider filesystem under storage/uploads/.
+ *
+ * `createdAt` is UTC, like the column default it replaces: MediaMetric counts
+ * it against SQLite `datetime('now')`.
  */
 final readonly class MediaAsset
 {
@@ -57,7 +60,7 @@ final readonly class MediaAsset
             size: $size,
             mimeType: $mimeType,
             uploadedBy: $uploadedBy,
-            createdAt: date('Y-m-d H:i:s'),
+            createdAt: gmdate('Y-m-d H:i:s'),
             provider: $provider,
             category: $category,
             folder: $folder,

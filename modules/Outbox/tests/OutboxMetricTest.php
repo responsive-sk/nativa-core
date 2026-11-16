@@ -10,6 +10,7 @@ use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\PdoConnection;
 use Modules\Outbox\Application\Services\OutboxMetric;
+use Modules\Outbox\Domain\Model\OutboxMessage;
 use Modules\Outbox\Infrastructure\Persistence\Migrations\OutboxDatabaseMigrator;
 use Modules\Outbox\Infrastructure\Persistence\Statement;
 use PDO;
@@ -75,11 +76,11 @@ final class OutboxMetricTest extends TestCase
         $this->seed('pending', null, null);
         $this->seed('pending', null, null);
         $this->seed('processing', null, null);
-        $this->seed('processed', date('Y-m-d H:i:s'), null);
-        $this->seed('processed', date('Y-m-d H:i:s'), null);
+        $this->seed('processed', gmdate('Y-m-d H:i:s'), null);
+        $this->seed('processed', gmdate('Y-m-d H:i:s'), null);
         // Old processed row: outside every 7d window, must not count.
-        $this->seed('processed', date('Y-m-d H:i:s', strtotime('-60 days')), null);
-        $this->seed('failed', null, date('Y-m-d H:i:s'));
+        $this->seed('processed', gmdate('Y-m-d H:i:s', strtotime('-60 days')), null);
+        $this->seed('failed', null, gmdate('Y-m-d H:i:s'));
 
         (new OutboxMetric($this->connection))->registerCards(Period::SEVEN_DAYS);
 
@@ -105,6 +106,34 @@ final class OutboxMetricTest extends TestCase
         $this->assertSame('0 processed · 0 failed in 7 days', $cards[0]->subtitle);
     }
 
+    /**
+     * `OutboxMessage` stamps UTC for the same reason the columns default to it:
+     * every window in this card is SQLite `datetime('now')`. A local stamp is
+     * two hours younger than the row really is, so it can sit inside a period
+     * the row does not belong to.
+     */
+    #[Test]
+    public function modelTimestampsAreUtcSoTheSqliteWindowsSeeThem(): void
+    {
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('Pacific/Kiritimati'); // UTC+14: a local stamp is half a day off
+
+        try {
+            $message = OutboxMessage::create('article.published', [])->withProcessed();
+        } finally {
+            date_default_timezone_set($previous);
+        }
+
+        self::assertNotNull($message->processedAt());
+        $processedAt = new \DateTimeImmutable((string) $message->processedAt(), new \DateTimeZone('UTC'));
+
+        self::assertLessThanOrEqual(
+            5,
+            abs($processedAt->getTimestamp() - time()),
+            'processed_at must be UTC: the trend window is SQLite datetime(\'now\').',
+        );
+    }
+
     private function seed(string $status, ?string $processedAt, ?string $lastAttemptAt): void
     {
         $stmt = Statement::prepare($this->connection,
@@ -118,7 +147,7 @@ final class OutboxMetricTest extends TestCase
             ':status' => $status,
             ':processed' => $processedAt,
             ':attempted' => $lastAttemptAt,
-            ':created' => date('Y-m-d H:i:s'),
+            ':created' => gmdate('Y-m-d H:i:s'),
         ]);
     }
 }

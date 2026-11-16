@@ -11,6 +11,10 @@ namespace Modules\Audit\Domain\Entities;
  * denormalized at write time), what (action), on what (target reference),
  * detail, from where (IP) and when. Plain data entity, zero dependencies
  * (pure Domain).
+ *
+ * `createdAt` is UTC: the column is compared with SQLite's
+ * `CURRENT_TIMESTAMP` and `datetime('now', ...)` windows, so a local stamp
+ * would put a row hours outside the period it belongs to.
  */
 final class AuditEntry
 {
@@ -50,7 +54,7 @@ final class AuditEntry
         $instance->target = $target;
         $instance->detail = $detail;
         $instance->ipAddress = $ipAddress;
-        $instance->createdAt = new \DateTimeImmutable();
+        $instance->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
 
         return $instance;
     }
@@ -95,7 +99,7 @@ final class AuditEntry
         $instance->target = self::s($data['target'] ?? '');
         $instance->detail = self::s($data['detail'] ?? '');
         $instance->ipAddress = self::nullable($data['ip_address'] ?? null);
-        $instance->createdAt = new \DateTimeImmutable(self::s($data['created_at'] ?? 'now'));
+        $instance->createdAt = new \DateTimeImmutable(self::s($data['created_at'] ?? 'now'), new \DateTimeZone('UTC'));
 
         return $instance;
     }

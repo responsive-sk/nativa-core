@@ -237,6 +237,34 @@ final class NotificationInboxTest extends TestCase
         self::assertSame(1, (int) $count);
     }
 
+    /**
+     * `notifications` timestamps are UTC, like the schema default they replace:
+     * the inbox orders by `created_at` and its one-second rowid tiebreak assumes
+     * both sides of a comparison share a clock.
+     */
+    #[Test]
+    public function timestampsAreStoredInUtcNotInTheProcessTimezone(): void
+    {
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('Pacific/Kiritimati'); // UTC+14: a local stamp is half a day off
+
+        try {
+            $this->inbox()->push(['user-a'], 'comment', 'UTC row', 'Body', '/mark/comments');
+            $row = $this->inbox()->recent('user-a')[0];
+            self::assertTrue($this->inbox()->markRead($row->id(), 'user-a'));
+            $read = $this->inbox()->recent('user-a')[0];
+        } finally {
+            date_default_timezone_set($previous);
+        }
+
+        $createdAt = new \DateTimeImmutable($row->createdAt(), new \DateTimeZone('UTC'));
+        self::assertLessThanOrEqual(5, abs($createdAt->getTimestamp() - time()), 'created_at must be UTC.');
+
+        self::assertNotNull($read->readAt());
+        $readAt = new \DateTimeImmutable((string) $read->readAt(), new \DateTimeZone('UTC'));
+        self::assertLessThanOrEqual(5, abs($readAt->getTimestamp() - time()), 'read_at must be UTC too.');
+    }
+
     private function inbox(): NotificationInbox
     {
         return NotificationsServices::inbox();

@@ -162,7 +162,7 @@ final class ProcessOutboxCommandTest extends TestCase
         // A row processed NOW is inside every sane interval, so it stays —
         // which is the half of the contract that keeps an operator from
         // deleting evidence they still want to read.
-        $this->seedProcessed(date('Y-m-d H:i:s'));
+        $this->seedProcessed(gmdate('Y-m-d H:i:s'));
         $this->assertSame(1, OutboxServices::repository()->countTotal('processed'));
 
         $kept = $this->collector();

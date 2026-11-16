@@ -148,7 +148,7 @@ final class QueueWorkCommandTest extends TestCase
         $this->assertSame(1, (int) $job['attempts'], 'exactly one attempt was spent, not all three.');
         $this->assertNull($job['reserved_at'], 'and it is released, not left reserved by a worker that is gone.');
         $this->assertGreaterThan(
-            date('Y-m-d H:i:s'),
+            gmdate('Y-m-d H:i:s'),
             $job['available_at'],
             'the next attempt is in the future: this is what the backoff means.',
         );

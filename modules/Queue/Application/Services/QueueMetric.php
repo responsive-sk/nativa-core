@@ -24,7 +24,7 @@ use Modules\Queue\Infrastructure\Persistence\Statement;
  *
  * Data sources: queue.db → jobs (reserved_at, available_at, created_at),
  * failed_jobs (row count). The reservable definition mirrors
- * DatabaseQueue::findAvailable() exactly (PHP-stamped `now`, not
+ * DatabaseQueue::findAvailable() exactly (UTC-stamped `now`, not
  * SQLite `datetime('now')`, because reservations are written with PHP
  * stamps) — the card reports what `reserve()` would hand out.
  */
@@ -73,7 +73,7 @@ final readonly class QueueMetric implements MetricContract
         $stmt = Statement::prepare($connection,
             'SELECT COUNT(*) FROM jobs WHERE reserved_at IS NULL AND available_at <= :now',
         );
-        $stmt->execute([':now' => date('Y-m-d H:i:s')]);
+        $stmt->execute([':now' => gmdate('Y-m-d H:i:s')]);
 
         return (int) $stmt->fetchColumn();
     }

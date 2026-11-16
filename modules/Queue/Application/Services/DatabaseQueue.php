@@ -27,8 +27,10 @@ use Throwable;
  * attempts >= max_attempts. Handler failures and unknown handlers both
  * land there — never a fatal.
  *
- * Time is a `Y-m-d H:i:s` string column compared lexicographically; the
- * clock is injectable for tests (default: wall time).
+ * Time is a UTC `Y-m-d H:i:s` string column compared lexicographically, so it
+ * agrees with the `CURRENT_TIMESTAMP` defaults beside it — a local stamp would
+ * put a job hours away from the window that makes it reservable. The clock is
+ * injectable for tests (default: wall time).
  */
 final class DatabaseQueue
 {
@@ -558,6 +560,6 @@ final class DatabaseQueue
 
     private function stamp(int $offsetSeconds = 0): string
     {
-        return date('Y-m-d H:i:s', ($this->now)() + $offsetSeconds);
+        return gmdate('Y-m-d H:i:s', ($this->now)() + $offsetSeconds);
     }
 }

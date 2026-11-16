@@ -18,7 +18,7 @@ use Modules\Notifications\Infrastructure\Persistence\Statement;
  * than in a caller is what makes that unskippable.
  *
  * Ordering is `created_at DESC, rowid DESC` — the rowid tiebreak exists because
- * `date('Y-m-d H:i:s')` has one-second resolution, and a burst of two
+ * `gmdate('Y-m-d H:i:s')` has one-second resolution, and a burst of two
  * notifications in the same second would otherwise come back in insert order
  * only by accident.
  */
@@ -126,7 +126,7 @@ final readonly class SqliteNotificationRepository
             WHERE id = ? AND notifiable_id = ? AND read_at IS NULL
         ');
 
-        $stmt->execute([date('Y-m-d H:i:s'), $id, $notifiableId]);
+        $stmt->execute([gmdate('Y-m-d H:i:s'), $id, $notifiableId]);
 
         return $stmt->rowCount() > 0;
     }
@@ -144,7 +144,7 @@ final readonly class SqliteNotificationRepository
             WHERE notifiable_id = ? AND read_at IS NULL
         ');
 
-        $stmt->execute([date('Y-m-d H:i:s'), $notifiableId]);
+        $stmt->execute([gmdate('Y-m-d H:i:s'), $notifiableId]);
 
         return $stmt->rowCount();
     }

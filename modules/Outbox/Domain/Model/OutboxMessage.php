@@ -12,6 +12,9 @@ namespace Modules\Outbox\Domain\Model;
  * in the same transaction as the business operation, then processed async.
  *
  * Status flow: pending → processing → processed | failed
+ *
+ * Timestamps are UTC, like the `CURRENT_TIMESTAMP` column default they replace:
+ * the outbox windows them against SQLite's own clock.
  */
 final readonly class OutboxMessage
 {
@@ -56,7 +59,7 @@ final readonly class OutboxMessage
             lastAttemptAt: null,
             processedAt: null,
             errorMessage: null,
-            createdAt: date('Y-m-d H:i:s'),
+            createdAt: gmdate('Y-m-d H:i:s'),
         );
     }
 
@@ -144,7 +147,7 @@ final readonly class OutboxMessage
             status: 'processing',
             attempts: $this->attempts + 1,
             maxAttempts: $this->maxAttempts,
-            lastAttemptAt: date('Y-m-d H:i:s'),
+            lastAttemptAt: gmdate('Y-m-d H:i:s'),
             processedAt: $this->processedAt,
             errorMessage: $this->errorMessage,
             createdAt: $this->createdAt,
@@ -165,7 +168,7 @@ final readonly class OutboxMessage
             attempts: $this->attempts,
             maxAttempts: $this->maxAttempts,
             lastAttemptAt: $this->lastAttemptAt,
-            processedAt: date('Y-m-d H:i:s'),
+            processedAt: gmdate('Y-m-d H:i:s'),
             errorMessage: null,
             createdAt: $this->createdAt,
         );

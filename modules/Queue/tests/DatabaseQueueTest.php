@@ -131,7 +131,7 @@ final class DatabaseQueueTest extends TestCase
         $this->assertSame(1, (int) $row['attempts']);
         $this->assertNull($row['reserved_at'], 'and it is released, not left reserved by a worker that is gone.');
         $this->assertSame(
-            date('Y-m-d H:i:s', $this->now + 30),
+            gmdate('Y-m-d H:i:s', $this->now + 30),
             $row['available_at'],
             'the first retry waits the base delay: 30s, doubling from there.',
         );
@@ -173,7 +173,7 @@ final class DatabaseQueueTest extends TestCase
         foreach ($expected as $index => $delay) {
             $this->assertSame(['processed' => 0, 'failed' => 0], $this->queue->work());
             $this->assertSame(
-                date('Y-m-d H:i:s', $this->now + $delay),
+                gmdate('Y-m-d H:i:s', $this->now + $delay),
                 $this->jobRow()['available_at'],
                 sprintf('retry %d waits %ds', $index + 1, $delay),
             );
@@ -181,6 +181,31 @@ final class DatabaseQueueTest extends TestCase
             // Jump past whatever delay this attempt asked for.
             $this->now += $delay;
         }
+    }
+
+    /**
+     * `jobs.available_at` is UTC because SQLite's own defaults are: `reserve()`
+     * compares it with the stamped `now` and the retention queries compare
+     * `failed_at` with `datetime('now')`. A local stamp lands a job fourteen
+     * hours away from the window meant to make it reservable.
+     */
+    #[Test]
+    public function deadlinesAreStampedInUtcNotInTheProcessTimezone(): void
+    {
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('Pacific/Kiritimati'); // UTC+14: a local stamp is half a day off
+
+        try {
+            $this->queue->push('mail.send', [], delaySeconds: 30);
+        } finally {
+            date_default_timezone_set($previous);
+        }
+
+        $this->assertSame(
+            gmdate('Y-m-d H:i:s', $this->now + 30),
+            $this->jobRow()['available_at'],
+            'the deadline is UTC, whatever timezone the process runs in.',
+        );
     }
 
     /**
