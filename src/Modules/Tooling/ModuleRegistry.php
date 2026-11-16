@@ -601,6 +601,7 @@ final readonly class ModuleRegistry
             } catch (\Throwable) {
                 // The lock is already clear; an orphan backup is not worth turning
                 // a successful uninstall into a failure.
+                // @mago-expect lint:no-empty-catch-clause
             }
         }
     }
@@ -667,6 +668,7 @@ final readonly class ModuleRegistry
                             ModuleInstaller::deleteTree($target);
                         } catch (\Throwable) {
                             // Best effort: the original failure is the one worth reporting.
+                            // @mago-expect lint:no-empty-catch-clause
                         }
                     }
                 }
@@ -685,6 +687,7 @@ final readonly class ModuleRegistry
                             ModuleInstaller::deleteTree($target);
                         } catch (\Throwable) {
                             // Best effort: the install refusal is the failure worth reporting.
+                            // @mago-expect lint:no-empty-catch-clause
                         }
                     }
                 }
@@ -693,6 +696,7 @@ final readonly class ModuleRegistry
                     (new ModuleCatalogueIndex($this->catalog))->write();
                 } catch (\Throwable) {
                     // The install refusal is the failure worth reporting.
+                    // @mago-expect lint:no-empty-catch-clause
                 }
 
                 throw $e;
@@ -1275,6 +1279,7 @@ final readonly class ModuleRegistry
                 ModuleInstaller::deleteTree($path);
             } catch (\Throwable) {
                 // The temp directory is best-effort cleanup after the result is known.
+                // @mago-expect lint:no-empty-catch-clause
             }
 
             return;

@@ -415,6 +415,7 @@ final class ModulesAction
         } catch (\Throwable) {
             // A stale lock is ignored while the module is absent; do not turn a
             // successful uninstall into an error.
+            // @mago-expect lint:no-empty-catch-clause
         }
     }
 
