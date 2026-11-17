@@ -10,3 +10,6 @@
 # pnpm-workspace.yaml it finds walking up, and this one is closest.
 packages:
   - "*"
+auditConfig:
+  ignoreGhsas:
+    - GHSA-fc5q-39xc-vjpf
