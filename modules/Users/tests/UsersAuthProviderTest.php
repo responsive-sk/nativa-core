@@ -131,10 +131,10 @@ final class UsersAuthProviderTest extends TestCase
      * Mapping `permissions()` straight across would 403 the administrator.
      */
     #[Test]
-    public function theAdminRoleExpandsIntoEveryPermissionTheGateAsks(): void
+    public function theOperatorRoleExpandsIntoEveryPermissionTheGateAsks(): void
     {
         $id = $this->insertUser('provider-admin', 'provider-admin@example.test');
-        $this->assignRole($id, 'admin', grants: []);
+        $this->assignRole($id, 'operator', grants: []);
         $this->signIn($id);
 
         $identity = (new UsersAuthProvider())->identity(Request::create('GET', '/mark'));
