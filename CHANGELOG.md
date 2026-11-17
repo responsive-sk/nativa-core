@@ -32,6 +32,10 @@ seam.
   carries the display offset. The audit log, the outbox list and detail, the
   queue detail, media dates and `RestAdmin`'s `updated_at` now go through it
   instead of printing the column.
+- The public author profile follows the same seam: "Member since" reads
+  `users.created_at` as UTC and shows it in `APP_TIMEZONE` instead of letting
+  `strtotime()` read the column in the process timezone, which put a member who
+  joined just after local midnight on the previous day.
 
 **Added**
 

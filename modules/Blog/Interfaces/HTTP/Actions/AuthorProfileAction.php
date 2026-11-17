@@ -8,6 +8,7 @@ use Modules\Blog\Application\BlogServices;
 use Modules\Blog\Application\Services\BlogArticleHelper;
 use Modules\Blog\Application\Services\BlogArticlesService;
 use Modules\Blog\Application\Services\StructuredDataService;
+use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
@@ -151,11 +152,16 @@ final class AuthorProfileAction
         return ContentLocaleServices::mapper()->urlPrefix($locale) . '/authors/' . $slug;
     }
 
+    /**
+     * `users.created_at` holds UTC wall clock. Parsed without a zone it would
+     * be read as the process timezone (`APP_TIMEZONE`) and a member who joined
+     * just after local midnight would show the previous day.
+     */
     private function memberSince(string $createdAt): string
     {
-        $ts = strtotime($createdAt);
+        $date = AdminLayout::formatTime($createdAt, 'Y-m-d');
 
-        return 'Member since ' . (false === $ts ? $createdAt : date('Y-m-d', $ts));
+        return '' === $date ? '' : 'Member since ' . $date;
     }
 
     private function notFound(): Response
