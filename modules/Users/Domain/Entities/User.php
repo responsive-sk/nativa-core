@@ -151,8 +151,8 @@ final class User
             return true;
         }
 
-        // 'admin' role bypasses permission checks (super-user).
-        if (in_array('admin', $this->roles, true)) {
+        // 'operator' role bypasses permission checks (super-user).
+        if (in_array('operator', $this->roles, true)) {
             return true;
         }
 

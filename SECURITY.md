@@ -77,7 +77,7 @@ What you can expect:
 
 - **Operator state**: `src/Modules/<Name>/` installed slices, `storage/`,
   `config/`, `.env`. These are runtime data on a deployment, not source.
-- **Documented development defaults**: `bin/cms user:admin` creates
+- **Documented development defaults**: `bin/cms user:operator` creates
   `admin@example.test` / `admin1234` when no password is given. It is in the
   README, it is meant for a laptop, and it is shorter than the password policy
   on purpose — a deployment that leaves it in place is a deployment problem,

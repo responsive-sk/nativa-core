@@ -147,7 +147,7 @@ final class AuthMiddlewareDenialTest extends TestCase
 
     /**
      * The path under test, read from the OWNER rather than declared here: the
-     * admin prefix is optional (`ADMIN_PATH`), and a second constant is exactly
+     * admin prefix is optional (`MARK_PATH`), and a second constant is exactly
      * the collision task 0.3 removed.
      */
     private function adminPath(): string

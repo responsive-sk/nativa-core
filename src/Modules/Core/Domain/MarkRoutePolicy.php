@@ -60,7 +60,7 @@ final class MarkRoutePolicy
     /**
      * The default admin prefix — the spelling every route attribute declares.
      *
-     * `ADMIN_PATH` overrides the PUBLIC spelling, but `/mark` remains the
+     * `MARK_PATH` overrides the PUBLIC spelling, but `/mark` remains the
      * INTERNAL one: routes, the table below and stored links are written in
      * it. Keeping the default as a constant (rather than retyping the literal
      * in each method here and at each call site) is what lets the ownership
@@ -120,8 +120,10 @@ final class MarkRoutePolicy
     /**
      * The admin surface's URL prefix — one owner, optional value.
      *
-     * `ADMIN_PATH` is read from the environment and defaults to `/mark`, the
-     * spelling every route attribute in this tree declares. The value is
+     * `MARK_PATH` is read from the environment and defaults to `/mark`, the
+     * spelling every route attribute in this tree declares. The old name,
+     * `ADMIN_PATH`, is read as a fallback so an existing deployment does not
+     * lose its prefix in the same round that renamed it. The value is
      * validated rather than trusted: an absolute path of plain segments, no
      * trailing slash, no scheme, host, query or fragment. A typo falls back to
      * the default — an admin area that disappears because of a mistyped env
@@ -133,7 +135,9 @@ final class MarkRoutePolicy
      */
     public static function prefix(): string
     {
-        $configured = Env::get('ADMIN_PATH', self::DEFAULT_PREFIX);
+        // `MARK_PATH` is the name; the pre-rename `ADMIN_PATH` is still read so a
+        // deployment that set it keeps its prefix until the operator moves.
+        $configured = Env::get('MARK_PATH') ?? Env::get('ADMIN_PATH', self::DEFAULT_PREFIX);
         $prefix = is_string($configured) ? trim($configured) : '';
 
         if (1 !== preg_match('~^/[A-Za-z0-9._\-]+(/[A-Za-z0-9._\-]+)*$~', $prefix)) {
@@ -204,8 +208,8 @@ final class MarkRoutePolicy
     /**
      * Is this path inside the admin area at all?
      *
-     * Both spellings count: the configured prefix (`/admin` on a deployment
-     * that set `ADMIN_PATH`) and the internal `/mark` the routes declare. The
+     * Both spellings count: the configured prefix (`/panel` on a deployment
+     * that set `MARK_PATH`) and the internal `/mark` the routes declare. The
      * middleware pipeline runs BEFORE the kernel canonicalizes, so
      * `AuthMiddleware` asks this question about the URL the visitor typed.
      */

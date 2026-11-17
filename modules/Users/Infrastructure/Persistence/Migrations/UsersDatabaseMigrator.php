@@ -15,6 +15,11 @@ use Modules\Core\Interfaces\CLI\MigratorInterface;
  * password_reset_tokens, remember_tokens, sessions, rate_limits,
  * login_attempts. Every statement is idempotent (CREATE TABLE IF NOT
  * EXISTS), so re-running via `bin/cms migrate` is safe.
+ *
+ * It is also the upgrade step for the super-user role: the row was named
+ * `admin` until the vocabulary round, and `renameLegacyRole()` moves it — or
+ * merges it into an existing `operator` row — so upgrading keeps every
+ * account's access instead of leaving it pointing at a role nothing checks.
  */
 #[AsMigrator(module: 'users', table: 'users')]
 final readonly class UsersDatabaseMigrator implements MigratorInterface
@@ -38,8 +43,63 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
         $this->createRateLimitsTable();
         $this->createLoginAttemptsTable();
         $this->createIndexes();
+        $this->renameLegacyRole($output);
 
         $output->writeln('<info>  ✓ Created tables: users, roles, permissions, role_permissions, user_roles, password_reset_tokens, remember_tokens, sessions, rate_limits, login_attempts</info>');
+    }
+
+    /**
+     * Rename the pre-rename `admin` role to `operator`, once.
+     *
+     * The row is renamed in place so `user_roles` and `role_permissions` keep
+     * pointing at it — the ids are what the pivots carry, and recreating the
+     * role would leave every account without the bypass the role grants.
+     *
+     * An install that already has an `operator` row (the new command ran before
+     * this migration) would violate `roles.name` UNIQUE, so the pivots move
+     * onto the existing row and the legacy row is dropped. Merging keeps the
+     * access; dropping the legacy row keeps the name unique.
+     */
+    private function renameLegacyRole(CliOutput $output): void
+    {
+        $legacy = $this->roleId('admin');
+
+        if (null === $legacy) {
+            return;
+        }
+
+        $operator = $this->roleId('operator');
+
+        if (null === $operator) {
+            $this->pdo->prepare('UPDATE roles SET name = :name WHERE id = :id')
+                ->execute([':name' => 'operator', ':id' => $legacy]);
+            $output->writeln('<info>  ✓ renamed the `admin` role to `operator`</info>');
+
+            return;
+        }
+
+        $this->pdo->prepare(
+            'INSERT OR IGNORE INTO user_roles (user_id, role_id, created_at)
+             SELECT user_id, :new, created_at FROM user_roles WHERE role_id = :old',
+        )->execute([':new' => $operator, ':old' => $legacy]);
+        $this->pdo->prepare('DELETE FROM user_roles WHERE role_id = :old')->execute([':old' => $legacy]);
+        $this->pdo->prepare(
+            'INSERT OR IGNORE INTO role_permissions (role_id, permission_id, created_at)
+             SELECT :new, permission_id, created_at FROM role_permissions WHERE role_id = :old',
+        )->execute([':new' => $operator, ':old' => $legacy]);
+        $this->pdo->prepare('DELETE FROM role_permissions WHERE role_id = :old')->execute([':old' => $legacy]);
+        $this->pdo->prepare('DELETE FROM roles WHERE id = :old')->execute([':old' => $legacy]);
+
+        $output->writeln('<info>  ✓ merged the `admin` role into `operator`</info>');
+    }
+
+    private function roleId(string $name): ?string
+    {
+        $statement = $this->pdo->prepare('SELECT id FROM roles WHERE name = ? LIMIT 1');
+        $statement->execute([$name]);
+        $id = $statement->fetchColumn();
+
+        return false === $id ? null : (string) $id;
     }
 
     private function createUsersTable(): void

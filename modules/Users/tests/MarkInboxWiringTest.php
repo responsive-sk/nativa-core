@@ -224,7 +224,7 @@ final class MarkInboxWiringTest extends TestCase
     {
         $roles = new RoleRepository($db);
 
-        $adminRole = $roles->ensureRole('role-admin', 'admin', 'Super-user');
+        $adminRole = $roles->ensureRole('role-admin', 'operator', 'Super-user');
         $writerRole = $roles->ensureRole('role-writer', 'writer', 'Moderator');
         $markAccess = $roles->ensurePermission('perm-mark', Permissions::MARK_ACCESS, 'Open the panel', 'panel');
 

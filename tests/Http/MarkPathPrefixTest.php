@@ -17,13 +17,16 @@ use PHPUnit\Framework\TestCase;
  * MarkPathPrefixTest — `/mark` is the default spelling, not the only one.
  *
  * Task 0.3 of `.ai-factory/plans/feature-constant-ownership.md`: two constants
- * both named `ADMIN_PATH` disagreed — `SettingsShellContextProvider` said
+ * both named `MARK_PATH` disagreed — `SettingsShellContextProvider` said
  * `'/mark'` and `AuthMiddlewareDenialTest` said the same string a second time,
  * while `AuthMiddleware`, `PageCacheService` and 17 rows of the permission
  * table each carried their own copy. `MarkRoutePolicy` is the owner now, and
- * `ADMIN_PATH` is a validated value rather than a hardcoded fact:
+ * `MARK_PATH` is a validated value rather than a hardcoded fact:
  *
  *   - an unset value is `/mark`, exactly as before, so no deployment changes;
+ *   - `MARK_PATH` is the name; a deployment that still sets the pre-rename
+ *     `ADMIN_PATH` keeps its prefix, because the old name is read as a
+ *     fallback;
  *   - a configured value (`/admin`) is an ALIAS: it serves every admin route,
  *     asks the same permission table, and 301s within itself;
  *   - a malformed value falls back to `/mark` instead of hiding the panel;
@@ -49,7 +52,7 @@ final class MarkPathPrefixTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->previousProcessValue = getenv('ADMIN_PATH');
+        $this->previousProcessValue = getenv('MARK_PATH');
         $this->previousEnv = $_ENV;
         $this->previousServer = $_SERVER;
 
@@ -62,25 +65,26 @@ final class MarkPathPrefixTest extends TestCase
         $_SERVER = $this->previousServer;
 
         if (false === $this->previousProcessValue) {
-            putenv('ADMIN_PATH');
+            putenv('MARK_PATH');
         } else {
-            putenv('ADMIN_PATH=' . $this->previousProcessValue);
+            putenv('MARK_PATH=' . $this->previousProcessValue);
         }
     }
 
     /**
-     * Set (or clear) `ADMIN_PATH` for one test. `Env::get()` reads `$_ENV`
+     * Set (or clear) `MARK_PATH` for one test. `Env::get()` reads `$_ENV`
      * first, then `$_SERVER`, then `getenv()`, so all three are moved
      * together — otherwise a value from the real `.env` would leak in.
      */
     private function configure(?string $value): void
     {
-        unset($_ENV['ADMIN_PATH'], $_SERVER['ADMIN_PATH']);
+        unset($_ENV['MARK_PATH'], $_SERVER['MARK_PATH'], $_ENV['ADMIN_PATH'], $_SERVER['ADMIN_PATH']);
+        putenv('MARK_PATH');
         putenv('ADMIN_PATH');
 
         if (null !== $value) {
-            $_ENV['ADMIN_PATH'] = $value;
-            putenv('ADMIN_PATH=' . $value);
+            $_ENV['MARK_PATH'] = $value;
+            putenv('MARK_PATH=' . $value);
         }
     }
 
@@ -157,11 +161,24 @@ final class MarkPathPrefixTest extends TestCase
     {
         $this->configure($value);
 
-        self::assertSame('/mark', MarkRoutePolicy::prefix(), sprintf('ADMIN_PATH=%s must fall back', var_export($value, true)));
+        self::assertSame('/mark', MarkRoutePolicy::prefix(), sprintf('MARK_PATH=%s must fall back', var_export($value, true)));
 
         // No alias existed, so the literal path stays literal.
         self::assertSame('/admin/users', MarkRoutePolicy::canonicalPath('/admin/users'));
         self::assertFalse(MarkRoutePolicy::isMarkPath($value));
+    }
+
+    public function testThePreRenameVariableIsStillRead(): void
+    {
+        unset($_ENV['MARK_PATH'], $_SERVER['MARK_PATH']);
+        $_ENV['ADMIN_PATH'] = '/panel';
+        putenv('ADMIN_PATH=/panel');
+
+        self::assertSame('/panel', MarkRoutePolicy::prefix());
+        self::assertSame('/mark/users', MarkRoutePolicy::canonicalPath('/panel/users'));
+
+        unset($_ENV['ADMIN_PATH'], $_SERVER['ADMIN_PATH']);
+        putenv('ADMIN_PATH');
     }
 
     public function testSurroundingWhitespaceIsTrimmedRatherThanRejected(): void

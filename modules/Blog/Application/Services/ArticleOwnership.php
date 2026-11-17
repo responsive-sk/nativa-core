@@ -54,7 +54,7 @@ final readonly class ArticleOwnership
      */
     public function canEditByEmail(string $email, User $user): bool
     {
-        if ($user->hasRole('admin')) {
+        if ($user->hasRole('operator')) {
             return true;
         }
 

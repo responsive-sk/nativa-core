@@ -145,7 +145,7 @@ final class CliCommandOptionsTest extends TestCase
 
     public function testADelegatedCommandKeepsItsRawArgumentsForItsOwnValidator(): void
     {
-        $parsed = \parseArguments('user:admin', ['cms', 'user:admin', 'a@example.test', '--name=Ann']);
+        $parsed = \parseArguments('user:operator', ['cms', 'user:operator', 'a@example.test', '--name=Ann']);
 
         self::assertTrue($parsed['delegated']);
         self::assertSame(['a@example.test', '--name=Ann'], $parsed['args']);

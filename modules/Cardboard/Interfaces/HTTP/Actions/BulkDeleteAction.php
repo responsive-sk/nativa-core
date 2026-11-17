@@ -319,8 +319,8 @@ final class BulkDeleteAction
             return false;
         }
 
-        // Prevent deleting the last admin.
-        if (in_array('admin', $user->roles(), true) && $this->isLastAdmin($id)) {
+        // Prevent deleting the last operator.
+        if (in_array('operator', $user->roles(), true) && $this->isLastOperator($id)) {
             return false;
         }
 
@@ -329,32 +329,32 @@ final class BulkDeleteAction
         return true;
     }
 
-    private function isLastAdmin(string $excludeId): bool
+    private function isLastOperator(string $excludeId): bool
     {
-        $admins = 0;
+        $operators = 0;
 
         foreach (CardboardServices::users()->all() as $user) {
             if ($user->id() === $excludeId) {
                 continue;
             }
 
-            if (in_array('admin', $user->roles(), true)) {
-                $admins++;
+            if (in_array('operator', $user->roles(), true)) {
+                $operators++;
             }
         }
 
-        return 0 === $admins;
+        return 0 === $operators;
     }
 
     private function deleteRole(string $id): bool
     {
         $roles = CardboardServices::roles();
 
-        // Prevent deleting admin role.
-        $adminRole = $roles->findByName('admin');
-        $adminId = is_string($adminRole['id'] ?? null) ? (string) $adminRole['id'] : '';
+        // Prevent deleting the operator role.
+        $operatorRole = $roles->findByName('operator');
+        $operatorId = is_string($operatorRole['id'] ?? null) ? (string) $operatorRole['id'] : '';
 
-        if ('' !== $adminId && $adminId === $id) {
+        if ('' !== $operatorId && $operatorId === $id) {
             return false;
         }
 

@@ -28,7 +28,8 @@ declare(strict_types = 1);
  *                            (needs the Clickhouse module)
  *   clickhouse:query "<sql>" run one statement (read-only unless --write)
  *                            (needs the Clickhouse module)
- *   user:admin [email] [password]  create or repair an administrator (needs the Users module)
+ *   user:operator [email] [password] create or repair an operator (needs the Users module);
+ *                            `user:admin` is the pre-rename alias, still accepted
  *   discovery:clear          delete the discovery cache (rebuilt on the next request)
  *   discovery:status         whether the discovery cache exists and is fresh
  *
@@ -403,7 +404,7 @@ function usageLines(): array
         '  clickhouse:status         the server\'s view of the attached databases, and drift',
         '  clickhouse:query "<sql>" [--db=<name>] [--write] [--format=JSONEachRow|TSV]',
         '                            run one statement (read-only unless --write)',
-        '  user:admin [email] [password] [--name=NAME | --name NAME]',
+        '  user:operator [email] [password] [--name=NAME | --name NAME]',
         '                            create or repair an administrator (defaults admin@example.test / admin1234)',
         '  settings:profile [--file=PATH | --file PATH]',
         '                            apply a committed deployment profile (default: config/deploy.php)',
@@ -429,7 +430,7 @@ function cmdMigrate(): void
 }
 
 /**
- * Create (or repair) an administrator account — the supported way out of the
+ * Create (or repair) an operator account — the supported way out of the
  * fresh-install dead end: `migrate` builds the schema empty, and a registered
  * account holds no permission, so every `/mark` page answers 403.
  *
@@ -438,16 +439,16 @@ function cmdMigrate(): void
  *
  * @param list<string> $argv the full argv; options start at index 2
  */
-function cmdUserAdmin(array $argv): void
+function cmdUserOperator(array $argv): void
 {
     if (!class_exists(\Modules\Users\Interfaces\CLI\Command\EnsureOperatorCommand::class)) {
-        fail('user:admin needs the Users module (bin/cms module:add Users).');
+        fail('user:operator needs the Users module (bin/cms module:add Users).');
     }
 
     $db = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connect('users');
     $command = new \Modules\Users\Interfaces\CLI\Command\EnsureOperatorCommand($db);
 
-    exit($command->run(array_merge(['user:admin'], array_slice($argv, 2)), output()));
+    exit($command->run(array_merge(['user:operator'], array_slice($argv, 2)), output()));
 }
 
 /**
@@ -796,7 +797,11 @@ function commandOptions(): array
         'discovery:status'  => [],
 
         // Delegated: the module Command class owns and validates these.
-        'user:admin'        => null,
+        'user:operator'        => null,
+
+        // The pre-rename spelling. Kept as an alias so a deployment script
+        // that still calls it creates the same account and learns the new name.
+        'user:admin'           => null,
         'settings:profile'  => null,
         'outbox:process'    => null,
         'generate-images'   => null,
@@ -933,8 +938,14 @@ function main(array $argv): void
 
             break;
 
+        case 'user:operator':
+            cmdUserOperator($argv);
+
+            break;
+
         case 'user:admin':
-            cmdUserAdmin($argv);
+            output()->writeln('user:admin is the old spelling — use user:operator.');
+            cmdUserOperator($argv);
 
             break;
 

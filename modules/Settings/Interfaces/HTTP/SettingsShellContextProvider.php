@@ -53,7 +53,7 @@ use Modules\Settings\Application\DTOs\MenuItemDTO;
  * session to a reader who never logged in.
  *
  * The admin surface is not spelled here at all: `MarkRoutePolicy::isMarkPath()`
- * is the one owner, reading the optional `ADMIN_PATH` prefix with `/mark` as
+ * is the one owner, reading the optional `MARK_PATH` prefix with `/mark` as
  * the default, so a deployment that moves the panel moves this filter with it.
  *
  * ## The rest

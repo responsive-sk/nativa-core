@@ -92,7 +92,7 @@ final readonly class UsersAuthProvider implements AuthProvider
         $permissions = $user->permissions();
 
         // The role bypass, expanded into the data (see the class docblock).
-        if ($user->hasRole('admin')) {
+        if ($user->hasRole('operator')) {
             $permissions = Permissions::all();
         }
 

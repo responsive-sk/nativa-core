@@ -5,6 +5,40 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### The vocabulary reaches configuration and data
+
+The file names were one surface. Three more carried the word as a contract: the
+environment variable that moves the panel, the super-user role, and the command
+that creates it. A rename alone would have locked out every operator — the role
+is what grants the bypass — so the migration ships with the name.
+
+**Changed**
+
+- `ADMIN_PATH` is `MARK_PATH`. The old name is still read as a fallback, so a
+  deployment that sets it keeps its prefix; `.env.example` documents the new
+  name and `MarkPathPrefixTest` covers the fallback.
+- The super-user role is `operator`: the bypass in `User::hasPermission()`, the
+  role expansion in `UsersAuthProvider`, the blog's ownership shortcut, the
+  last-operator guard in `BulkDeleteAction` and the protected role in
+  `RolesAction` all read the new name. `EnsureOperatorCommand` creates it.
+- `bin/cms user:admin` is `bin/cms user:operator`. The old spelling stays as an
+  alias that prints the new name and runs the same command, so a deployment
+  script keeps working.
+
+**Migration**
+
+- `UsersDatabaseMigrator` renames `roles.name = 'admin'` to `operator` in place,
+  so the ids `user_roles` and `role_permissions` carry stay valid. When an
+  `operator` row already exists (the new command ran before the migration), the
+  pivots are merged onto it and the legacy row is dropped: `roles.name` is
+  UNIQUE, and losing an account's access is worse than losing an empty role.
+  `EnsureOperatorCommandTest` pins both cases.
+
+**Not changed, with the reason recorded**
+
+- `menu_items.location = 'admin'` and the `admin.*` translation group: content
+  and translation data. Renaming either is a content migration of its own.
+
 ### One vocabulary: no `admin` in a path
 
 The panel answers at `/mark`, its routes are `mark.*`, its classes are `m-` and
@@ -70,9 +104,6 @@ renamed.
 
 **Not changed, with the reason recorded**
 
-- `ADMIN_PATH`, the `admin` role, `menu_items.location = 'admin'`, the `admin.*`
-  translation group and the `user:admin` command string: configuration, RBAC and
-  content data, not paths. Renaming any of them is a migration.
 
 ### UTC timestamps: one clock on disk, the operator's clock on screen
 

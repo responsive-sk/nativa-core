@@ -16,7 +16,7 @@ use Modules\Users\Infrastructure\Persistence\Repositories\UserRepository;
 use RuntimeException;
 
 /**
- * bin/cms user:admin — the supported path to a first administrator.
+ * bin/cms user:operator — the supported path to a first operator.
  *
  * Measured 2026-10-17: a fresh `php bin/cms migrate` produced an empty
  * users.db — no users, no roles, no permissions — and `/register` creates an
@@ -42,8 +42,8 @@ use RuntimeException;
  *
  * Options and positional arguments are both accepted:
  *
- *     user:admin [email] [password] [--name=NAME]
- *     user:admin --email=… --password=… [--name=…]
+ *     user:operator [email] [password] [--name=NAME]
+ *     user:operator --email=… --password=… [--name=…]
  *
  * Deliberately holds NO class constants: the defaults are values this command
  * uses once, and `NameOwnershipContractTest` refuses a new declaration for
@@ -69,14 +69,14 @@ final readonly class EnsureOperatorCommand
         $parsed = $this->parse(array_slice($argv, 1));
 
         if (null === $parsed) {
-            $output->writeln('user:admin: unknown or incomplete option.');
-            $output->writeln('Usage: php bin/cms user:admin [email] [password] [--name=NAME | --name NAME]');
+            $output->writeln('user:operator: unknown or incomplete option.');
+            $output->writeln('Usage: php bin/cms user:operator [email] [password] [--name=NAME | --name NAME]');
 
             return 1;
         }
 
         if (true === $parsed) {
-            $output->writeln('Usage: php bin/cms user:admin [email] [password] [--name=NAME | --name NAME]');
+            $output->writeln('Usage: php bin/cms user:operator [email] [password] [--name=NAME | --name NAME]');
             $output->writeln('');
             $output->writeln('  Creates (or repairs) an administrator account.');
             $output->writeln('  Defaults: admin@example.test / admin1234');
@@ -89,19 +89,19 @@ final readonly class EnsureOperatorCommand
         $name = '' === trim($parsed['name']) ? 'Admin' : trim($parsed['name']);
 
         if (false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $output->writeln('user:admin: "' . $email . '" is not a valid e-mail address.');
+            $output->writeln('user:operator: "' . $email . '" is not a valid e-mail address.');
 
             return 1;
         }
 
         if ('' === $password) {
-            $output->writeln('user:admin: the password must not be empty.');
+            $output->writeln('user:operator: the password must not be empty.');
 
             return 1;
         }
 
         if (!$this->schemaExists()) {
-            $output->writeln('user:admin: the users table does not exist — run `php bin/cms migrate` first.');
+            $output->writeln('user:operator: the users table does not exist — run `php bin/cms migrate` first.');
 
             return 1;
         }
@@ -110,7 +110,7 @@ final readonly class EnsureOperatorCommand
             fn (ConnectionInterface $db): array => $this->ensure($db, $email, $password, $name),
         );
 
-        $output->writeln(sprintf('user:admin: %s — %s', $email, $result['state']));
+        $output->writeln(sprintf('user:operator: %s — %s', $email, $result['state']));
 
         foreach ($result['changes'] as $change) {
             $output->writeln('  ' . $change);
@@ -140,7 +140,7 @@ final readonly class EnsureOperatorCommand
      */
     private function ensure(ConnectionInterface $db, string $email, #[\SensitiveParameter] string $password, string $name): array
     {
-        $role = 'admin';
+        $role = 'operator';
         $roles = new RoleRepository($db);
         $users = new UserRepository($db);
         $hasher = new PasswordHasher();

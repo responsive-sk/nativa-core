@@ -90,7 +90,7 @@ final class Kernel
     private function dispatchMatched(Request $request): Response
     {
         // The admin surface answers under its configured prefix, optional via
-        // `ADMIN_PATH` (default `/mark`). Canonicalizing HERE means the router
+        // `MARK_PATH` (default `/mark`). Canonicalizing HERE means the router
         // only ever sees the internal spelling the route attributes declare,
         // the discovery cache stays valid, and no route declaration has to
         // become dynamic. The middleware pipeline ran earlier, so
@@ -251,7 +251,7 @@ final class Kernel
         if (isset($match['redirect'])) {
             // The router canonicalized an INTERNAL path; send the visitor back
             // to the spelling they used (the configured prefix on a
-            // deployment that set `ADMIN_PATH`).
+            // deployment that set `MARK_PATH`).
             return Response::redirect(MarkRoutePolicy::publicPath($match['redirect']), 301);
         }
 

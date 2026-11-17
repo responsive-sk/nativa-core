@@ -66,7 +66,7 @@ installs a PSR-4 fallback loader, and `composer install` is development tooling
 only. The first request, or `php bin/cms migrate`, builds the databases empty.
 The panel is catalogued but not installed, so `/mark` answers 404 until you run
 `make modules-install`; after that it redirects to `/login`, and
-`php bin/cms user:admin` creates an administrator. `RestPanel` answers under
+`php bin/cms user:operator` creates an administrator. `RestPanel` answers under
 `/mark/rest`.
 
 ## Install a module

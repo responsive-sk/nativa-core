@@ -94,7 +94,7 @@ final class EnsureOperatorCommandTest extends TestCase
         $this->migrate();
         $recorder = $this->recorder();
 
-        $exit = (new EnsureOperatorCommand($this->db()))->run(['user:admin'], $recorder);
+        $exit = (new EnsureOperatorCommand($this->db()))->run(['user:operator'], $recorder);
 
         self::assertSame(0, $exit);
         self::assertStringContainsString($this->email, $recorder->text());
@@ -109,13 +109,13 @@ final class EnsureOperatorCommandTest extends TestCase
         );
 
         self::assertSame(
-            ['admin'],
+            ['operator'],
             $this->roleNamesFor($user->id()),
             'the admin role is what UsersAuthProvider expands into every permission',
         );
         self::assertSame(
             $this->sorted(Permissions::all()),
-            $this->permissionNamesFor('admin'),
+            $this->permissionNamesFor('operator'),
             'the admin role must hold the whole vocabulary, not a subset',
         );
     }
@@ -126,18 +126,18 @@ final class EnsureOperatorCommandTest extends TestCase
         $this->migrate();
         $command = new EnsureOperatorCommand($this->db());
 
-        self::assertSame(0, $command->run(['user:admin'], $this->recorder()));
+        self::assertSame(0, $command->run(['user:operator'], $this->recorder()));
 
         $first = $this->user($this->email);
         self::assertNotNull($first);
 
         $recorder = $this->recorder();
 
-        self::assertSame(0, $command->run(['user:admin'], $recorder));
+        self::assertSame(0, $command->run(['user:operator'], $recorder));
         self::assertStringContainsString('unchanged', $recorder->text());
 
         $roles = new RoleRepository($this->db());
-        $roleId = $this->adminRoleId();
+        $roleId = $this->operatorRoleId();
 
         self::assertSame(1, \count((new UserRepository($this->db()))->all()));
         self::assertSame(1, \count($roles->allRoles()));
@@ -165,7 +165,7 @@ final class EnsureOperatorCommandTest extends TestCase
         $users->update('registered-user', 'Registered', $this->email, false);
         $users->assignRole('registered-user', 'role-author');
 
-        $exit = (new EnsureOperatorCommand($this->db()))->run(['user:admin'], $this->recorder());
+        $exit = (new EnsureOperatorCommand($this->db()))->run(['user:operator'], $this->recorder());
 
         self::assertSame(0, $exit);
 
@@ -175,7 +175,7 @@ final class EnsureOperatorCommandTest extends TestCase
         self::assertSame('registered-user', $user->id(), 'the existing account must be promoted, never duplicated');
         self::assertTrue($user->isActive());
         self::assertTrue((new PasswordHasher())->verify($this->password, $user->password()));
-        self::assertContains('admin', $this->roleNamesFor('registered-user'));
+        self::assertContains('operator', $this->roleNamesFor('registered-user'));
         self::assertContains('author', $this->roleNamesFor('registered-user'), 'an unrelated role is kept');
         self::assertSame(1, \count($users->all()));
     }
@@ -186,7 +186,7 @@ final class EnsureOperatorCommandTest extends TestCase
         $this->migrate();
 
         $exit = (new EnsureOperatorCommand($this->db()))->run(
-            ['user:admin', 'owner@example.test', 'correct-horse-battery', '--name=Owner'],
+            ['user:operator', 'owner@example.test', 'correct-horse-battery', '--name=Owner'],
             $this->recorder(),
         );
 
@@ -206,7 +206,7 @@ final class EnsureOperatorCommandTest extends TestCase
         $this->migrate();
         $recorder = $this->recorder();
 
-        (new EnsureOperatorCommand($this->db()))->run(['user:admin'], $recorder);
+        (new EnsureOperatorCommand($this->db()))->run(['user:operator'], $recorder);
 
         $text = $recorder->text();
 
@@ -219,7 +219,7 @@ final class EnsureOperatorCommandTest extends TestCase
     {
         $recorder = $this->recorder();
 
-        $exit = (new EnsureOperatorCommand($this->db()))->run(['user:admin'], $recorder);
+        $exit = (new EnsureOperatorCommand($this->db()))->run(['user:operator'], $recorder);
 
         self::assertSame(1, $exit);
         self::assertStringContainsString('migrate', $recorder->text());
@@ -231,10 +231,55 @@ final class EnsureOperatorCommandTest extends TestCase
         $this->migrate();
         $recorder = $this->recorder();
 
-        $exit = (new EnsureOperatorCommand($this->db()))->run(['user:admin', 'not-an-email'], $recorder);
+        $exit = (new EnsureOperatorCommand($this->db()))->run(['user:operator', 'not-an-email'], $recorder);
 
         self::assertSame(1, $exit);
         self::assertStringContainsString('not a valid e-mail', $recorder->text());
+    }
+
+    #[Test]
+    public function thePreRenameRoleIsRenamedInPlaceOnMigrate(): void
+    {
+        $this->migrate();
+
+        $this->pdo->exec("INSERT INTO users (id, name, email, password) VALUES ('legacy-user', 'Old', 'legacy@example.test', 'hash')");
+        $this->pdo->exec("INSERT INTO roles (id, name, description) VALUES ('role-legacy', 'admin', 'Super-user')");
+        $this->pdo->exec("INSERT INTO user_roles (user_id, role_id) VALUES ('legacy-user', 'role-legacy')");
+
+        $this->migrate();
+
+        self::assertSame('role-legacy', $this->operatorRoleId(), 'the row is renamed in place, so pivots survive');
+        self::assertContains('operator', $this->roleNamesFor('legacy-user'));
+        self::assertNotContains('admin', $this->roleNames(), 'no row keeps the pre-rename name');
+    }
+
+    #[Test]
+    public function aPreRenameRoleMergesIntoAnExistingOperatorRow(): void
+    {
+        $this->migrate();
+
+        $this->pdo->exec("INSERT INTO users (id, name, email, password) VALUES ('legacy-user', 'Old', 'legacy@example.test', 'hash')");
+        $this->pdo->exec("INSERT INTO users (id, name, email, password) VALUES ('operator-user', 'New', 'new@example.test', 'hash')");
+        $this->pdo->exec("INSERT INTO roles (id, name, description) VALUES ('role-legacy', 'admin', 'Super-user')");
+        $this->pdo->exec("INSERT INTO roles (id, name, description) VALUES ('role-operator', 'operator', 'Super-user')");
+        $this->pdo->exec("INSERT INTO user_roles (user_id, role_id) VALUES ('legacy-user', 'role-legacy'), ('operator-user', 'role-operator')");
+
+        $this->migrate();
+
+        self::assertSame(['operator'], $this->roleNames(), 'the legacy row is merged, never a second name');
+        self::assertContains('operator', $this->roleNamesFor('legacy-user'), 'the legacy account keeps access');
+        self::assertContains('operator', $this->roleNamesFor('operator-user'));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function roleNames(): array
+    {
+        return array_map(
+            static fn (mixed $value): string => (string) $value,
+            $this->pdo->query('SELECT name FROM roles ORDER BY name')->fetchAll(\PDO::FETCH_COLUMN),
+        );
     }
 
     private function migrate(): void
@@ -247,9 +292,9 @@ final class EnsureOperatorCommandTest extends TestCase
         return (new UserRepository($this->db()))->findByEmail($email);
     }
 
-    private function adminRoleId(): string
+    private function operatorRoleId(): string
     {
-        $role = (new RoleRepository($this->db()))->findByName('admin');
+        $role = (new RoleRepository($this->db()))->findByName('operator');
 
         self::assertNotNull($role, 'the command must have created the admin role');
 

@@ -106,7 +106,7 @@ final class ArticlesIndexAction
     {
         $user = AuthServices::auth()->currentUser();
 
-        if (null === $user || $user->hasRole('admin')) {
+        if (null === $user || $user->hasRole('operator')) {
             return $articles;
         }
 

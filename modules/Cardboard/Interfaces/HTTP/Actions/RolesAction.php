@@ -146,8 +146,8 @@ final class RolesAction
         if (null !== $id) {
             $role = $this->findRole($id);
 
-            // Never allow deleting the built-in admin role.
-            if (null !== $role && 'admin' !== $role['name']) {
+            // Never allow deleting the built-in operator role.
+            if (null !== $role && 'operator' !== $role['name']) {
                 CardboardServices::roles()->deleteRole($id);
                 CacheInvalidator::flush();
                 \Modules\Audit\Interfaces\HTTP\AuditServices::log('roles.delete', $role['name'], 'Deleted role ' . $role['name'], $request->getClientIp());
