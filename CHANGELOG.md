@@ -9,9 +9,8 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 The writers stamped `date()` and the panels printed the stored string back, so
 both ends depended on the process timezone while the columns they were compared
-with (`CURRENT_TIMESTAMP`, `datetime('now', …)`) are UTC. The three commits in
-this round move the write side to one base and give the read side exactly one
-seam.
+with (`CURRENT_TIMESTAMP`, `datetime('now', …)`) are UTC. This round moves the
+write side to one base and gives the read side exactly one seam.
 
 **Changed**
 
@@ -44,12 +43,26 @@ seam.
   in UTC, `TranslationTimestampTest` for create and edit, and
   `AdminLayoutTimeTest` for UTC parsing, offset-bearing `<time>` values and an
   empty timestamp that stays empty instead of becoming "now".
+- `AuthorMemberSinceTest` (three) pins the public profile's side of the same
+  seam. `memberSince()` is private, so the test reaches it by reflection and
+  asserts the stored UTC stamp under `Pacific/Kiritimati`, that the process
+  zone does not move it, and that an empty column stays empty instead of
+  rendering a bare "Member since ".
 
 **Measured**
 
-- `make test`: 884 tests, 3146 assertions, 3 skipped. `make mago-lint`: exit 0,
-  0 issues. On `localhost:8000` a queue probe and the audit rows were stored at
-  `23:21` UTC while the panels showed `00:21` CET.
+- `make test`: 887 tests, 3149 assertions, 3 skipped. `make mago-lint`: exit 0,
+  0 issues; `make analyze` and `make lint`: exit 0. On `localhost:8000` a queue
+  probe and the audit rows were stored at `23:21` UTC while the panels showed
+  `00:21` CET.
+
+**Operational note**
+
+- An edit to a catalogue slice stays inert until the module is reinstalled:
+  `php bin/cms module:remove Blog --force && php bin/cms module:add Blog`. The
+  first run of `AuthorMemberSinceTest` failed against the installed copy for
+  exactly that reason. `module:remove` leaves the module's data behind
+  (`storage/data/blog.db`), so the reinstall is not destructive.
 
 **Not changed, with the reason recorded**
 
