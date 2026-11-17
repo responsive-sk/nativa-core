@@ -308,6 +308,41 @@ final class CardboardNavContractTest extends TestCase
         );
     }
 
+    /**
+     * Every file in an `Application/Nav` directory is one the registry can read.
+     *
+     * The scan is a text match on `AsCardboardNavItem` plus an FQCN resolve, and
+     * a file that misses either answers "no items" — the same silence a module
+     * with no declarations produces. `RestPanelNavItems` shipped with the
+     * pre-rename namespace and attribute and removed its own sidebar link that
+     * way, and every test still passed. This asserts what the scan assumes
+     * instead of trusting it.
+     */
+    #[Test]
+    public function everyNavDeclarationFileIsOneTheRegistryCanRead(): void
+    {
+        $files = glob(APP_BASE_PATH . '/src/Modules/*/Application/Nav/*.php');
+
+        self::assertIsArray($files);
+        self::assertNotSame([], $files, 'The installed tree declares at least one nav entry.');
+
+        foreach ($files as $file) {
+            $content = (string) file_get_contents($file);
+            $module = basename(dirname($file, 3));
+
+            self::assertStringContainsString(
+                'AsCardboardNavItem',
+                $content,
+                sprintf('%s spells the attribute the registry scans for.', $file),
+            );
+            self::assertStringContainsString(
+                sprintf('namespace Modules\\%s\\Application\\Nav;', $module),
+                $content,
+                sprintf('%s sits in the namespace of its own module, so the scan can resolve its class.', $file),
+            );
+        }
+    }
+
     private function clearPanelMenu(): void
     {
         $this->connection->prepare("DELETE FROM menu_items WHERE location = 'mark'")->execute();

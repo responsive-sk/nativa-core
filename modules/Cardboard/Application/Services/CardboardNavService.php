@@ -40,7 +40,7 @@ use Modules\Database\Contracts\ConnectionInterface;
  * `Modules\Core\Domain\MarkRoutePolicy` exactly as it already imported
  * `Permissions`.
  *
- * Reads `config.db.menu_items` (location = 'admin') through its own `Statement`
+ * Reads `config.db.menu_items` (location = 'mark') through its own `Statement`
  * to avoid importing another module's Infrastructure layer.
  *
  * @phpstan-type NavItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string}
@@ -313,7 +313,7 @@ final readonly class CardboardNavService
     }
 
     /**
-     * Rows stored in `menu_items` (location = 'admin'), sorted by sort_order.
+     * Rows stored in `menu_items` (location = 'mark'), sorted by sort_order.
      *
      * Public because the settings screen pairs them with `declaredItems()` to
      * show which declarations a row already overrides.

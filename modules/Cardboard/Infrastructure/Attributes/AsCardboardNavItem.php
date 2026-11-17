@@ -20,8 +20,8 @@ namespace Modules\Cardboard\Infrastructure\Attributes;
  * paired with these declarations by href.
  *
  * `$permission` must be one of `Modules\Core\Domain\Permissions`. It is the gate
- * only where `AdminRoutePolicy` does not classify the path; where the policy
- * does answer, `AdminNavContractTest` holds the declaration to the policy's own
+ * only where `MarkRoutePolicy` does not classify the path; where the policy
+ * does answer, `CardboardNavContractTest` holds the declaration to the policy's own
  * answer, so a nav item can never offer a link the middleware refuses.
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
