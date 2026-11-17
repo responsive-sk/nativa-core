@@ -8,6 +8,7 @@ use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\RestPanel\Application\Spec\SpecRepository;
 use Modules\RestPanel\Application\Spec\SpecValidator;
+use Modules\RestPanel\Domain\Model\FieldContext;
 use Modules\RestPanel\Domain\Model\ResourceSpec;
 use Modules\RestPanel\Domain\Model\ServiceSpec;
 use Modules\RestPanel\Infrastructure\Persistence\Migrations\RestPanelDatabaseMigrator;
@@ -253,6 +254,50 @@ final class SpecRepositoryTest extends TestCase
         self::assertNotFalse($statement);
 
         return (int) $statement->fetchColumn();
+    }
+
+    /**
+     * The two context columns live beside the booleans, and a spec that uses
+     * them survives the round trip. Without this the panel would render a field
+     * hidden in the form, save it, and silently lose the intention — the three
+     * presentations would agree again only by accident.
+     */
+    #[Test]
+    public function perContextOverridesSurviveARoundTrip(): void
+    {
+        $spec = (new SpecValidator())->validate([
+            'service'   => [
+                'id'       => 'blog',
+                'name'     => 'Blog API',
+                'base_url' => 'https://api.blog.test',
+            ],
+            'resources' => [[
+                'name'      => 'posts',
+                'path'      => '/posts',
+                'item_path' => '/posts/{id}',
+                'fields'    => [[
+                    'name'         => 'slug',
+                    'label'        => 'Slug',
+                    'type'         => 'text',
+                    'hidden_in'    => ['detail'],
+                    'read_only_in' => ['form'],
+                ]],
+            ]],
+        ]);
+
+        $repository = new SpecRepository(DatabaseConnectionManager::instance()->connect('restpanel'));
+        $repository->save($spec);
+
+        $loaded = $repository->find('blog');
+        self::assertNotNull($loaded);
+
+        $field = $loaded->resources[0]->fields[0];
+
+        self::assertSame([FieldContext::Detail], $field->hiddenIn);
+        self::assertSame([FieldContext::Form], $field->readOnlyIn);
+        self::assertTrue($field->visibleIn(FieldContext::List));
+        self::assertFalse($field->visibleIn(FieldContext::Detail));
+        self::assertFalse($field->editableIn(FieldContext::Form));
     }
 
     private function quietOutput(): CliOutput

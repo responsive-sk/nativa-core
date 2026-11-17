@@ -12,6 +12,7 @@ use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
 use Modules\RestPanel\Application\Mapping\ApiException;
 use Modules\RestPanel\Application\Mapping\FieldMapper;
 use Modules\RestPanel\Application\Mapping\MappingException;
+use Modules\RestPanel\Domain\Model\FieldContext;
 use Modules\RestPanel\Domain\Model\ResourceSpec;
 use Modules\RestPanel\Domain\Model\ServiceSpec;
 use Modules\RestPanel\Interfaces\HTTP\Panel;
@@ -63,6 +64,10 @@ final class ItemDetailAction
         $details = '<dl class="m-dl">';
 
         foreach ($resource->fields as $field) {
+            if (!$field->visibleIn(FieldContext::Detail)) {
+                continue;
+            }
+
             $details .= '<dt>' . CardboardLayout::e($field->label) . '</dt><dd>'
                 . CardboardLayout::e($mapper->has($item, $field->name) ? PanelHtml::format($mapper->read($item, $field->name)) : '—')
                 . '</dd>';

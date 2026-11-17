@@ -4,40 +4,35 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Tests;
 
-use Modules\Cardboard\Application\Services\CardboardNavService;
 use Modules\Cardboard\Application\Services\BulkEntityGate;
 use Modules\Core\Domain\MarkRoutePolicy;
-use Modules\Core\Domain\Permissions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
 /**
- * CardboardPermissionCopyTest — the leaf keeps its copy, and the copy stays
- * true to the owner.
+ * CardboardPermissionCopyTest — the one copy left, and it stays true to the
+ * owner.
  *
- * Cardboard deliberately holds two local copies of Users' permission
- * vocabulary: `CardboardNavService::permissionTable()` (17 prefixes, so the admin
- * nav never offers a link the policy will refuse) and
- * `BulkEntityGate::permissionForEntity()` (4 entities, because the POST body
- * names what a bulk route acts on). Both exist to keep zero
- * `use Modules\<Feature>` lines, which is what lets the install-closure
- * scanner treat Cardboard as a leaf. Consolidating them into one more
- * constant would be a third declaration, and the audit forbids exactly that.
+ * Cardboard used to hold two local copies of the permission vocabulary:
+ * `CardboardNavService::permissionTable()` (a copy of `MarkRoutePolicy`'s prefix
+ * table) and `BulkEntityGate::permissionForEntity()` (4 entities, because the
+ * POST body names what a bulk route acts on). Both existed to keep zero
+ * `use Modules\<Feature>` lines, which is what lets the install-closure scanner
+ * treat Cardboard as a leaf.
  *
- * So the copy stays and this test guards it instead:
+ * The nav copy is gone: `MarkRoutePolicy` moved to Core on 2026-10-17, and
+ * Cardboard imports it the way it already imported `Permissions`, so the nav
+ * asks the owner instead of copying it. The bulk gate cannot follow — a bulk
+ * *entity* name is not an admin path, so the policy's prefix table has no row
+ * to consult — and this test guards what is left:
  *
- *   - every prefix `MarkRoutePolicy` classifies has a row in the nav copy,
- *     no row points at a path the policy does not classify, and each row's
- *     permission is the owner's answer;
- *   - every value is a name `Permissions::all()` owns — a typo here is a nav
- *     item nobody can ever see, not a compile error;
  *   - every entity `MarkRoutePolicy::bulkEntities()` knows gets the owner's
  *     permission, and an unknown entity still fails closed.
  *
- * The tables are private and stay private: reflection is how the guard reads
- * them, the same way `UsersValidationTest` reaches a private action method.
- * No constant is declared here, so the name-ownership ratchet does not move.
+ * The table is private and stays private: reflection is how the guard reads
+ * it, the same way `UsersValidationTest` reaches a private action method. No
+ * constant is declared here, so the name-ownership ratchet does not move.
  */
 final class CardboardPermissionCopyTest extends TestCase
 {
@@ -48,80 +43,6 @@ final class CardboardPermissionCopyTest extends TestCase
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Cardboard')) {
             $this->markTestSkipped('Cardboard is not installed — its permission copies ship with the module.');
         }
-    }
-
-    /**
-     * A policy prefix the copy has not learned would fall through to a shorter
-     * row (or to null, a 403 on a configured nav item); a row the policy does
-     * not classify would hide a link for no reason. Both directions matter.
-     */
-    #[Test]
-    public function theNavCopyClassifiesExactlyThePrefixesThePolicyDoes(): void
-    {
-        $local = $this->localNavTable();
-        $owned = MarkRoutePolicy::prefixes();
-
-        $missing = array_values(array_diff($owned, array_keys($local)));
-        $extra = array_values(array_diff(array_keys($local), $owned));
-
-        self::assertSame(
-            [],
-            $missing,
-            "these prefixes are classified by MarkRoutePolicy but missing from Cardboard's nav copy:\n  "
-            . implode("\n  ", $missing),
-        );
-
-        self::assertSame(
-            [],
-            $extra,
-            "Cardboard's nav copy gates paths no MarkRoutePolicy row classifies:\n  "
-            . implode("\n  ", $extra),
-        );
-    }
-
-    #[Test]
-    public function everyNavRowAnswersWithThePolicysPermission(): void
-    {
-        $drift = [];
-
-        foreach ($this->localNavTable() as $prefix => $permission) {
-            $owned = MarkRoutePolicy::requiredPermission($prefix);
-
-            if ($owned !== $permission) {
-                $drift[] = sprintf(
-                    '  %-24s copy=%s owner=%s',
-                    $prefix,
-                    var_export($permission, true),
-                    var_export($owned, true),
-                );
-            }
-        }
-
-        self::assertSame(
-            [],
-            $drift,
-            "Cardboard's nav copy answers differently from MarkRoutePolicy:\n"
-            . implode("\n", $drift)
-            . "\n\nThe copy is deliberate — Cardboard stays a leaf — but it must move"
-            . ' when the owner moves. Fix the row, do not add a third permission name.',
-        );
-    }
-
-    #[Test]
-    public function theNavCopyUsesOnlyNamesPermissionsOwns(): void
-    {
-        $unknown = array_values(array_diff(
-            array_unique(array_values($this->localNavTable())),
-            Permissions::all(),
-        ));
-
-        self::assertSame(
-            [],
-            $unknown,
-            "Cardboard's nav copy uses permission names Permissions does not own:\n  "
-            . implode("\n  ", $unknown)
-            . "\nA role can never be granted such a name, so the matching nav item is dead.",
-        );
     }
 
     #[Test]
@@ -155,22 +76,5 @@ final class CardboardPermissionCopyTest extends TestCase
             $method->invoke(null, 'no-such-entity'),
             'An unknown bulk entity must fail closed; a null permission is the gate that does it.',
         );
-    }
-
-    /**
-     * The nav copy is private on purpose — it is Cardboard's implementation
-     * detail, not an API other modules may import.
-     *
-     * @return array<string, string>
-     */
-    private function localNavTable(): array
-    {
-        $method = new ReflectionMethod(CardboardNavService::class, 'permissionTable');
-        $table = $method->invoke(null);
-
-        self::assertIsArray($table);
-
-        /** @var array<string, string> $table */
-        return $table;
     }
 }

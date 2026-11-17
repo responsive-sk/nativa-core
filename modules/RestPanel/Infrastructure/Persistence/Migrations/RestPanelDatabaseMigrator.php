@@ -45,6 +45,7 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
         $this->createServicesTable();
         $this->createResourcesTable();
         $this->createFieldsTable();
+        $this->ensureFieldContextColumns();
         $this->createRelationsTable();
         $this->createIndexes();
         $this->adoptLegacyDatabase($output);
@@ -219,11 +220,43 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
                     is_required     INTEGER NOT NULL DEFAULT 0,
                     is_read_only    INTEGER NOT NULL DEFAULT 0,
                     in_list         INTEGER NOT NULL DEFAULT 1,
+                    hidden_in       TEXT NOT NULL DEFAULT '[]',
+                    read_only_in    TEXT NOT NULL DEFAULT '[]',
                     sort_order      INTEGER NOT NULL DEFAULT 0,
                     UNIQUE (resource_id, name),
                     FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE
                 )
             SQL);
+    }
+
+    /**
+     * The two context columns arrived after the first specs were stored, and
+     * `CREATE TABLE IF NOT EXISTS` does not add a column to a table that
+     * already exists — `storage/data/restadmin.db` is exactly that case. So the
+     * addition is measured rather than assumed: a column that is absent is
+     * added, a boot on a current database changes nothing, and a stored spec
+     * keeps its `[]` default instead of failing the query that reads it.
+     */
+    private function ensureFieldContextColumns(): void
+    {
+        $present = [];
+
+        $statement = $this->pdo->query('PRAGMA table_info(fields)');
+
+        if (false !== $statement) {
+            /** @var list<array{name: string}> $columns */
+            $columns = $statement->fetchAll(\PDO::FETCH_ASSOC);
+            $present = array_column($columns, 'name');
+        }
+
+        foreach ([
+            'hidden_in'    => "TEXT NOT NULL DEFAULT '[]'",
+            'read_only_in' => "TEXT NOT NULL DEFAULT '[]'",
+        ] as $column => $definition) {
+            if (!in_array($column, $present, true)) {
+                $this->pdo->exec('ALTER TABLE fields ADD COLUMN ' . $column . ' ' . $definition);
+            }
+        }
     }
 
     private function createRelationsTable(): void

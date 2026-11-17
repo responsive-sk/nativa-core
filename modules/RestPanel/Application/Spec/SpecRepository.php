@@ -7,6 +7,7 @@ namespace Modules\RestPanel\Application\Spec;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\RestPanel\Domain\Model\ActionSet;
 use Modules\RestPanel\Domain\Model\AuthSpec;
+use Modules\RestPanel\Domain\Model\FieldContext;
 use Modules\RestPanel\Domain\Model\FieldSpec;
 use Modules\RestPanel\Domain\Model\FieldType;
 use Modules\RestPanel\Domain\Model\PaginationSpec;
@@ -207,8 +208,8 @@ final readonly class SpecRepository
     private function insertField(ConnectionInterface $db, string $resourceId, FieldSpec $field, int $index): void
     {
         Statement::prepare($db, <<<'SQL'
-            INSERT INTO fields (id, resource_id, name, label, type, is_required, is_read_only, in_list, sort_order)
-            VALUES (:id, :resource_id, :name, :label, :type, :is_required, :is_read_only, :in_list, :sort_order)
+            INSERT INTO fields (id, resource_id, name, label, type, is_required, is_read_only, in_list, hidden_in, read_only_in, sort_order)
+            VALUES (:id, :resource_id, :name, :label, :type, :is_required, :is_read_only, :in_list, :hidden_in, :read_only_in, :sort_order)
             SQL)->execute([
                 ':id'           => $this->rowId($resourceId, 'field', $field->name),
                 ':resource_id'  => $resourceId,
@@ -218,6 +219,8 @@ final readonly class SpecRepository
                 ':is_required'  => $field->required ? 1 : 0,
                 ':is_read_only' => $field->readOnly ? 1 : 0,
                 ':in_list'      => $field->inList ? 1 : 0,
+                ':hidden_in'    => json_encode(FieldContext::tokens($field->hiddenIn)) ?: '[]',
+                ':read_only_in' => json_encode(FieldContext::tokens($field->readOnlyIn)) ?: '[]',
                 ':sort_order'   => $index,
             ]);
     }
@@ -294,6 +297,8 @@ final readonly class SpecRepository
                 required: 1 === (int) ($fieldRow['is_required'] ?? 0),
                 readOnly: 1 === (int) ($fieldRow['is_read_only'] ?? 0),
                 inList: 1 === (int) ($fieldRow['in_list'] ?? 1),
+                hiddenIn: FieldContext::fromStored($fieldRow['hidden_in'] ?? null),
+                readOnlyIn: FieldContext::fromStored($fieldRow['read_only_in'] ?? null),
             );
         }
 

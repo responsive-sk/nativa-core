@@ -13,6 +13,7 @@ use Modules\RestPanel\Application\Mapping\ApiException;
 use Modules\RestPanel\Application\Mapping\FieldMapper;
 use Modules\RestPanel\Application\Mapping\ListPage;
 use Modules\RestPanel\Application\Mapping\MappingException;
+use Modules\RestPanel\Domain\Model\FieldContext;
 use Modules\RestPanel\Domain\Model\ResourceSpec;
 use Modules\RestPanel\Domain\Model\ServiceSpec;
 use Modules\RestPanel\Interfaces\HTTP\Panel;
@@ -63,7 +64,7 @@ final class ItemsIndexAction
         $columns = [];
 
         foreach ($resource->fields as $field) {
-            if ($field->inList && $field->name !== $resource->idField) {
+            if ($field->visibleIn(FieldContext::List) && $field->name !== $resource->idField) {
                 $columns[] = $field;
                 $headers[] = $field->label;
             }

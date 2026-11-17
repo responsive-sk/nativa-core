@@ -6,6 +6,7 @@ namespace Modules\RestPanel\Tests;
 
 use Modules\RestPanel\Application\Spec\SpecValidationException;
 use Modules\RestPanel\Application\Spec\SpecValidator;
+use Modules\RestPanel\Domain\Model\ResourceAction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -80,6 +81,51 @@ final class SpecValidatorTest extends TestCase
         self::assertSame([], $spec->resources[0]->relations);
         self::assertFalse($spec->service->auth->isConfigured());
         self::assertNull($spec->service->authHeader());
+    }
+
+    /**
+     * A spec stored before the vocabulary was typed is read as an input, not as
+     * a trusted value: `actions` is persisted as tokens, so the acceptance for
+     * the typed vocabulary is that such a document still loads, still
+     * authorises `read`, and still writes nothing.
+     */
+    #[Test]
+    public function aSpecWrittenBeforeTheVocabularyWasTypedStillAuthorises(): void
+    {
+        $spec = (new SpecValidator())->validate([
+            'service'   => ['id' => 'blog', 'name' => 'Blog API', 'base_url' => 'https://api.blog.test'],
+            'resources' => [[
+                'name'      => 'posts',
+                'path'      => '/posts',
+                'item_path' => '/posts/{id}',
+                'actions'   => ['list', 'read'],
+            ]],
+        ]);
+
+        $actions = $spec->resources[0]->actions;
+
+        self::assertSame(['list', 'read'], $actions->toArray());
+        self::assertTrue($actions->allows('read'));
+        self::assertFalse($actions->writes());
+    }
+
+    /**
+     * The write verbs are one list, and the enum owns it. Before this,
+     * `writes()` re-spelled the three tokens that `known()` already held, so a
+     * sixth action would have had to be added in two places.
+     */
+    #[Test]
+    public function theWriteVerbsAreOwnedByOneList(): void
+    {
+        self::assertSame(
+            ['create', 'update', 'delete'],
+            array_map(static fn (ResourceAction $action): string => $action->value, ResourceAction::writes()),
+        );
+
+        self::assertFalse(ResourceAction::List->isWrite());
+        self::assertFalse(ResourceAction::Read->isWrite());
+        self::assertTrue(ResourceAction::Create->isWrite());
+        self::assertTrue(ResourceAction::Delete->isWrite());
     }
 
     /**

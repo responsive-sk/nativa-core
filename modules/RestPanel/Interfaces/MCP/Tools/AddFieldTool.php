@@ -37,7 +37,7 @@ final class AddFieldTool extends AbstractTool
             'resource'   => Schemas::text('Resource name'),
             'field'      => [
                 'type'        => 'object',
-                'description' => 'name, label, type (text/textarea/number/checkbox/select/date/json/relation), required, read_only, in_list',
+                'description' => 'name, label, type (text/textarea/number/checkbox/select/date/json/relation), required, read_only, in_list, hidden_in, read_only_in (list/form/detail)',
             ],
         ], ['service_id', 'resource', 'field']);
     }

@@ -89,8 +89,12 @@ final class SettingsAction
         $iconOptions = IconRegistry::optionsHtml();
         $parentOptions = $this->panelParentOptions($panelNavItems);
         $panelNavTable = $this->panelNavTable($panelNavItems, $csrf);
+        $declaredNavTable = self::declaredNavTable(
+            CardboardServices::panelNav()->declaredItems(),
+            CardboardServices::panelNav()->storedItems(),
+        );
 
-        $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'general'), 'adminEmail' => $adminEmail, 'panelNavTable' => $panelNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
+        $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'general'), 'adminEmail' => $adminEmail, 'panelNavTable' => $panelNavTable, 'declaredNavTable' => $declaredNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
 
         return CardboardLayout::render(
             'Settings',
@@ -399,6 +403,66 @@ final class SettingsAction
         }
 
         return ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-nav-table.phtml', ['url' => $this->urlBuilder(), 'panelNavRows' => $rows]);
+    }
+
+    /**
+     * The declarations, listed beside the editable table.
+     *
+     * A declared item has no row, and the table above can edit rows only — so
+     * without this the operator sees a link in the sidebar and nothing on this
+     * screen that accounts for it. Read-only on purpose: the add form above is
+     * already the way to create the row that overrides a declaration, and a
+     * second write path for the same table would be a second place for
+     * `menu_items` to be written wrongly.
+     *
+     * Public and static so the listing is testable without the request and
+     * auth stack the settings page needs (`selectableThemes()` precedent).
+     *
+     * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string}> $declared
+     * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string}> $stored
+     */
+    public static function declaredNavTable(array $declared, array $stored): string
+    {
+        if ([] === $declared) {
+            return '';
+        }
+
+        $rowsByHref = [];
+        foreach ($stored as $row) {
+            $rowsByHref[$row['href']] = ($rowsByHref[$row['href']] ?? 0) + 1;
+        }
+
+        $labelsById = [];
+        foreach ($declared as $item) {
+            $labelsById[$item['id']] = $item['label'];
+        }
+
+        $rows = '';
+        foreach ($declared as $item) {
+            $overridden = ($rowsByHref[$item['href']] ?? 0) > 0;
+            $source = $overridden
+                ? '<span class="m-badge m-badge-info">Overridden by a row</span>'
+                : '<span class="m-badge m-badge-gray">Code only</span>';
+            $parent = null === $item['parent_id']
+                ? '<span class="m-muted">—</span>'
+                : CardboardLayout::e($labelsById[$item['parent_id']] ?? $item['parent_id']);
+
+            $rows .= '<tr>'
+                . '<td>' . CardboardLayout::e($item['label']) . '</td>'
+                . '<td><code>' . CardboardLayout::e($item['href']) . '</code></td>'
+                . '<td>' . $item['sort_order'] . '</td>'
+                . '<td>' . CardboardLayout::e($item['icon']) . '</td>'
+                . '<td>' . $parent . '</td>'
+                . '<td>' . CardboardLayout::e($item['permission'] ?? '—') . '</td>'
+                . '<td>' . $source . '</td>'
+                . '</tr>';
+        }
+
+        return '<h3 class="m-heading">Declared in code</h3>'
+            . '<p class="m-muted m-card-intro">Each installed module declares its own entry. A stored row with the same href overrides the declaration — that is what the table above edits; add one below to relabel a declared item or change its order.</p>'
+            . '<div class="m-table-scroll"><table class="m-table m-table--wide"><thead><tr>'
+            . '<th>Label</th><th>Href</th><th>Order</th><th>Icon</th><th>Parent</th><th>Permission</th><th>Source</th>'
+            . '</tr></thead><tbody>' . $rows . '</tbody></table></div>';
     }
 
     /**

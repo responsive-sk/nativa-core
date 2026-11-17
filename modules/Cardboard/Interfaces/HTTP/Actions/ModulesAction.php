@@ -412,10 +412,11 @@ final class ModulesAction
     {
         try {
             ModuleRegistry::forUninstall()->forget($name);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             // A stale lock is ignored while the module is absent; do not turn a
-            // successful uninstall into an error.
-            // @mago-expect lint:no-empty-catch-clause
+            // successful uninstall into an error — but leave the trace, or a
+            // lock that never cleared would look like a success.
+            error_log('[modules] could not forget the registry install of ' . $name . ': ' . $e->getMessage());
         }
     }
 

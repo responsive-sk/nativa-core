@@ -12,9 +12,11 @@ use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
 use Modules\RestPanel\Application\Services\Audit;
 use Modules\RestPanel\Application\Spec\SpecValidationException;
 use Modules\RestPanel\Domain\Model\ActionSet;
+use Modules\RestPanel\Domain\Model\FieldContext;
 use Modules\RestPanel\Domain\Model\FieldSpec;
 use Modules\RestPanel\Domain\Model\FieldType;
 use Modules\RestPanel\Domain\Model\PaginationSpec;
+use Modules\RestPanel\Domain\Model\ResourceAction;
 use Modules\RestPanel\Domain\Model\ResourceSpec;
 use Modules\RestPanel\Domain\Model\ServiceSpec;
 use Modules\RestPanel\Interfaces\HTTP\Panel;
@@ -178,11 +180,14 @@ final class ResourceFormAction
         $fields = $this->fields((string) $values['fields'], $errors);
         $actions = $values['actions'];
 
-        if (!is_array($actions) || [] === $actions) {
-            $actions = ['list', 'read'];
+        // The POST carries tokens, the default is the vocabulary's own cases.
+        // Both branches are kept apart on purpose: filtering the default as if
+        // it came from the request would drop it, because it is not a string.
+        if (is_array($actions) && [] !== $actions) {
+            $actions = array_values(array_filter($actions, 'is_string'));
+        } else {
+            $actions = [ResourceAction::List, ResourceAction::Read];
         }
-
-        $actions = array_values(array_filter($actions, 'is_string'));
 
         // Both constructors own their vocabulary and throw on a word they do
         // not know. The form is a text input, so a tampered or stale POST can
@@ -276,6 +281,8 @@ final class ResourceFormAction
                 required: true === ($entry['required'] ?? false),
                 readOnly: true === ($entry['read_only'] ?? false),
                 inList: false !== ($entry['in_list'] ?? true),
+                hiddenIn: FieldContext::fromStored($entry['hidden_in'] ?? null),
+                readOnlyIn: FieldContext::fromStored($entry['read_only_in'] ?? null),
             );
         }
 
@@ -376,7 +383,7 @@ final class ResourceFormAction
             . PanelHtml::select('pagination', 'Pagination', ['page' => 'page (?page=, meta)', 'link' => 'link (Link header)', 'cursor' => 'cursor (next cursor)', 'none' => 'none (whole collection)'], (string) $values['pagination'])
             . '<fieldset class="m-field"><legend class="m-field__label">Actions</legend>' . $checks
             . '<p class="m-field__help">Read-only unless create, update or delete is checked.</p></fieldset>'
-            . PanelHtml::textarea('fields', 'Fields (JSON)', (string) $values['fields'], false, 'name, label and type (text, textarea, number, checkbox, select, date, json, relation), plus required, read_only and in_list.', 12);
+            . PanelHtml::textarea('fields', 'Fields (JSON)', (string) $values['fields'], false, 'name, label and type (text, textarea, number, checkbox, select, date, json, relation), plus required, read_only and in_list, and the per-context overrides hidden_in and read_only_in (list, form, detail).', 12);
 
         return '<h1 class="m-heading">' . CardboardLayout::e($resource->name ?? 'New resource') . '</h1>'
             . '<p><a href="' . CardboardLayout::e($this->url('mark.rest.service', ['id' => $spec->service->id])) . '">Back to ' . CardboardLayout::e($spec->service->name) . '</a></p>'

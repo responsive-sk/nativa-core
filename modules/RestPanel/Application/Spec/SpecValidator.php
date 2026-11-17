@@ -6,6 +6,7 @@ namespace Modules\RestPanel\Application\Spec;
 
 use Modules\RestPanel\Domain\Model\ActionSet;
 use Modules\RestPanel\Domain\Model\AuthSpec;
+use Modules\RestPanel\Domain\Model\FieldContext;
 use Modules\RestPanel\Domain\Model\FieldSpec;
 use Modules\RestPanel\Domain\Model\FieldType;
 use Modules\RestPanel\Domain\Model\PaginationSpec;
@@ -369,7 +370,7 @@ final class SpecValidator
                 throw new SpecValidationException($fieldPrefix, 'must be a field object.');
             }
 
-            $this->rejectUnknownKeys($field, ['name', 'label', 'type', 'required', 'read_only', 'in_list'], $fieldPrefix);
+            $this->rejectUnknownKeys($field, ['name', 'label', 'type', 'required', 'read_only', 'in_list', 'hidden_in', 'read_only_in'], $fieldPrefix);
 
             $name = $this->requiredString($field, 'name', $fieldPrefix);
 
@@ -397,9 +398,16 @@ final class SpecValidator
 
             $required = $this->boolean($field, 'required', false, $fieldPrefix);
             $readOnly = $this->boolean($field, 'read_only', false, $fieldPrefix);
+            $hiddenIn = $this->contexts($field, 'hidden_in', $fieldPrefix);
+            $readOnlyIn = $this->contexts($field, 'read_only_in', $fieldPrefix);
 
-            if ($required && $readOnly) {
-                throw new SpecValidationException($fieldPrefix . '.required', 'cannot be true while read_only is true: a read-only field is never submitted.');
+            // The existing rule, said once for both spellings: `read_only`
+            // means read-only in every context that could edit, and
+            // `read_only_in: [form]` says the same thing for the one context
+            // that submits. Either way a required value nobody can type is a
+            // form that can never be saved.
+            if ($required && ($readOnly || in_array(FieldContext::Form, $readOnlyIn, true))) {
+                throw new SpecValidationException($fieldPrefix . '.required', 'cannot be true while read_only is true, or read_only_in names form: a read-only field is never submitted.');
             }
 
             $built[] = new FieldSpec(
@@ -409,10 +417,30 @@ final class SpecValidator
                 required: $required,
                 readOnly: $readOnly,
                 inList: $this->boolean($field, 'in_list', true, $fieldPrefix),
+                hiddenIn: $hiddenIn,
+                readOnlyIn: $readOnlyIn,
             );
         }
 
         return $built;
+    }
+
+    /**
+     * A field's per-context overrides. Both keys are optional and both are
+     * lists of tokens the enum owns; an absent key is "no override", which is
+     * what keeps a document written before contexts existed valid.
+     *
+     * @param array<mixed> $field
+     *
+     * @return list<FieldContext>
+     */
+    private function contexts(array $field, string $key, string $prefix): array
+    {
+        try {
+            return FieldContext::parseList($field[$key] ?? []);
+        } catch (\InvalidArgumentException $exception) {
+            throw new SpecValidationException($prefix . '.' . $key, $exception->getMessage());
+        }
     }
 
     /**

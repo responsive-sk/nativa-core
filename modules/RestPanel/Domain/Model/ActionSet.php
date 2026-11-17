@@ -15,16 +15,24 @@ namespace Modules\RestPanel\Domain\Model;
  * resource nobody may touch is not a resource, it is a mistake in the form.
  * `writes()` is the one question the MCP layer asks to decide whether a tool
  * needs `confirm: true`.
+ *
+ * The set stores `ResourceAction` cases, not strings, but it still ACCEPTS
+ * strings: `actions` is persisted as tokens in a spec document, so a stored
+ * spec — and a tampered POST — arrives here as text. Normalisation through
+ * `ResourceAction::tryFrom()` is the only door, which is why an unknown token
+ * is refused here and nowhere else. `toArray()` gives the tokens back in the
+ * operator's order, so a spec written before the vocabulary was typed reloads
+ * and re-saves identically.
  */
 final readonly class ActionSet
 {
-    /** @var list<string> */
+    /** @var list<ResourceAction> */
     public array $actions;
 
     /**
-     * @param list<string> $actions
+     * @param list<ResourceAction|string> $actions
      */
-    public function __construct(array $actions = ['list', 'read'])
+    public function __construct(array $actions = [ResourceAction::List, ResourceAction::Read])
     {
         if ([] === $actions) {
             throw new \InvalidArgumentException('A resource needs at least one action; the default is list and read.');
@@ -33,32 +41,44 @@ final readonly class ActionSet
         $normalised = [];
 
         foreach ($actions as $action) {
-            if (!is_string($action) || !self::known($action)) {
+            $known = $action instanceof ResourceAction
+                ? $action
+                : (is_string($action) ? ResourceAction::tryFrom($action) : null);
+
+            if (!$known instanceof ResourceAction) {
                 throw new \InvalidArgumentException(sprintf(
-                    '"%s" is not an action; use list, read, create, update or delete.',
+                    '"%s" is not an action; use %s.',
                     is_string($action) ? $action : get_debug_type($action),
+                    ResourceAction::tokens(),
                 ));
             }
 
-            if (in_array($action, $normalised, true)) {
-                throw new \InvalidArgumentException(sprintf('"%s" is listed twice in one action set.', $action));
+            if (in_array($known, $normalised, true)) {
+                throw new \InvalidArgumentException(sprintf('"%s" is listed twice in one action set.', $known->value));
             }
 
-            $normalised[] = $action;
+            $normalised[] = $known;
         }
 
         $this->actions = $normalised;
     }
 
+    /**
+     * Asked with a token, because every caller is a route or a template holding
+     * one. A token nobody knows is not an action the panel may take, so it is
+     * refused by answering false rather than by throwing at a read.
+     */
     public function allows(string $action): bool
     {
-        return in_array($action, $this->actions, true);
+        $known = ResourceAction::tryFrom($action);
+
+        return null !== $known && in_array($known, $this->actions, true);
     }
 
     public function writes(): bool
     {
         foreach ($this->actions as $action) {
-            if (in_array($action, ['create', 'update', 'delete'], true)) {
+            if ($action->isWrite()) {
                 return true;
             }
         }
@@ -71,14 +91,9 @@ final readonly class ActionSet
      */
     public function toArray(): array
     {
-        return $this->actions;
-    }
-
-    private static function known(string $action): bool
-    {
-        return match ($action) {
-            'list', 'read', 'create', 'update', 'delete' => true,
-            default => false,
-        };
+        return array_map(
+            static fn (ResourceAction $action): string => $action->value,
+            $this->actions,
+        );
     }
 }

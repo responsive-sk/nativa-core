@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\RestPanel\Interfaces\MCP;
 
+use Modules\RestPanel\Domain\Model\FieldContext;
 use Modules\RestPanel\Domain\Model\FieldSpec;
 use Modules\RestPanel\Domain\Model\FieldType;
 use Modules\RestPanel\Domain\Model\ResourceSpec;
@@ -188,6 +189,8 @@ abstract class AbstractTool implements Tool
                 required: true === ($field['required'] ?? false),
                 readOnly: true === ($field['read_only'] ?? false),
                 inList: false !== ($field['in_list'] ?? true),
+                hiddenIn: FieldContext::fromStored($field['hidden_in'] ?? null),
+                readOnlyIn: FieldContext::fromStored($field['read_only_in'] ?? null),
             );
         }
 

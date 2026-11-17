@@ -5,49 +5,49 @@ declare(strict_types = 1);
 namespace Modules\Cardboard\Application\Services;
 
 use Modules\Cardboard\Infrastructure\Persistence\Statement;
-use Modules\Core\Domain\Permissions;
+use Modules\Cardboard\Infrastructure\Registry\CardboardNavRegistry;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Database\Contracts\ConnectionInterface;
 
 /**
- * CardboardNavService — resolves admin panel navigation items from DB.
+ * CardboardNavService — the admin panel's navigation: discovered, then overridden.
  *
- * Falls back to hardcoded defaults when the DB has no admin nav items
- * (e.g. fresh install before migration seed runs).
+ * ## Where an item comes from now
  *
- * Reads directly from config.db.menu_items (location = 'mark') to avoid
- * importing another module's Infrastructure layer.
+ * Every installed module annotates one class with `#[AsCardboardNavItem]`, and
+ * `CardboardNavRegistry` collects them from `src/Modules/<Name>/Application/Nav`.
+ * That is the default source: a fresh install renders the sidebar with no seed
+ * rows and no hardcoded list, and removing a module removes its entry without a
+ * code edit anywhere else.
  *
- * @phpstan-type NavItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}
- * @phpstan-type NavTreeItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, children: list<NavItem>, is_expanded: bool}
+ * A stored `menu_items` row with the same href is the OPERATOR's override and
+ * wins outright — label, sort_order, icon and is_active. A row cannot name an
+ * attribute, so the two sides are paired by href in declared order, and a row
+ * that finds no partner is kept as an operator-added link.
+ *
+ * ## Why this used to carry two more lists
+ *
+ * `FALLBACK` held 18 entries and the Settings seed held the same 18 — a second
+ * and a third copy of this nav. Both named `Pages`, `Comments`, `Questions` and
+ * `Forms`, none of which has a catalogue slice in this tree, so a fresh install
+ * carried links to 404s and `withoutUnreachable()` hid them again at render.
+ * The nav now has one declaration site per module instead of three copies in
+ * two modules.
+ *
+ * `permissionTable()` — a copy of `MarkRoutePolicy`'s prefix table, kept
+ * because Cardboard "could not import Users" — is gone for the same reason the
+ * copy existed: the policy moved to Core on 2026-10-17, and Cardboard imports
+ * `Modules\Core\Domain\MarkRoutePolicy` exactly as it already imported
+ * `Permissions`.
+ *
+ * Reads `config.db.menu_items` (location = 'admin') through its own `Statement`
+ * to avoid importing another module's Infrastructure layer.
+ *
+ * @phpstan-type NavItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string}
+ * @phpstan-type NavTreeItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string, children: list<NavItem>, is_expanded: bool}
  */
 final readonly class CardboardNavService
 {
-    /**
-     * Hardcoded fallback — mirrors the original CompactLayout/CardboardLayout nav.
-     *
-     * @var list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}>
-     */
-    private const array FALLBACK = [
-        ['id' => '_dashboard', 'label' => 'Dashboard', 'href' => '/mark', 'sort_order' => 10, 'is_active' => true, 'icon' => 'dashboard', 'parent_id' => null],
-        ['id' => '_notifications', 'label' => 'Notifications', 'href' => '/mark/notifications', 'sort_order' => 15, 'is_active' => true, 'icon' => 'bell', 'parent_id' => null],
-        ['id' => '_users',     'label' => 'Users',     'href' => '/mark/users', 'sort_order' => 20, 'is_active' => true, 'icon' => 'users', 'parent_id' => null],
-        ['id' => '_roles',     'label' => 'Roles',     'href' => '/mark/roles', 'sort_order' => 30, 'is_active' => true, 'icon' => 'shield', 'parent_id' => null],
-        ['id' => '_settings',  'label' => 'Settings',  'href' => '/mark/settings', 'sort_order' => 40, 'is_active' => true, 'icon' => 'settings', 'parent_id' => null],
-        ['id' => '_rest',      'label' => 'REST',      'href' => '/mark/rest', 'sort_order' => 45, 'is_active' => true, 'icon' => 'link', 'parent_id' => null],
-        ['id' => '_locales',   'label' => 'Locales',   'href' => '/mark/locales', 'sort_order' => 50, 'is_active' => true, 'icon' => 'globe', 'parent_id' => null],
-        ['id' => '_media',     'label' => 'Media',     'href' => '/mark/media', 'sort_order' => 60, 'is_active' => true, 'icon' => 'image', 'parent_id' => null],
-        ['id' => '_blog',      'label' => 'Blog',      'href' => '/mark/articles', 'sort_order' => 70, 'is_active' => true, 'icon' => 'rss', 'parent_id' => null],
-        ['id' => '_articles',  'label' => 'Articles',  'href' => '/mark/articles', 'sort_order' => 71, 'is_active' => true, 'icon' => 'file-text', 'parent_id' => '_blog'],
-        ['id' => '_categories','label' => 'Categories','href' => '/mark/categories', 'sort_order' => 72, 'is_active' => true, 'icon' => 'folder', 'parent_id' => '_blog'],
-        ['id' => '_tags',      'label' => 'Tags',      'href' => '/mark/tags', 'sort_order' => 73, 'is_active' => true, 'icon' => 'tag', 'parent_id' => '_blog'],
-        ['id' => '_pages',     'label' => 'Pages',     'href' => '/mark/pages', 'sort_order' => 80, 'is_active' => true, 'icon' => 'file', 'parent_id' => null],
-        ['id' => '_comments',  'label' => 'Comments',  'href' => '/mark/comments', 'sort_order' => 100, 'is_active' => true, 'icon' => 'message', 'parent_id' => null],
-        ['id' => '_questions', 'label' => 'Questions', 'href' => '/mark/questions', 'sort_order' => 102, 'is_active' => true, 'icon' => 'help-circle', 'parent_id' => null],
-        ['id' => '_forms',     'label' => 'Forms',     'href' => '/mark/forms', 'sort_order' => 105, 'is_active' => true, 'icon' => 'inbox', 'parent_id' => null],
-        ['id' => '_outbox',    'label' => 'Outbox',    'href' => '/mark/outbox', 'sort_order' => 108, 'is_active' => true, 'icon' => 'inbox', 'parent_id' => null],
-        ['id' => '_audit',     'label' => 'Audit',     'href' => '/mark/audit', 'sort_order' => 110, 'is_active' => true, 'icon' => 'clipboard', 'parent_id' => null],
-    ];
-
     public function __construct(private ConnectionInterface $connection)
     {
     }
@@ -190,9 +190,14 @@ final readonly class CardboardNavService
             $expanded[$activeItem['parent_id']] = true;
         }
 
-        // Also expand the item itself if it's a group (has children in DB).
-        if ($this->hasChildren($activeItem['id'])) {
-            $expanded[$activeId] = true;
+        // Also expand the item itself if it is a group. Asked of the merged set
+        // rather than of `menu_items`: a discovered item has no row to ask, and
+        // `buildTree()` runs after this, so the children are not attached yet.
+        foreach ($index['byId'] as $candidate) {
+            if ($activeId === $candidate['parent_id']) {
+                $expanded[$activeId] = true;
+                break;
+            }
         }
 
         return $expanded;
@@ -229,7 +234,7 @@ final readonly class CardboardNavService
     /**
      * Active admin nav items, sorted by sort_order (flat).
      *
-     * @return list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}>
+     * @return list<NavItem>
      */
     public function activeItems(): array
     {
@@ -246,8 +251,8 @@ final readonly class CardboardNavService
      * enforces — so the nav can never drift from the gate and offer a link the
      * server will refuse. An item whose href the policy does not classify is
      * KEPT: the policy denying unmapped paths is a security default for the
-     * gate, but a nav entry configured in /mark/settings/panel-nav is explicit
-     * admin intent, and hiding it would silently swallow a configured menu.
+     * gate, but a nav entry is explicit admin intent, and hiding it would
+     * silently swallow a configured menu.
      *
      * @param list<string> $granted
      *
@@ -258,7 +263,7 @@ final readonly class CardboardNavService
         return array_values(array_filter(
             $this->activeItems(),
             static function (array $item) use ($granted): bool {
-                $required = self::requiredPermission($item['href']);
+                $required = self::requiredPermission($item);
 
                 return null === $required || in_array($required, $granted, true);
             },
@@ -266,86 +271,56 @@ final readonly class CardboardNavService
     }
 
     /**
-     * Local copy of the admin-route PREFIX table (no Users import — see
-     * CardboardServices note about the single admin module staying a leaf for
-     * the install-closure scanner).
+     * The permission an item needs: the route policy's answer, or the declared
+     * one where the policy abstains.
      *
-     * It is a COPY of the mapping, not a second owner of the vocabulary: every
-     * value is the constant from `Modules\Core\Domain\Permissions`, so a
-     * permission renamed in its owner is renamed here by the same edit, and the
-     * literal `'content.manage'` has one spelling in the tree instead of
-     * eighteen. The prefixes still have to be copied, because hiding an item
-     * needs to know which surface it points at — and
-     * `CardboardPermissionCopyTest` asks `MarkRoutePolicy` for every prefix's
-     * answer and fails when this table drifts, including a prefix the policy
-     * added and this copy never got.
+     * `MarkRoutePolicy` owns "which `/mark` path needs what", and the
+     * middleware refuses an admin path it does not classify — so a declaration
+     * only answers where there is no policy answer to disagree with. A misspelt
+     * permission is not a compile error, so `CardboardNavContractTest` holds every
+     * declaration to the policy and to `Permissions::all()`.
      *
-     * Kept as a method so the guard can read the whole table without inventing
-     * a public API or another permission constant.
-     *
-     * @return array<string, string>
+     * @param NavItem $item
      */
-    private static function permissionTable(): array
+    private static function requiredPermission(array $item): ?string
     {
-        return [
-            '/mark' => Permissions::MARK_ACCESS,
-            '/mark/notifications' => Permissions::MARK_ACCESS,
-            '/mark/articles' => Permissions::CONTENT,
-            '/mark/pages' => Permissions::CONTENT,
-            '/mark/categories' => Permissions::CONTENT,
-            '/mark/tags' => Permissions::CONTENT,
-            '/mark/comments' => Permissions::CONTENT,
-            '/mark/questions' => Permissions::CONTENT,
-            '/mark/media' => Permissions::CONTENT,
-            '/mark/forms' => Permissions::CONTENT,
-            '/mark/outbox' => Permissions::ROLES,
-            '/mark/bulk-publish' => Permissions::CONTENT,
-            '/mark/bulk-delete' => Permissions::CONTENT,
-            '/mark/locales' => Permissions::SETTINGS,
-            '/mark/settings' => Permissions::SETTINGS,
-            '/mark/rest' => Permissions::SETTINGS,
-            '/mark/users' => Permissions::USERS,
-            '/mark/roles' => Permissions::ROLES,
-            '/mark/permissions' => Permissions::ROLES,
-            '/mark/audit' => Permissions::ROLES,
-        ];
-    }
-
-    private static function requiredPermission(string $path): ?string
-    {
-        if ('/mark' !== $path && !str_starts_with($path, '/mark/')) {
-            return null;
-        }
-
-        $table = self::permissionTable();
-        $best = null;
-        $bestLength = -1;
-
-        foreach ($table as $prefix => $permission) {
-            $matches = $path === $prefix
-                || str_starts_with($path, str_ends_with($prefix, '/') ? $prefix : $prefix . '/');
-
-            if (!$matches) {
-                continue;
-            }
-
-            $length = strlen($prefix);
-
-            if ($length > $bestLength) {
-                $best = $permission;
-                $bestLength = $length;
-            }
-        }
-
-        return $best;
+        return MarkRoutePolicy::requiredPermission($item['href']) ?? $item['permission'];
     }
 
     /**
-     * All admin nav items (active + inactive), sorted by sort_order.
+     * The admin nav: what the installed modules declare, with stored rows on top.
      *
-     * @return list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}>
+     * @return list<NavItem>
      */
     public function allItems(): array
+    {
+        return $this->merge(CardboardNavRegistry::all(), $this->storedItems());
+    }
+
+    /**
+     * What the installed modules declare, with no stored row folded in.
+     *
+     * The admin-nav screen prints this beside the merged table: that table can
+     * edit an item only once a row exists, so a declared item has to be visible
+     * somewhere before an operator creates its row — otherwise the sidebar
+     * shows a link the screen cannot explain.
+     *
+     * @return list<NavItem>
+     */
+    public function declaredItems(): array
+    {
+        return CardboardNavRegistry::all();
+    }
+
+    /**
+     * Rows stored in `menu_items` (location = 'admin'), sorted by sort_order.
+     *
+     * Public because the settings screen pairs them with `declaredItems()` to
+     * show which declarations a row already overrides.
+     *
+     * @return list<NavItem>
+     */
+    public function storedItems(): array
     {
         $stmt = Statement::prepare($this->connection,
             'SELECT id, label, href, sort_order, is_active, icon, parent_item_id FROM menu_items
@@ -356,7 +331,7 @@ final readonly class CardboardNavService
         /** @var list<array<string, mixed>>|false $rows */
         $rows = $stmt->fetchAll();
         if (false === $rows || [] === $rows) {
-            return self::FALLBACK;
+            return [];
         }
 
         $items = [];
@@ -370,10 +345,76 @@ final readonly class CardboardNavService
                 'is_active'  => '1' === (string) ($row['is_active'] ?? '1'),
                 'icon'       => (string) ($row['icon'] ?? ''),
                 'parent_id'  => null === $row['parent_item_id'] ? null : (string) $row['parent_item_id'],
+                'permission' => null,
             ];
         }
 
         return $items;
+    }
+
+    /**
+     * Merge declarations and stored rows: a row with the same href wins.
+     *
+     * Pairing is by href, in declared order, because neither side can name the
+     * other. The `Blog` group and its `Articles` child share one href, so
+     * matching by href alone would swap them — pairing within an href in
+     * ascending order keeps the pairs the operator saw in the editor, and
+     * renaming a row's label still overrides the declared one instead of
+     * orphaning the declaration.
+     *
+     * A declared child's parent id is translated to the id of whatever won for
+     * that parent (`_blog` → the row's hex id), or it would dangle as a
+     * top-level item.
+     *
+     * @param list<NavItem> $declared
+     * @param list<NavItem> $stored
+     *
+     * @return list<NavItem>
+     */
+    private function merge(array $declared, array $stored): array
+    {
+        if ([] === $stored) {
+            return $declared;
+        }
+
+        /** @var array<string, list<NavItem>> $byHref */
+        $byHref = [];
+        foreach ($stored as $row) {
+            $byHref[$row['href']][] = $row;
+        }
+
+        $merged = [];
+        $resolved = [];
+
+        foreach ($declared as $item) {
+            $row = $byHref[$item['href']][0] ?? null;
+            $winner = $item;
+
+            if (null !== $row) {
+                array_shift($byHref[$item['href']]);
+                $winner = $row;
+            }
+
+            $merged[] = $winner;
+            $resolved[$item['id']] = $winner['id'];
+        }
+
+        foreach ($byHref as $rows) {
+            foreach ($rows as $row) {
+                $merged[] = $row;
+            }
+        }
+
+        foreach ($merged as &$item) {
+            if (null !== $item['parent_id'] && isset($resolved[$item['parent_id']])) {
+                $item['parent_id'] = $resolved[$item['parent_id']];
+            }
+        }
+        unset($item);
+
+        usort($merged, static fn (array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);
+
+        return array_values($merged);
     }
 
     /**
@@ -402,18 +443,5 @@ final readonly class CardboardNavService
         }
 
         return '';
-    }
-
-    /**
-     * Check if a given item has children in the DB.
-     */
-    private function hasChildren(string $itemId): bool
-    {
-        $stmt = Statement::prepare($this->connection,
-            'SELECT 1 FROM menu_items WHERE parent_item_id = :id AND location = :loc AND is_active = 1 LIMIT 1',
-        );
-        $stmt->execute([':id' => $itemId, ':loc' => 'mark']);
-
-        return false !== $stmt->fetch();
     }
 }

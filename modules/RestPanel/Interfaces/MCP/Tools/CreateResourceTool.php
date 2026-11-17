@@ -41,7 +41,7 @@ final class CreateResourceTool extends AbstractTool
             'pagination' => Schemas::text('page, link, cursor or none; defaults to page'),
             'fields'     => [
                 'type'        => 'array',
-                'description' => 'Fields: name, label, type, required, read_only, in_list',
+                'description' => 'Fields: name, label, type, required, read_only, in_list, hidden_in, read_only_in (list/form/detail)',
                 'items'       => ['type' => 'object'],
             ],
         ], ['service_id', 'name', 'path']);

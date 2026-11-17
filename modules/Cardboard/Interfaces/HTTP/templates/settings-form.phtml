@@ -93,6 +93,7 @@ if (!isset($viewRendererGuard)) {
                 <h2 class="m-heading">Mark panel navigation</h2>
                 <p class="m-muted m-card-intro">Manage which pages appear in the Mark sidebar/top bar, their order, and visibility. Changes apply immediately.</p>
                 <?php echo $panelNavTable . "\n"; ?>
+                <?php echo $declaredNavTable . "\n"; ?>
                 <form class="m-form m-form--after-table" method="POST" action="<?php echo $url('mark.settings.panel-nav'); ?>">
                     <?php echo $csrf . "\n"; ?>
                     <div class="m-form-grid m-form-grid--nav">
