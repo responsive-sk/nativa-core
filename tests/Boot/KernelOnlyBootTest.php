@@ -36,7 +36,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class KernelOnlyBootTest extends TestCase
 {
-    private const string ADMIN_MODULE = 'Cardboard';
+    private const string MARK_MODULE = 'Cardboard';
 
     /**
      * @return iterable<string, array{string, string, int}>
@@ -150,8 +150,8 @@ final class KernelOnlyBootTest extends TestCase
     #[Test]
     public function unroutedAdminPathIsNeverForbidden(): void
     {
-        if (is_dir(APP_BASE_PATH . '/src/Modules/' . self::ADMIN_MODULE)) {
-            $this->markTestSkipped(self::ADMIN_MODULE . ' is installed — the admin path IS routed here.');
+        if (is_dir(APP_BASE_PATH . '/src/Modules/' . self::MARK_MODULE)) {
+            $this->markTestSkipped(self::MARK_MODULE . ' is installed — the admin path IS routed here.');
         }
 
         $kernel = new Kernel(new Router([APP_BASE_PATH . '/src/Modules']));
