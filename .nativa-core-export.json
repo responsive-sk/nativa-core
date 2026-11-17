@@ -1,8 +1,8 @@
 {
     "format": 1,
     "source": "https://github.com/responsive-sk/nativa-php-core",
-    "commit": "d1398c378b27a4a549db81d2aa9943dd84d1a94f",
-    "commit_date": "2026-11-17T21:24:54+01:00",
-    "exported_at": "2026-11-17T20:24:56Z",
+    "commit": "f4a5df7a02de1d988c468a13aa1f179c9a2cbf8b",
+    "commit_date": "2026-11-17T21:31:24+01:00",
+    "exported_at": "2026-11-17T20:31:24Z",
     "profile": "bin/export/core"
 }

@@ -39,6 +39,12 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
         $this->createTranslationsTable();
         $this->createIndexes();
 
+        $renamed = $this->renameLegacyPanelGroup();
+
+        if ($renamed > 0) {
+            $output->writeln(sprintf('<info>  ✓ renamed %d translation(s) from the `admin` group to `mark`</info>', $renamed));
+        }
+
         $seeded = $this->seedDefaultTranslations();
 
         $output->writeln(sprintf(
@@ -71,6 +77,40 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
         $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_translations_key ON translations(translation_key)');
         $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_translations_locale ON translations(locale)');
         $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_translations_group ON translations(group_name)');
+    }
+
+    /**
+     * Rename the seeded `admin.*` translation group to `mark.*` in place.
+     *
+     * The key and its `group_name` are data a deployment can edit, so the rows
+     * are renamed, not replaced: their ids and their values survive. The UNIQUE
+     * (translation_key, locale) index means a `mark.*` row that a newer seed
+     * already wrote has to be kept and the legacy duplicate dropped first —
+     * otherwise the rename fails on the constraint.
+     */
+    private function renameLegacyPanelGroup(): int
+    {
+        $delete = Statement::prepare($this->connection,
+            "DELETE FROM translations
+             WHERE translation_key LIKE 'admin.%'
+               AND EXISTS (
+                   SELECT 1 FROM translations AS mark
+                   WHERE mark.translation_key = 'mark.' || substr(translations.translation_key, 7)
+                     AND mark.locale = translations.locale
+               )",
+        );
+        $delete->execute();
+
+        $update = Statement::prepare($this->connection,
+            "UPDATE translations
+             SET translation_key = 'mark.' || substr(translation_key, 7),
+                 group_name = 'mark',
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE translation_key LIKE 'admin.%'",
+        );
+        $update->execute();
+
+        return $update->rowCount();
     }
 
     /**

@@ -75,7 +75,7 @@ final class CardboardNavContractTest extends TestCase
     #[Test]
     public function anEmptyTableFallsBackToTheHardcodedNav(): void
     {
-        $this->clearAdminMenu();
+        $this->clearPanelMenu();
 
         $items = CardboardServices::panelNav()->allItems();
 
@@ -92,7 +92,7 @@ final class CardboardNavContractTest extends TestCase
     #[Test]
     public function anItemWithoutAServedRouteIsDroppedWithItsGroupIntact(): void
     {
-        $this->clearAdminMenu();
+        $this->clearPanelMenu();
 
         $router = Router::fromEntries([], [
             ['path' => '/mark', 'method' => 'GET', 'name' => 'mark.dashboard', 'handlerMethod' => null, 'action' => self::class],
@@ -125,7 +125,7 @@ final class CardboardNavContractTest extends TestCase
     #[Test]
     public function aGroupExpandsWhenOneOfItsChildrenIsActive(): void
     {
-        $this->clearAdminMenu();
+        $this->clearPanelMenu();
         $this->insertItem('group-blog', 'Writing', '/mark/articles', null, 10);
         $this->insertItem('item-articles', 'Articles', '/mark/articles', 'group-blog', 10);
 
@@ -138,9 +138,33 @@ final class CardboardNavContractTest extends TestCase
         self::assertTrue($tree[0]['is_expanded'], 'hasChildren() decides this, and it runs through the wrapper');
     }
 
-    private function clearAdminMenu(): void
+    #[Test]
+    public function thePreRenamePanelLocationIsMovedToMarkOnMigrate(): void
     {
-        $this->connection->prepare("DELETE FROM menu_items WHERE location = 'admin'")->execute();
+        $pdo = new PDO('sqlite:' . $this->tmpDir . '/config.db');
+        $pdo->exec(
+            "INSERT INTO menu_items (id, label, href, sort_order, location, is_active)
+             VALUES ('legacy-panel-item', 'Legacy', '/mark/legacy', 5, 'admin', 1)",
+        );
+
+        (new SettingsDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/config.db')))
+            ->run($this->quietOutput());
+
+        self::assertSame(
+            ['mark'],
+            $pdo->query("SELECT location FROM menu_items WHERE id = 'legacy-panel-item'")->fetchAll(PDO::FETCH_COLUMN),
+            'The row moved in place and kept its id.',
+        );
+        self::assertSame(
+            0,
+            (int) $pdo->query("SELECT COUNT(*) FROM menu_items WHERE location = 'admin'")->fetchColumn(),
+            'No row keeps the pre-rename location.',
+        );
+    }
+
+    private function clearPanelMenu(): void
+    {
+        $this->connection->prepare("DELETE FROM menu_items WHERE location = 'mark'")->execute();
     }
 
     private function insertItem(string $id, string $label, string $href, ?string $parent, int $order): void
@@ -148,7 +172,7 @@ final class CardboardNavContractTest extends TestCase
         $this->connection
             ->prepare(
                 'INSERT INTO menu_items (id, label, href, parent_item_id, sort_order, location, is_active)'
-                . " VALUES (?, ?, ?, ?, ?, 'admin', 1)",
+                . " VALUES (?, ?, ?, ?, ?, 'mark', 1)",
             )
             ->execute([$id, $label, $href, $parent, $order]);
     }

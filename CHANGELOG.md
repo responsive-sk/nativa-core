@@ -7,10 +7,11 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ### The vocabulary reaches configuration and data
 
-The file names were one surface. Three more carried the word as a contract: the
-environment variable that moves the panel, the super-user role, and the command
-that creates it. A rename alone would have locked out every operator — the role
-is what grants the bypass — so the migration ships with the name.
+The file names were one surface. Five more carried the word as a contract: the
+environment variable that moves the panel, the super-user role, the command that
+creates it, the nav location, and the translation group. A rename alone would
+have locked out every operator — the role is what grants the bypass — so the
+migration ships with the name.
 
 **Changed**
 
@@ -33,11 +34,17 @@ is what grants the bypass — so the migration ships with the name.
   pivots are merged onto it and the legacy row is dropped: `roles.name` is
   UNIQUE, and losing an account's access is worse than losing an empty role.
   `EnsureOperatorCommandTest` pins both cases.
-
-**Not changed, with the reason recorded**
-
-- `menu_items.location = 'admin'` and the `admin.*` translation group: content
-  and translation data. Renaming either is a content migration of its own.
+- `SettingsDatabaseMigrator` moves `menu_items.location = 'admin'` rows to
+  `mark` in place: ids, parents and sort order stay, so a deployment's own nav
+  edits survive. A legacy row is dropped only when the same label and href
+  already sit at `mark`, which is the one case that would render twice.
+  `CardboardNavService`, the panel-nav create action and the seed read `mark`.
+- `LocalesDatabaseMigrator` renames every `admin.*` translation key to `mark.*`
+  and its group to `mark`, keeping the deployment's values. The UNIQUE
+  `(translation_key, locale)` index decides a collision: a `mark.*` row the
+  seed already wrote wins and the legacy duplicate is removed, so a re-run
+  cannot fail on the constraint. `LocalesShellContextProviderTest` pins the
+  in-place rename and `CardboardNavContractTest` the location move.
 
 ### One vocabulary: no `admin` in a path
 

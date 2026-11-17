@@ -50,7 +50,7 @@ final class SeedData
     }
 
     /**
-     * Core translations: nav/home/footer/lang/admin groups.
+     * Core translations: nav/home/footer/lang/mark groups.
      *
      * @return list<array{key: string, sk_SK: string, en_US: string, group: string}>
      */
@@ -99,16 +99,16 @@ final class SeedData
             ['key' => 'lang.sk_SK', 'sk_SK' => 'Slovenčina', 'en_US' => 'Slovak', 'group' => 'lang'],
             ['key' => 'lang.en_US', 'sk_SK' => 'Angličtina', 'en_US' => 'English', 'group' => 'lang'],
 
-            // Admin UI
-            ['key' => 'admin.dashboard', 'sk_SK' => 'Dashboard', 'en_US' => 'Dashboard', 'group' => 'admin'],
-            ['key' => 'admin.locales', 'sk_SK' => 'Preklady', 'en_US' => 'Translations', 'group' => 'admin'],
-            ['key' => 'admin.users', 'sk_SK' => 'Používatelia', 'en_US' => 'Users', 'group' => 'admin'],
-            ['key' => 'admin.settings', 'sk_SK' => 'Nastavenia', 'en_US' => 'Settings', 'group' => 'admin'],
-            ['key' => 'admin.logout', 'sk_SK' => 'Odhlásiť', 'en_US' => 'Logout', 'group' => 'admin'],
-            ['key' => 'admin.save', 'sk_SK' => 'Uložiť', 'en_US' => 'Save', 'group' => 'admin'],
-            ['key' => 'admin.cancel', 'sk_SK' => 'Zrušiť', 'en_US' => 'Cancel', 'group' => 'admin'],
-            ['key' => 'admin.delete', 'sk_SK' => 'Zmazať', 'en_US' => 'Delete', 'group' => 'admin'],
-            ['key' => 'admin.create', 'sk_SK' => 'Vytvoriť', 'en_US' => 'Create', 'group' => 'admin'],
+            // Panel UI (the group and its keys keep the `mark` spelling)
+            ['key' => 'mark.dashboard', 'sk_SK' => 'Dashboard', 'en_US' => 'Dashboard', 'group' => 'mark'],
+            ['key' => 'mark.locales', 'sk_SK' => 'Preklady', 'en_US' => 'Translations', 'group' => 'mark'],
+            ['key' => 'mark.users', 'sk_SK' => 'Používatelia', 'en_US' => 'Users', 'group' => 'mark'],
+            ['key' => 'mark.settings', 'sk_SK' => 'Nastavenia', 'en_US' => 'Settings', 'group' => 'mark'],
+            ['key' => 'mark.logout', 'sk_SK' => 'Odhlásiť', 'en_US' => 'Logout', 'group' => 'mark'],
+            ['key' => 'mark.save', 'sk_SK' => 'Uložiť', 'en_US' => 'Save', 'group' => 'mark'],
+            ['key' => 'mark.cancel', 'sk_SK' => 'Zrušiť', 'en_US' => 'Cancel', 'group' => 'mark'],
+            ['key' => 'mark.delete', 'sk_SK' => 'Zmazať', 'en_US' => 'Delete', 'group' => 'mark'],
+            ['key' => 'mark.create', 'sk_SK' => 'Vytvoriť', 'en_US' => 'Create', 'group' => 'mark'],
         ];
     }
 

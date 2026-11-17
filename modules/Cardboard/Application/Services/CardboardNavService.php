@@ -14,7 +14,7 @@ use Modules\Database\Contracts\ConnectionInterface;
  * Falls back to hardcoded defaults when the DB has no admin nav items
  * (e.g. fresh install before migration seed runs).
  *
- * Reads directly from config.db.menu_items (location = 'admin') to avoid
+ * Reads directly from config.db.menu_items (location = 'mark') to avoid
  * importing another module's Infrastructure layer.
  *
  * @phpstan-type NavItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}
@@ -351,7 +351,7 @@ final readonly class CardboardNavService
             'SELECT id, label, href, sort_order, is_active, icon, parent_item_id FROM menu_items
              WHERE location = :loc ORDER BY sort_order ASC, created_at ASC',
         );
-        $stmt->execute([':loc' => 'admin']);
+        $stmt->execute([':loc' => 'mark']);
 
         /** @var list<array<string, mixed>>|false $rows */
         $rows = $stmt->fetchAll();
@@ -412,7 +412,7 @@ final readonly class CardboardNavService
         $stmt = Statement::prepare($this->connection,
             'SELECT 1 FROM menu_items WHERE parent_item_id = :id AND location = :loc AND is_active = 1 LIMIT 1',
         );
-        $stmt->execute([':id' => $itemId, ':loc' => 'admin']);
+        $stmt->execute([':id' => $itemId, ':loc' => 'mark']);
 
         return false !== $stmt->fetch();
     }

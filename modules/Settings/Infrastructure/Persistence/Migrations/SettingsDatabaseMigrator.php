@@ -39,24 +39,24 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
         ['Home', '/', 'header', 10],
         ['Articles', '/blog', 'header', 15],
         ['Admin', '/mark', 'header', 20],
-        // Admin panel navigation (location = 'admin') — label, href, location, sort, icon
-        ['Dashboard', '/mark', 'admin', 10, 'dashboard'],
-        ['Notifications', '/mark/notifications', 'admin', 15, 'bell'],
-        ['Users', '/mark/users', 'admin', 20, 'users'],
-        ['Roles', '/mark/roles', 'admin', 30, 'shield'],
-        ['Settings', '/mark/settings', 'admin', 40, 'settings'],
-        ['Locales', '/mark/locales', 'admin', 50, 'globe'],
-        ['Media', '/mark/media', 'admin', 60, 'image'],
-        ['Blog', '/mark/articles', 'admin', 70, 'rss'],
-        ['Articles', '/mark/articles', 'admin', 71, 'file-text'],
-        ['Categories', '/mark/categories', 'admin', 72, 'folder'],
-        ['Tags', '/mark/tags', 'admin', 73, 'tag'],
-        ['Pages', '/mark/pages', 'admin', 80, 'file'],
-        ['Comments', '/mark/comments', 'admin', 100, 'message'],
-        ['Questions', '/mark/questions', 'admin', 102, 'help-circle'],
-        ['Forms', '/mark/forms', 'admin', 105, 'inbox'],
-        ['Outbox', '/mark/outbox', 'admin', 108, 'inbox'],
-        ['Audit', '/mark/audit', 'admin', 110, 'clipboard'],
+        // Panel navigation (location = 'mark') — label, href, location, sort, icon
+        ['Dashboard', '/mark', 'mark', 10, 'dashboard'],
+        ['Notifications', '/mark/notifications', 'mark', 15, 'bell'],
+        ['Users', '/mark/users', 'mark', 20, 'users'],
+        ['Roles', '/mark/roles', 'mark', 30, 'shield'],
+        ['Settings', '/mark/settings', 'mark', 40, 'settings'],
+        ['Locales', '/mark/locales', 'mark', 50, 'globe'],
+        ['Media', '/mark/media', 'mark', 60, 'image'],
+        ['Blog', '/mark/articles', 'mark', 70, 'rss'],
+        ['Articles', '/mark/articles', 'mark', 71, 'file-text'],
+        ['Categories', '/mark/categories', 'mark', 72, 'folder'],
+        ['Tags', '/mark/tags', 'mark', 73, 'tag'],
+        ['Pages', '/mark/pages', 'mark', 80, 'file'],
+        ['Comments', '/mark/comments', 'mark', 100, 'message'],
+        ['Questions', '/mark/questions', 'mark', 102, 'help-circle'],
+        ['Forms', '/mark/forms', 'mark', 105, 'inbox'],
+        ['Outbox', '/mark/outbox', 'mark', 108, 'inbox'],
+        ['Audit', '/mark/audit', 'mark', 110, 'clipboard'],
     ];
 
     private ConnectionInterface $connection;
@@ -79,6 +79,12 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
         $this->createDesignTokensTable();
         $this->createIndexes();
         $this->addColumnIfMissing('menu_items', 'icon', "VARCHAR(50) DEFAULT ''");
+
+        $moved = $this->renameLegacyPanelLocation();
+
+        if ($moved > 0) {
+            $output->writeln(sprintf('<info>  ✓ moved %d menu item(s) from the `admin` location to `mark`</info>', $moved));
+        }
 
         // Seed default settings + menu items (both idempotent)
         $seeded = $this->seedDefaultSettings();
@@ -163,6 +169,37 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
         }
 
         $this->pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+    }
+
+    /**
+     * Move rows seeded under the pre-rename `admin` location to `mark`.
+     *
+     * The location is a data value (`menu_items.location`), not a route: ids,
+     * parents and sort order stay put, so a deployment's own nav edits survive
+     * the rename. A legacy row is dropped only when the same label already
+     * sits at `mark` for the same href — otherwise the entry would render
+     * twice.
+     */
+    private function renameLegacyPanelLocation(): int
+    {
+        $delete = Statement::prepare($this->connection,
+            "DELETE FROM menu_items
+             WHERE location = 'admin'
+               AND EXISTS (
+                   SELECT 1 FROM menu_items AS mark
+                   WHERE mark.location = 'mark'
+                     AND mark.label = menu_items.label
+                     AND mark.href = menu_items.href
+               )",
+        );
+        $delete->execute();
+
+        $update = Statement::prepare($this->connection,
+            "UPDATE menu_items SET location = 'mark', updated_at = CURRENT_TIMESTAMP WHERE location = 'admin'",
+        );
+        $update->execute();
+
+        return $update->rowCount();
     }
 
     private function createIndexes(): void
@@ -269,7 +306,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
     private function nestChildrenUnderArticles(): void
     {
         $stmt = Statement::query($this->connection,
-            "SELECT id FROM menu_items WHERE label = 'Blog' AND location = 'admin' AND parent_item_id IS NULL LIMIT 1",
+            "SELECT id FROM menu_items WHERE label = 'Blog' AND location = 'mark' AND parent_item_id IS NULL LIMIT 1",
         );
 
         $blogId = $stmt->fetchColumn();
@@ -284,7 +321,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
         );
 
         foreach (['Articles', 'Tags', 'Categories'] as $childLabel) {
-            $nestStmt->execute([':parent' => $blogId, ':label' => $childLabel, ':loc' => 'admin']);
+            $nestStmt->execute([':parent' => $blogId, ':label' => $childLabel, ':loc' => 'mark']);
         }
     }
 }

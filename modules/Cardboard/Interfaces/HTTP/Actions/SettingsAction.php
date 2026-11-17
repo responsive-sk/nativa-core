@@ -644,7 +644,7 @@ final class SettingsAction
         }
 
         if ('' !== $label && '' !== $href) {
-            CardboardServices::menu()->create($label, $href, 'admin', $sort, '' !== $parentId ? $parentId : null, false, null, $icon);
+            CardboardServices::menu()->create($label, $href, 'mark', $sort, '' !== $parentId ? $parentId : null, false, null, $icon);
             CacheInvalidator::flush();
             \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav', 'settings', 'Added admin nav item ' . $label, $request->getClientIp());
         }

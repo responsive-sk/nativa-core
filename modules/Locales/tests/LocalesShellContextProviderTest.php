@@ -238,6 +238,48 @@ final class LocalesShellContextProviderTest extends TestCase
         });
     }
 
+    #[Test]
+    public function thePreRenameTranslationGroupIsMovedToMarkOnMigrate(): void
+    {
+        $tmpDir = sys_get_temp_dir() . '/nativa-locales-legacy-' . bin2hex(random_bytes(6));
+        mkdir($tmpDir, 0o775, true);
+
+        try {
+            $pdo = new \PDO('sqlite:' . $tmpDir . '/locales.db');
+            (new LocalesDatabaseMigrator($pdo))->run(self::quietOutput());
+
+            // A real legacy database has no mark.* row yet: drop the seeded one
+            // so the rename, not the UNIQUE collision, is what the test measures.
+            $pdo->exec(
+                "DELETE FROM translations WHERE locale = 'sk_SK' AND translation_key IN ('admin.dashboard', 'mark.dashboard')",
+            );
+            $pdo->exec(
+                "INSERT INTO translations (id, translation_key, locale, value, group_name)
+                 VALUES ('legacy-dashboard', 'admin.dashboard', 'sk_SK', 'Nástenka', 'admin')",
+            );
+
+            (new LocalesDatabaseMigrator(new \PDO('sqlite:' . $tmpDir . '/locales.db')))
+                ->run(self::quietOutput());
+
+            $rows = $pdo->query(
+                "SELECT translation_key, value, group_name FROM translations
+                 WHERE locale = 'sk_SK' AND translation_key IN ('admin.dashboard', 'mark.dashboard')",
+            )->fetchAll(\PDO::FETCH_ASSOC);
+
+            self::assertSame(
+                [['translation_key' => 'mark.dashboard', 'value' => 'Nástenka', 'group_name' => 'mark']],
+                $rows,
+                'The row was renamed in place: the deployment\'s value survived, and no admin.* duplicate stayed behind.',
+            );
+        } finally {
+            foreach (glob($tmpDir . '/*') ?: [] as $file) {
+                @unlink($file);
+            }
+
+            @rmdir($tmpDir);
+        }
+    }
+
     /**
      * Run assertions against a throwaway `locales.db` built by the module's own
      * migrator: same schema, same seed, no shared state. The Settings provider
