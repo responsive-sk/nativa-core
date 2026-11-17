@@ -41,7 +41,7 @@ final class AuditAction
             $content .= '<p class="m-muted">No admin actions logged yet.</p>';
         } else {
             $content .= '<div class="m-card m-card-flush"><table class="m-table">'
-                . '<thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th><th>Detail</th><th>IP</th></tr></thead>'
+                . '<thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th><th>IP</th></tr></thead>'
                 . '<tbody>' . $rows . '</tbody></table></div>';
         }
 

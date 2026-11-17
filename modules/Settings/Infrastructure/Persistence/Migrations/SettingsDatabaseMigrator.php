@@ -38,7 +38,7 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
     private const array DEFAULT_MENU_ITEMS = [
         ['Home', '/', 'header', 10],
         ['Articles', '/blog', 'header', 15],
-        ['Admin', '/mark', 'header', 20],
+        ['Mark', '/mark', 'header', 20],
         // Panel navigation (location = 'mark') — label, href, location, sort, icon
         ['Dashboard', '/mark', 'mark', 10, 'dashboard'],
         ['Notifications', '/mark/notifications', 'mark', 15, 'bell'],
@@ -84,6 +84,12 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
 
         if ($moved > 0) {
             $output->writeln(sprintf('<info>  ✓ moved %d menu item(s) from the `admin` location to `mark`</info>', $moved));
+        }
+
+        $relabelled = $this->renameLegacyHeaderLabel();
+
+        if ($relabelled > 0) {
+            $output->writeln(sprintf('<info>  ✓ retitled %d header link(s) from `Admin` to `Mark`</info>', $relabelled));
         }
 
         // Seed default settings + menu items (both idempotent)
@@ -196,6 +202,24 @@ final readonly class SettingsDatabaseMigrator implements MigratorInterface
 
         $update = Statement::prepare($this->connection,
             "UPDATE menu_items SET location = 'mark', updated_at = CURRENT_TIMESTAMP WHERE location = 'admin'",
+        );
+        $update->execute();
+
+        return $update->rowCount();
+    }
+
+    /**
+     * Retitle the seeded header link that still says `Admin`.
+     *
+     * The label is content an operator can edit, so only the exact seeded row
+     * (`header`, `/mark`, label `Admin`) is touched; a renamed link is left
+     * alone.
+     */
+    private function renameLegacyHeaderLabel(): int
+    {
+        $update = Statement::prepare($this->connection,
+            "UPDATE menu_items SET label = 'Mark', updated_at = CURRENT_TIMESTAMP
+             WHERE location = 'header' AND href = '/mark' AND label = 'Admin'",
         );
         $update->execute();
 

@@ -45,6 +45,12 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
             $output->writeln(sprintf('<info>  ✓ renamed %d translation(s) from the `admin` group to `mark`</info>', $renamed));
         }
 
+        $retitled = $this->renameLegacyPanelCopy();
+
+        if ($retitled > 0) {
+            $output->writeln(sprintf('<info>  ✓ retitled %d translation value(s) to `Mark`</info>', $retitled));
+        }
+
         $seeded = $this->seedDefaultTranslations();
 
         $output->writeln(sprintf(
@@ -111,6 +117,44 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
         $update->execute();
 
         return $update->rowCount();
+    }
+
+    /**
+     * Retitle the seeded public copy that said `Admin` to `Mark`.
+     *
+     * The keys stay as they are (`nav.admin`, `home.cta_admin`,
+     * `ms.nav_admin`, `mag.nav_admin`, `ms.cta_admin`): the words a reader sees
+     * move, the contract does not. Only a row still holding the exact old
+     * default is rewritten, so an operator's own translation survives.
+     */
+    private function renameLegacyPanelCopy(): int
+    {
+        $pairs = [
+            ['nav.admin', 'sk_SK', 'Admin', 'Mark'],
+            ['nav.admin', 'en_US', 'Admin', 'Mark'],
+            ['home.cta_admin', 'sk_SK', 'Otvoriť admin', 'Otvoriť Mark'],
+            ['home.cta_admin', 'en_US', 'Open admin', 'Open Mark'],
+            ['mag.nav_admin', 'sk_SK', 'Admin', 'Mark'],
+            ['mag.nav_admin', 'en_US', 'Admin', 'Mark'],
+            ['ms.nav_admin', 'sk_SK', 'Admin', 'Mark'],
+            ['ms.nav_admin', 'en_US', 'Admin', 'Mark'],
+            ['ms.cta_admin', 'sk_SK', 'Admin panel', 'Mark panel'],
+            ['ms.cta_admin', 'en_US', 'Admin Panel', 'Mark panel'],
+        ];
+
+        $stmt = Statement::prepare($this->connection,
+            'UPDATE translations SET value = :value, updated_at = CURRENT_TIMESTAMP
+             WHERE translation_key = :key AND locale = :locale AND value = :old',
+        );
+
+        $retitled = 0;
+
+        foreach ($pairs as [$key, $locale, $old, $new]) {
+            $stmt->execute([':key' => $key, ':locale' => $locale, ':old' => $old, ':value' => $new]);
+            $retitled += $stmt->rowCount();
+        }
+
+        return $retitled;
     }
 
     /**

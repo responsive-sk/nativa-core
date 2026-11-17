@@ -60,7 +60,7 @@ final class SeedData
             // Navigation
             ['key' => 'nav.home', 'sk_SK' => 'Domov', 'en_US' => 'Home', 'group' => 'nav'],
             ['key' => 'nav.blog', 'sk_SK' => 'Blog', 'en_US' => 'Blog', 'group' => 'nav'],
-            ['key' => 'nav.admin', 'sk_SK' => 'Admin', 'en_US' => 'Admin', 'group' => 'nav'],
+            ['key' => 'nav.admin', 'sk_SK' => 'Mark', 'en_US' => 'Mark', 'group' => 'nav'],
 
             // Homepage
             ['key' => 'home.eyebrow', 'sk_SK' => 'Nativa Minimal', 'en_US' => 'Nativa Minimal', 'group' => 'home'],
@@ -70,7 +70,7 @@ final class SeedData
             ['key' => 'home.hero_title', 'sk_SK' => 'Minimálny PHP 8.5 starter kit', 'en_US' => 'Minimal PHP 8.5 Starter Kit', 'group' => 'home'],
             ['key' => 'home.hero_subtitle', 'sk_SK' => 'Malý a čitateľný základ: modulárny monolit, per-module SQLite, routovanie na atribútoch a prísna bezpečnosť — postavené od nuly.', 'en_US' => 'A tiny, auditable foundation: modular monolith, per-module SQLite, attribute-based routing and strict security — built from scratch.', 'group' => 'home'],
             ['key' => 'home.cta_blog', 'sk_SK' => 'Prejsť na blog', 'en_US' => 'Read the blog', 'group' => 'home'],
-            ['key' => 'home.cta_admin', 'sk_SK' => 'Otvoriť admin', 'en_US' => 'Open admin', 'group' => 'home'],
+            ['key' => 'home.cta_admin', 'sk_SK' => 'Otvoriť Mark', 'en_US' => 'Open Mark', 'group' => 'home'],
 
             // Homepage — feature sections (blog series: fewer layers + super fast PHP)
             ['key' => 'home.layer1_title', 'sk_SK' => 'Menej vrstiev', 'en_US' => 'Fewer Layers', 'group' => 'home'],
@@ -128,7 +128,7 @@ final class SeedData
     {
         return [
             ['key' => 'mag.nav_login', 'sk_SK' => 'Prihlásiť sa', 'en_US' => 'Sign in', 'group' => 'mag'],
-            ['key' => 'mag.nav_admin', 'sk_SK' => 'Admin', 'en_US' => 'Admin', 'group' => 'mag'],
+            ['key' => 'mag.nav_admin', 'sk_SK' => 'Mark', 'en_US' => 'Mark', 'group' => 'mag'],
         ];
     }
 
@@ -141,7 +141,7 @@ final class SeedData
     {
         return [
             ['key' => 'ms.nav_login', 'sk_SK' => 'Prihlásiť sa', 'en_US' => 'Sign in', 'group' => 'ms'],
-            ['key' => 'ms.nav_admin', 'sk_SK' => 'Admin', 'en_US' => 'Admin', 'group' => 'ms'],
+            ['key' => 'ms.nav_admin', 'sk_SK' => 'Mark', 'en_US' => 'Mark', 'group' => 'ms'],
             ['key' => 'ms.tags_title', 'sk_SK' => 'Značky', 'en_US' => 'Tags', 'group' => 'ms'],
             ['key' => 'ms.popular_title', 'sk_SK' => 'Populárne príspevky', 'en_US' => 'Popular Posts', 'group' => 'ms'],
             ['key' => 'ms.categories_title', 'sk_SK' => 'Kategórie', 'en_US' => 'Categories', 'group' => 'ms'],
@@ -150,7 +150,7 @@ final class SeedData
             ['key' => 'ms.view_all', 'sk_SK' => 'Zobraziť všetko', 'en_US' => 'View all', 'group' => 'ms'],
             ['key' => 'ms.related_title', 'sk_SK' => 'Súvisiace články', 'en_US' => 'Related Articles', 'group' => 'ms'],
             ['key' => 'ms.cta_blog', 'sk_SK' => 'Čítať blog', 'en_US' => 'Read the Blog', 'group' => 'ms'],
-            ['key' => 'ms.cta_admin', 'sk_SK' => 'Admin panel', 'en_US' => 'Admin Panel', 'group' => 'ms'],
+            ['key' => 'ms.cta_admin', 'sk_SK' => 'Mark panel', 'en_US' => 'Mark panel', 'group' => 'ms'],
             ['key' => 'ms.cta_title', 'sk_SK' => 'Pripravení preskúmať?', 'en_US' => 'Ready to explore?', 'group' => 'ms'],
             ['key' => 'ms.cta_text', 'sk_SK' => 'Ponorte sa do blogu pre technické hĺbkové analýzy.', 'en_US' => 'Dive into the blog for technical deep-dives.', 'group' => 'ms'],
             ['key' => 'ms.no_articles', 'sk_SK' => 'Zatiaľ žiadne články.', 'en_US' => 'No articles published yet.', 'group' => 'ms'],

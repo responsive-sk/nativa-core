@@ -172,7 +172,7 @@ final class SettingsShellContextProviderTest extends TestCase
     public function adminLinksAreHiddenFromAnonymousVisitors(): void
     {
         $this->assertNotContains(
-            'Admin',
+            'Mark',
             self::labels((new SettingsShellContextProvider())->navigation('header', '/')),
             'An anonymous visitor was handed the admin link.',
         );
@@ -208,17 +208,17 @@ final class SettingsShellContextProviderTest extends TestCase
     }
 
     #[Test]
-    public function anAdminLinkStaysForASignedInEditor(): void
+    public function aMarkLinkStaysForASignedInEditor(): void
     {
-        $this->assertNotContains('Admin', self::labels((new SettingsShellContextProvider())->navigation('header', '/')));
+        $this->assertNotContains('Mark', self::labels((new SettingsShellContextProvider())->navigation('header', '/')));
 
         $this->signIn();
 
         try {
             $this->assertContains(
-                'Admin',
+                'Mark',
                 self::labels((new SettingsShellContextProvider())->navigation('header', '/')),
-                'The signed-in editor lost the admin link — the item exists for exactly this visitor.',
+                'The signed-in editor lost the Mark link — the item exists for exactly this visitor.',
             );
         } finally {
             $this->signOut();

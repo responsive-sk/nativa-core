@@ -639,14 +639,14 @@ final class SettingsAction
 
         if ('' !== $label && '' !== $href && !MenuItemDTO::isValidHref($href)) {
             return Response::html($this->settingsPage([
-                'Admin nav href must be a valid URL or path.',
+                'Nav href must be a valid URL or path.',
             ]));
         }
 
         if ('' !== $label && '' !== $href) {
             CardboardServices::menu()->create($label, $href, 'mark', $sort, '' !== $parentId ? $parentId : null, false, null, $icon);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav', 'settings', 'Added admin nav item ' . $label, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav', 'settings', 'Added nav item ' . $label, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));
@@ -659,7 +659,7 @@ final class SettingsAction
         if (null !== $id) {
             CardboardServices::menu()->toggleActive($id);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.toggle', 'settings', 'Toggled admin nav item ' . $id, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.toggle', 'settings', 'Toggled nav item ' . $id, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));
@@ -674,7 +674,7 @@ final class SettingsAction
         if (null !== $id) {
             CardboardServices::menu()->updateSortOrder($id, $sort);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.sort', 'settings', 'Reordered admin nav item ' . $id . ' to ' . $sort, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.sort', 'settings', 'Reordered nav item ' . $id . ' to ' . $sort, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));
@@ -687,7 +687,7 @@ final class SettingsAction
         if (null !== $id) {
             CardboardServices::menu()->delete($id);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.delete', 'settings', 'Deleted admin nav item ' . $id, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.delete', 'settings', 'Deleted nav item ' . $id, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));
@@ -700,7 +700,7 @@ final class SettingsAction
         if ([] !== $pairs) {
             CardboardServices::menu()->batchUpdateSortOrder($pairs);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.reorder', 'settings', 'Reordered admin nav (' . count($pairs) . ' items)', $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.reorder', 'settings', 'Reordered nav (' . count($pairs) . ' items)', $request->getClientIp());
         }
 
         return Response::html('ok');
@@ -770,7 +770,7 @@ final class SettingsAction
         if (null !== $id && IconRegistry::isValid($icon)) {
             CardboardServices::menu()->updateIcon($id, $icon);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.icon', 'settings', 'Updated icon for admin nav item ' . $id, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.icon', 'settings', 'Updated icon for nav item ' . $id, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));

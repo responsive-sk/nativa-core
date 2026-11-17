@@ -208,7 +208,7 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
 
         $hero .= '<div class="na-hero__actions">'
             . '<a class="na-btn" href="' . self::e($blog) . '">' . self::e($cta) . '</a>'
-            . '<a class="na-btn na-btn--link" href="' . self::e(MarkRoutePolicy::prefix()) . '">Open admin</a>'
+            . '<a class="na-btn na-btn--link" href="' . self::e(MarkRoutePolicy::prefix()) . '">Open Mark</a>'
             . '</div></div></div></section>';
 
         $articles = [] !== $context->latestArticles ? $context->latestArticles : $context->articles;

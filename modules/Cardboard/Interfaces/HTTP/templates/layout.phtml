@@ -72,12 +72,12 @@ if (!isset($viewRendererGuard)) {
     <!-- Mobile overlay -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <!-- Sidebar (MoonShine layout-menu) -->
-    <aside class="layout-sidebar" id="layout-sidebar" aria-label="Admin sidebar">
+    <aside class="layout-sidebar" id="layout-sidebar" aria-label="Mark sidebar">
         <a class="layout-sidebar__brand" href="<?php echo $url('mark.dashboard'); ?>">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
             <span>Mark</span>
         </a>
-        <nav class="layout-sidebar__nav" aria-label="Admin navigation">
+        <nav class="layout-sidebar__nav" aria-label="Mark navigation">
             <?php echo $navHtml . "\n"; ?>
         </nav>
         <div class="layout-sidebar__footer">

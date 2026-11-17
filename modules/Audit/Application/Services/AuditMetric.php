@@ -45,7 +45,7 @@ final readonly class AuditMetric implements MetricContract
             $bar = new Bar($topActions);
 
             CardboardRegistry::register(
-                Card::make('audit', 'Admin Actions', $total)
+                Card::make('audit', 'Mark Actions', $total)
                     ->withChart($bar)
                     ->withTrend($trend)
                     ->withSubtitle('in ' . $period->label())

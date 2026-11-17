@@ -79,7 +79,7 @@ final readonly class ArticleOwnership
         return sprintf(
             '<div class="m-card"><h2 class="m-heading">Not your article</h2>'
             . '<p>You can edit articles you wrote, but <code>%s</code> belongs to another author. '
-            . 'Ask an administrator if it should be reassigned.</p></div>',
+            . 'Ask an operator if it should be reassigned.</p></div>',
             self::e($slug),
         );
     }

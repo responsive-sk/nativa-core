@@ -46,6 +46,33 @@ migration ships with the name.
   cannot fail on the constraint. `LocalesShellContextProviderTest` pins the
   in-place rename and `CardboardNavContractTest` the location move.
 
+### The panel says Mark everywhere a reader looks
+
+The business names were fixed; the words on the screen were not. A reader
+opening the settings tab still saw "Admin panel navigation", the audit table a
+column headed "Admin", and every theme an "Admin" link.
+
+**Changed**
+
+- Panel copy: aria labels (`Mark sidebar`, `Mark navigation`), the settings
+  headings and buttons (`Mark panel navigation`, `Add nav item`), the nav
+  validation message, all `settings.panel-nav*` audit descriptions, the
+  dashboard card (`Mark Actions`), the audit table header (`Actor` — the column
+  names a person, not the panel) and the blog ownership refusal (`Ask an
+  operator`).
+- Translation *values*, not keys: `nav.admin`, `home.cta_admin`, `ms.nav_admin`,
+  `ms.cta_admin` and `mag.nav_admin` now render `Mark` / `Open Mark` / `Mark
+  panel`. The seeded header link is `Mark` instead of `Admin`.
+- Theme chrome: the header, footer, mobile and nav links in Boson, Griffe,
+  Jednotka and Nativa say `Mark` / `Open Mark`; Erik's fallback copy follows.
+
+**Migration**
+
+- `LocalesDatabaseMigrator` retitles only rows still holding the exact old
+  default, so an operator's own translation of those keys is untouched, and
+  `SettingsDatabaseMigrator` retitles only the exact seeded header row
+  (`header`, `/mark`, label `Admin`).
+
 ### One vocabulary: no `admin` in a path
 
 The panel answers at `/mark`, its routes are `mark.*`, its classes are `m-` and
