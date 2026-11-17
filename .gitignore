@@ -40,6 +40,10 @@ src/Modules/*
 !/public/dist/nativa/
 !/public/dist/moonshine/
 
+# The deployable tree `bin/build/build-dist.sh` writes. A build output that is
+# replaced wholesale on every run, so it is never committed.
+/dist/
+
 # pnpm workspace dependencies. The second rule reaches a package-local store.
 /Frontend/packages/node_modules/
 /Frontend/packages/*/node_modules/
