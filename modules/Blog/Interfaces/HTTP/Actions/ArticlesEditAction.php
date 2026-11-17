@@ -9,8 +9,8 @@ use Modules\Blog\Application\BlogServices;
 use Modules\Blog\Application\Services\BlogCrudService;
 use Modules\Blog\Application\Services\CoverJobs;
 use Modules\Blog\Application\Services\BlogPageCache;
-use Modules\Cardboard\Application\Services\AdminLocale;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Application\Services\CardboardLocale;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
@@ -38,7 +38,7 @@ final class ArticlesEditAction
         $article = $service->find($slug, $locale);
 
         if (null === $article) {
-            return Response::html(AdminLayout::render('Not found', '<div class="m-card"><p>Article not found.</p></div>', router: $this->router()), 404);
+            return Response::html(CardboardLayout::render('Not found', '<div class="m-card"><p>Article not found.</p></div>', router: $this->router()), 404);
         }
 
         if (!BlogServices::writeGuard()->owns($slug, $locale, AuthServices::auth()->currentUser())) {
@@ -111,7 +111,7 @@ final class ArticlesEditAction
     private function refused(string $slug): Response
     {
         return Response::html(
-            AdminLayout::render('Not your article', BlogServices::ownership()->refusal($slug), router: $this->router()),
+            CardboardLayout::render('Not your article', BlogServices::ownership()->refusal($slug), router: $this->router()),
             403,
         );
     }
@@ -124,7 +124,7 @@ final class ArticlesEditAction
         $localeParam = ContentLocaleServices::mapper()->languageCode($locale);
         $target = $this->url('articles.index') . '?locale=' . $localeParam . '&toast=Article+saved+successfully';
 
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             $response = Response::html('');
             $response->setHeader('HX-Redirect', $target);
 
@@ -143,19 +143,19 @@ final class ArticlesEditAction
     {
         $data = $override ?: $this->normalizeArticle($article, $slug);
         $localeParam = ContentLocaleServices::mapper()->languageCode($locale);
-        $slugEscaped = AdminLayout::e($slug);
+        $slugEscaped = CardboardLayout::e($slug);
         $backHref = $this->url('articles.index') . '?locale=' . $localeParam;
         $fields = $this->passthroughFields($data) . $this->formFields($data, $slug, $locale);
-        $bodyValue = AdminLayout::e($data['body']);
+        $bodyValue = CardboardLayout::e($data['body']);
         $questionContext = $this->questionContext($slug, $locale);
 
-        $htmx = null !== $request && AdminLayout::isHtmx($request);
-        $hxPost = $htmx ? ' hx-post="' . AdminLayout::e($this->url('articles.edit', ['slug' => $slugEscaped])) . '?locale=' . $localeParam . '" hx-indicator="#edit-spinner"' : '';
+        $htmx = null !== $request && CardboardLayout::isHtmx($request);
+        $hxPost = $htmx ? ' hx-post="' . CardboardLayout::e($this->url('articles.edit', ['slug' => $slugEscaped])) . '?locale=' . $localeParam . '" hx-indicator="#edit-spinner"' : '';
         $spinner = '<span class="htmx-indicator" id="edit-spinner">⏳</span> ';
 
-        $content = '<form method="POST" action="' . AdminLayout::e($this->url('articles.edit', ['slug' => $slugEscaped])) . '?locale=' . $localeParam . '"' . $hxPost . '>'
-            . AdminLayout::messages($errors, 'err')
-            . AdminLayout::csrfField()
+        $content = '<form method="POST" action="' . CardboardLayout::e($this->url('articles.edit', ['slug' => $slugEscaped])) . '?locale=' . $localeParam . '"' . $hxPost . '>'
+            . CardboardLayout::messages($errors, 'err')
+            . CardboardLayout::csrfField()
             . $fields
             . $questionContext
             . '<div class="m-card"><label class="m-label--field">Content (Markdown)</label>'
@@ -168,7 +168,7 @@ final class ArticlesEditAction
             . ArticlesFormHelper::mediaPickerScript($this->router())
             . ArticlesFormHelper::formGuardScript();
 
-        return AdminLayout::render('Edit: ' . $slug, $content, 'articles', router: $this->router());
+        return CardboardLayout::render('Edit: ' . $slug, $content, 'articles', router: $this->router());
     }
 
     private function questionContext(string $slug, string $locale): string
@@ -184,8 +184,8 @@ final class ArticlesEditAction
         $html = '';
 
         foreach ($questions as $question) {
-            $html .= '<li><p>' . AdminLayout::e($question->text()) . '</p>'
-                . '<p class="m-muted">Tried: ' . AdminLayout::e($question->attemptedAnswer()) . '</p></li>';
+            $html .= '<li><p>' . CardboardLayout::e($question->text()) . '</p>'
+                . '<p class="m-muted">Tried: ' . CardboardLayout::e($question->attemptedAnswer()) . '</p></li>';
         }
 
         if ([] === $questions) {
@@ -242,7 +242,7 @@ final class ArticlesEditAction
         $html = '';
 
         foreach (ArticleFormPayload::passthroughValues($data) as $key => $value) {
-            $html .= '<input type="hidden" name="meta[' . AdminLayout::e($key) . ']" value="' . AdminLayout::e($value) . '">';
+            $html .= '<input type="hidden" name="meta[' . CardboardLayout::e($key) . ']" value="' . CardboardLayout::e($value) . '">';
         }
 
         return $html;
@@ -254,10 +254,10 @@ final class ArticlesEditAction
     private function formFields(array $data, string $slug, string $locale): string
     {
         $val = static fn (string $key): string => is_scalar($data[$key] ?? null) ? (string) $data[$key] : '';
-        $e = static fn (string $key, string $default = ''): string => AdminLayout::e($data[$key] ?? $default);
+        $e = static fn (string $key, string $default = ''): string => CardboardLayout::e($data[$key] ?? $default);
         $dateDefault = '' !== $val('date') ? $val('date') : date('Y-m-d');
         $localeInput = '<input type="hidden" name="locale" value="' . $e('locale', $locale) . '">';
-        $slugEscaped = AdminLayout::e($slug);
+        $slugEscaped = CardboardLayout::e($slug);
         $imagePreviewDisplay = '' !== $val('image') ? '' : 'display:none;';
         $membersChecked = '1' === $data['members_only'] ? 'checked' : '';
         $publishedChecked = '1' === ($data['published'] ?? '1') ? 'checked' : '';
@@ -361,6 +361,6 @@ final class ArticlesEditAction
     {
         $localeRaw = $request->queryString('locale', 'sk');
 
-        return AdminLocale::canonical($localeRaw);
+        return CardboardLocale::canonical($localeRaw);
     }
 }

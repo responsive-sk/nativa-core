@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\PageCache\Application\Services;
 
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Core\Domain\Contracts\PageCacheReader;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
@@ -62,7 +62,7 @@ final readonly class PageCacheService implements PageCacheReader
      * Skipping the render is not a reason to serve a stale guide.
      *
      * The admin surface is not listed: it is answered at runtime through
-     * `AdminRoutePolicy::isAdminPath()`, which knows both the configured
+     * `MarkRoutePolicy::isMarkPath()`, which knows both the configured
      * prefix and the internal `/mark`, so a deployment running `/admin` cannot
      * have an admin page cached for the next visitor.
      *
@@ -351,7 +351,7 @@ final readonly class PageCacheService implements PageCacheReader
      * A form's hidden `_token` is minted per SESSION, so a body containing it is
      * not a page: stored under a key every visitor shares, it hands the next
      * visitor a credential that fails their own submission. That is not a
-     * theory — it is what `bin/build/admin-smoke.sh` caught the first time this
+     * theory — it is what `bin/build/mark-smoke.sh` caught the first time this
      * cache was read on the ordinary path: the guest's comment on an article
      * page came back `403`, because the token in the served form belonged to
      * whoever rendered the page first.
@@ -393,7 +393,7 @@ final readonly class PageCacheService implements PageCacheReader
 
         $path = $request->getPathInfo();
 
-        if (AdminRoutePolicy::isAdminPath($path)) {
+        if (MarkRoutePolicy::isMarkPath($path)) {
             return false;
         }
 

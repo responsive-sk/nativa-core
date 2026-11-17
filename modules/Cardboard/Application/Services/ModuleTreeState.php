@@ -15,7 +15,7 @@ use Modules\Tooling\ModuleCatalog;
  * the committed catalogue are allowed to disagree, and they do without saying
  * so. The catalogue itself has two shapes (`modules/<Name>/` and
  * `modules/<Group>/<Name>/`); both are resolved by `ModuleCatalog`, so this
- * class holds no path rule of its own. Measured 2026-10-17: after `AdminRoutePolicy` and `Permissions` moved to
+ * class holds no path rule of its own. Measured 2026-10-17: after `MarkRoutePolicy` and `Permissions` moved to
  * `Modules\Core\Domain` and Cardboard's two local copies of the permission table
  * were deleted, every gate was green and the installed slice still carried the
  * old code. `git status` cannot see it and `module:show` asks `isInstalled()`,

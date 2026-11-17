@@ -88,12 +88,12 @@ if (!isset($viewRendererGuard)) {
             </div>
         </div>
 
-        <div class="m-tab-panel" id="panel-admin-nav" data-tab-panel="admin-nav">
+        <div class="m-tab-panel" id="panel-panel-nav" data-tab-panel="panel-nav">
             <div class="m-card m-card--scroll-x">
                 <h2 class="m-heading">Admin panel navigation</h2>
                 <p class="m-muted m-card-intro">Manage which pages appear in the admin sidebar/top bar, their order, and visibility. Changes apply immediately.</p>
-                <?php echo $adminNavTable . "\n"; ?>
-                <form class="m-form m-form--after-table" method="POST" action="<?php echo $url('mark.settings.admin-nav'); ?>">
+                <?php echo $panelNavTable . "\n"; ?>
+                <form class="m-form m-form--after-table" method="POST" action="<?php echo $url('mark.settings.panel-nav'); ?>">
                     <?php echo $csrf . "\n"; ?>
                     <div class="m-form-grid m-form-grid--nav">
                         <input type="text" name="label" placeholder="Label" required>

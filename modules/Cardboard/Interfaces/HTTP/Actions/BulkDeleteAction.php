@@ -4,9 +4,9 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Interfaces\HTTP\Actions;
 
-use Modules\Cardboard\Application\Services\AdminLocale;
+use Modules\Cardboard\Application\Services\CardboardLocale;
 use Modules\Cardboard\Application\Services\BulkEntityGate;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Cardboard\Interfaces\HTTP\CardboardServices;
 use Modules\PageCache\Application\Services\CacheInvalidator;
 use Modules\Core\Infrastructure\Http\Request;
@@ -64,7 +64,7 @@ final class BulkDeleteAction
         // canonical code — directoryFor() only maps 'en_US' to blog/en, a raw
         // 'en' here silently fell back to the SK directory (EN bulk no-op bug).
         $localeRaw = $request->bodyString('locale', 'sk');
-        $locale = AdminLocale::canonical($localeRaw);
+        $locale = CardboardLocale::canonical($localeRaw);
         $ids = $this->selectedIds($request);
 
         if ([] === $ids) {
@@ -132,13 +132,13 @@ final class BulkDeleteAction
      */
     private function respond(Request $request, string $entity, string $localeRaw, string $locale, string $toast): Response
     {
-        if (!AdminLayout::isHtmx($request)) {
-            return Response::redirect($this->url('mark.' . $this->indexSegment($entity)) . '?locale=' . AdminLocale::raw($localeRaw)
+        if (!CardboardLayout::isHtmx($request)) {
+            return Response::redirect($this->url('mark.' . $this->indexSegment($entity)) . '?locale=' . CardboardLocale::raw($localeRaw)
                 . '&toast=' . urlencode($toast));
         }
 
         return Response::html(
-            AdminLayout::toast($toast)
+            CardboardLayout::toast($toast)
             . $this->renderUpdatedTable($entity, $locale),
         );
     }
@@ -176,12 +176,12 @@ final class BulkDeleteAction
      */
     private function toastResponse(Request $request, string $entity, string $localeRaw, string $message, bool $isError): Response
     {
-        if (AdminLayout::isHtmx($request)) {
-            return Response::html(AdminLayout::toast($message, $isError ? 'err' : 'ok'));
+        if (CardboardLayout::isHtmx($request)) {
+            return Response::html(CardboardLayout::toast($message, $isError ? 'err' : 'ok'));
         }
 
         return Response::redirect($this->url('mark.' . $this->indexSegment($entity))
-            . '?locale=' . AdminLocale::raw($localeRaw) . '&toast=' . urlencode($message));
+            . '?locale=' . CardboardLocale::raw($localeRaw) . '&toast=' . urlencode($message));
     }
 
     /**

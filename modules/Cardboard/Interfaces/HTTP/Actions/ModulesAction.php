@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Cardboard\Interfaces\HTTP\Actions;
 
 use Modules\Cardboard\Application\Services\ModuleTreeState;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use View\ViewRenderer;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
@@ -49,7 +49,7 @@ use Modules\Tooling\ModuleRegistry;
  * ## Where the result goes
  *
  * Each step redirects back to the list with `?ok=` or `?error=`, and the page
- * renders both through `AdminLayout::messages()`. The installer's own message is
+ * renders both through `CardboardLayout::messages()`. The installer's own message is
  * the one shown (incomplete closure, still imported, already installed), because
  * a second wording for the same refusal is exactly the copy this tree counts as
  * a defect.
@@ -126,7 +126,7 @@ final class ModulesAction
     public function handle(Request $request): Response
     {
         return Response::html($this->page(
-            AdminLayout::csrfField(),
+            CardboardLayout::csrfField(),
             $request->queryString('error'),
             $request->queryString('ok'),
         ));
@@ -483,8 +483,8 @@ final class ModulesAction
      */
     private function back(Request $request, ?string $error = null, ?string $ok = null): Response
     {
-        if (AdminLayout::isHtmx($request)) {
-            return Response::html($this->panel(new ModuleTreeState(), AdminLayout::csrfField(), (string) $error, (string) $ok));
+        if (CardboardLayout::isHtmx($request)) {
+            return Response::html($this->panel(new ModuleTreeState(), CardboardLayout::csrfField(), (string) $error, (string) $ok));
         }
 
         $query = [];
@@ -530,13 +530,13 @@ final class ModulesAction
             [
                 // The same bar the settings screen renders, with this page's
                 // entry active — the two screens are one navigation.
-                'settingsTabs' => AdminLayout::settingsTabs($this->urlBuilder(), 'modules'),
-                'intro' => AdminLayout::e($this->intro($state->counts())),
+                'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'modules'),
+                'intro' => CardboardLayout::e($this->intro($state->counts())),
                 'panel' => $this->panel($state, $csrf, $error, $ok),
             ],
         );
 
-        return AdminLayout::render('Modules', $content, 'settings', router: $this->router());
+        return CardboardLayout::render('Modules', $content, 'settings', router: $this->router());
     }
 
     /**
@@ -570,8 +570,8 @@ final class ModulesAction
             }
         }
 
-        $messages = AdminLayout::messages([] === $ok ? [] : [$ok])
-            . AdminLayout::messages([] === $error ? [] : [$error], 'err');
+        $messages = CardboardLayout::messages([] === $ok ? [] : [$ok])
+            . CardboardLayout::messages([] === $error ? [] : [$error], 'err');
 
         return '<div id="modules-panel">' . $messages
             . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="modules-table">'
@@ -580,7 +580,7 @@ final class ModulesAction
             . ([] === $fixable
                 ? ''
                 : '<div class="m-table-toolbar"><p class="m-muted">'
-                    . AdminLayout::e('Reinstall replaces the slice with the catalogue and drops any edit made inside it: ' . implode(', ', $fixable))
+                    . CardboardLayout::e('Reinstall replaces the slice with the catalogue and drops any edit made inside it: ' . implode(', ', $fixable))
                     . '</p></div>')
             . $this->registryPanel($csrf)
             . '</div>';
@@ -616,7 +616,7 @@ final class ModulesAction
 
         $drifted = [] === $module['drifted']
             ? '<span class="m-muted">—</span>'
-            : '<code>' . AdminLayout::e(implode('</code>, <code>', $module['drifted'])) . '</code>';
+            : '<code>' . CardboardLayout::e(implode('</code>, <code>', $module['drifted'])) . '</code>';
 
         $action = 'not-installed' === $module['state']
             ? $this->postButton('mark.settings.modules.install', $module['name'], $csrf, 'Install')
@@ -638,7 +638,7 @@ final class ModulesAction
                 . ' ' . $action;
         }
 
-        return '<tr><td>' . AdminLayout::e($module['name']) . '</td>'
+        return '<tr><td>' . CardboardLayout::e($module['name']) . '</td>'
             . '<td><span class="m-badge m-badge--' . $badge . '">' . $label . '</span></td>'
             . '<td>' . $drifted . '</td>'
             . '<td>' . $action . '</td></tr>';
@@ -661,7 +661,7 @@ final class ModulesAction
             $state = $registry->state();
         } catch (\Throwable $e) {
             return '<div class="m-table-toolbar"><p class="m-muted">'
-                . AdminLayout::e('Registry unavailable: ' . $e->getMessage())
+                . CardboardLayout::e('Registry unavailable: ' . $e->getMessage())
                 . '</p></div>';
         }
 
@@ -677,18 +677,18 @@ final class ModulesAction
             foreach ($state['available'] as $name => $entry) {
                 $requires = [] === $entry['requires']
                     ? '<span class="m-muted">—</span>'
-                    : AdminLayout::e(implode(', ', $entry['requires']));
+                    : CardboardLayout::e(implode(', ', $entry['requires']));
                 $version = null === $entry['version']
                     ? ''
-                    : ' <span class="m-muted">v' . AdminLayout::e($entry['version']) . '</span>';
+                    : ' <span class="m-muted">v' . CardboardLayout::e($entry['version']) . '</span>';
 
-                $rows .= '<tr><td>' . AdminLayout::e($name) . $version . '</td>'
+                $rows .= '<tr><td>' . CardboardLayout::e($name) . $version . '</td>'
                     . '<td>' . $requires . '</td>'
                     . '<td>' . $this->postButton('mark.settings.modules.installFromRegistry', $name, $csrf, 'Install from registry') . '</td></tr>';
             }
 
             $sections .= '<div class="m-table-toolbar"><p class="m-muted">'
-                . AdminLayout::e('Modules available from the configured registry, not in the local catalogue.')
+                . CardboardLayout::e('Modules available from the configured registry, not in the local catalogue.')
                 . '</p></div>'
                 . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-table">'
                 . '<thead><tr><th>Module</th><th>Requires</th><th></th></tr></thead>'
@@ -699,10 +699,10 @@ final class ModulesAction
             $rows = '';
 
             foreach ($state['updates'] as $name => $update) {
-                $from = null === $update['current'] ? '—' : 'v' . AdminLayout::e($update['current']);
-                $to = null === $update['entry']['version'] ? '—' : 'v' . AdminLayout::e($update['entry']['version']);
+                $from = null === $update['current'] ? '—' : 'v' . CardboardLayout::e($update['current']);
+                $to = null === $update['entry']['version'] ? '—' : 'v' . CardboardLayout::e($update['entry']['version']);
 
-                $rows .= '<tr><td>' . AdminLayout::e($name) . '</td>'
+                $rows .= '<tr><td>' . CardboardLayout::e($name) . '</td>'
                     . '<td>' . $from . ' → ' . $to . '</td>'
                     . '<td>' . $this->postButton('mark.settings.modules.updateFromRegistry', $name, $csrf, 'Update') . '</td></tr>';
             }
@@ -715,7 +715,7 @@ final class ModulesAction
 
             $sections .= '<h3 class="m-heading">Updates</h3>'
                 . '<div class="m-table-toolbar"><p class="m-muted">'
-                . AdminLayout::e('The registry has a different archive for these modules. Updating discards edits in the installed slice.')
+                . CardboardLayout::e('The registry has a different archive for these modules. Updating discards edits in the installed slice.')
                 . '</p></div>'
                 . $updateAll
                 . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-updates-table">'
@@ -727,17 +727,17 @@ final class ModulesAction
             $rows = '';
 
             foreach ($state['rollbacks'] as $name => $rollback) {
-                $current = null === $rollback['current'] ? '—' : 'v' . AdminLayout::e($rollback['current']);
-                $previous = null === $rollback['version'] ? '—' : 'v' . AdminLayout::e($rollback['version']);
+                $current = null === $rollback['current'] ? '—' : 'v' . CardboardLayout::e($rollback['current']);
+                $previous = null === $rollback['version'] ? '—' : 'v' . CardboardLayout::e($rollback['version']);
 
-                $rows .= '<tr><td>' . AdminLayout::e($name) . '</td>'
+                $rows .= '<tr><td>' . CardboardLayout::e($name) . '</td>'
                     . '<td>' . $current . ' → ' . $previous . '</td>'
                     . '<td>' . $this->postButton('mark.settings.modules.rollbackFromRegistry', $name, $csrf, 'Rollback') . '</td></tr>';
             }
 
             $sections .= '<h3 class="m-heading">Rollback</h3>'
                 . '<div class="m-table-toolbar"><p class="m-muted">'
-                . AdminLayout::e('Restore the catalogue backup from before the last update. The backup is consumed.')
+                . CardboardLayout::e('Restore the catalogue backup from before the last update. The backup is consumed.')
                 . '</p></div>'
                 . '<div class="m-table-scroll"><table class="m-table m-table--wide" id="registry-rollbacks-table">'
                 . '<thead><tr><th>Module</th><th>Version</th><th></th></tr></thead>'
@@ -754,7 +754,7 @@ final class ModulesAction
      */
     private function postButton(string $route, ?string $name, string $csrf, string $label): string
     {
-        $url = AdminLayout::e(null === $name
+        $url = CardboardLayout::e(null === $name
             ? $this->url($route)
             : $this->url($route, ['name' => $name]));
 

@@ -8,8 +8,8 @@ use Modules\Audit\Interfaces\HTTP\AuditServices;
 use Modules\Blog\Application\BlogServices;
 use Modules\Blog\Application\Services\BlogCrudService;
 use Modules\Blog\Application\Services\BlogPageCache;
-use Modules\Cardboard\Application\Services\AdminLocale;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Application\Services\CardboardLocale;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
@@ -31,8 +31,8 @@ final class ArticlesDeleteAction
     {
         $slug = (string) ($request->routeParam('slug') ?? '');
         $localeRaw = $request->queryString('locale', 'sk');
-        $localeParam = AdminLocale::raw($localeRaw);
-        $locale = AdminLocale::canonical($localeRaw);
+        $localeParam = CardboardLocale::raw($localeRaw);
+        $locale = CardboardLocale::canonical($localeRaw);
 
         if ('' !== $slug) {
             $service = new BlogCrudService();
@@ -42,7 +42,7 @@ final class ArticlesDeleteAction
 
             if (null === $article || !$guard->owns($slug, $locale, $user)) {
                 return Response::html(
-                    AdminLayout::render('Not your article', BlogServices::ownership()->refusal($slug), router: $this->router()),
+                    CardboardLayout::render('Not your article', BlogServices::ownership()->refusal($slug), router: $this->router()),
                     403,
                 );
             }
@@ -65,7 +65,7 @@ final class ArticlesDeleteAction
 
     private function redirect(Request $request, string $localeParam): Response
     {
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             return Response::html('');
         }
 

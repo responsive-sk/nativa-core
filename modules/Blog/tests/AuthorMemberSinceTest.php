@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Blog\Tests;
 
 use Modules\Blog\Interfaces\HTTP\Actions\AuthorProfileAction;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -18,7 +18,7 @@ use ReflectionMethod;
  * The profile used to run `strtotime()` over the column and hand the result to
  * `date()`, which reads a zone-less string as the PROCESS timezone. A member
  * who joined at 23:20 UTC (00:20 CET) therefore showed the previous day. The
- * seam is `AdminLayout::formatTime()`: UTC on disk, `APP_TIMEZONE` on screen.
+ * seam is `CardboardLayout::formatTime()`: UTC on disk, `APP_TIMEZONE` on screen.
  *
  * `AuthorProfileAction::memberSince()` is private, so the test reaches it via
  * reflection with a constructor-less instance (the router instantiates actions
@@ -49,7 +49,7 @@ final class AuthorMemberSinceTest extends TestCase
     public function theStoredStampIsShownAsTheDisplayDate(): void
     {
         $expected = (new \DateTimeImmutable('2026-11-16 23:20:47', new \DateTimeZone('UTC')))
-            ->setTimezone(AdminLayout::displayTimezone())
+            ->setTimezone(CardboardLayout::displayTimezone())
             ->format('Y-m-d');
 
         self::assertSame('Member since ' . $expected, ($this->memberSince)('2026-11-16 23:20:47'));

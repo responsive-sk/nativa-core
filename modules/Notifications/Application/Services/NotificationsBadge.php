@@ -34,7 +34,7 @@ final readonly class NotificationsBadge implements NavBadgeContract
 {
     /**
      * The admin surface this badge belongs to — the same string the seeded nav
-     * row carries and the same string `AdminRoutePolicy` gates. Deliberately the
+     * row carries and the same string `MarkRoutePolicy` gates. Deliberately the
      * HREF and not the nav item's `id` column, which is a generated hash: a
      * provider keyed on `_notifications` matches nothing in a real install while
      * looking right against the hardcoded fallback list.

@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Core\Interfaces\HTTP;
 
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Core\Infrastructure\Env;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
@@ -95,9 +95,9 @@ final class Kernel
         // the discovery cache stays valid, and no route declaration has to
         // become dynamic. The middleware pipeline ran earlier, so
         // AuthMiddleware still saw the URL the visitor typed and answers
-        // through AdminRoutePolicy, which accepts both spellings.
+        // through MarkRoutePolicy, which accepts both spellings.
         $publicPath = $request->getPathInfo();
-        $request->setPathInfo(AdminRoutePolicy::canonicalPath($publicPath));
+        $request->setPathInfo(MarkRoutePolicy::canonicalPath($publicPath));
 
         $match = $this->router->match($request);
 
@@ -252,7 +252,7 @@ final class Kernel
             // The router canonicalized an INTERNAL path; send the visitor back
             // to the spelling they used (the configured prefix on a
             // deployment that set `ADMIN_PATH`).
-            return Response::redirect(AdminRoutePolicy::publicPath($match['redirect']), 301);
+            return Response::redirect(MarkRoutePolicy::publicPath($match['redirect']), 301);
         }
 
         return null;

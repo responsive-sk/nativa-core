@@ -64,7 +64,7 @@ if (!isset($viewRendererGuard)) {
     <!-- Sync theme init — FOUC prevention: restore the persisted theme
          (or the OS preference) before first paint. Falls back to the
          dark default when neither is available. -->
-    <?php $layoutThemeInitScript = View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/admin-theme-init.js'); ?>
+    <?php $layoutThemeInitScript = View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/mark-theme-init.js'); ?>
     <script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $layoutThemeInitScript; ?></script>
 </head>
 <body>
@@ -152,10 +152,10 @@ if (!isset($viewRendererGuard)) {
         </div>
     </div>
     <!-- Theme toggle + Sidebar toggle handler -->
-<?php $adminShellScript = View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/admin-shell.js'); ?>
-    <?php $adminShellCommands = View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/admin-shell-commands.js'); ?>
-    <script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $adminShellScript; ?>
+<?php $markShellScript = View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/mark-shell.js'); ?>
+    <?php $markShellCommands = View\InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/mark-shell-commands.js'); ?>
+    <script nonce="__CSP_NONCE_PLACEHOLDER__"><?php echo $markShellScript; ?>
         var recent = <?php echo $recentJson; ?>;
-        <?php echo $adminShellCommands; ?></script>
+        <?php echo $markShellCommands; ?></script>
 </body>
 </html>

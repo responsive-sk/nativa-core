@@ -75,7 +75,7 @@
 .m-table th { background: var(--m-surface-2); color: var(--m-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 .m-table tr:last-child td { border-bottom: none; }
 .m-table tr:hover td { background: var(--m-surface-2); }
-/* Sortable column headers (AdminLayout::sortableHeader) */
+/* Sortable column headers (CardboardLayout::sortableHeader) */
 .m-th-sort a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
 .m-th-sort a:hover { color: var(--m-ink); }
 .m-th-sort__arrow { font-size: 10px; opacity: .55; }

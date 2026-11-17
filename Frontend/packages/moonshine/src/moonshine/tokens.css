@@ -3,7 +3,7 @@
  * ui/ is inspiration + the admin's component source and is NOT shipped to the
  * Docker frontend stage — this vendored snapshot is the theme's build copy.
  * Keep the values in sync deliberately: ui/tokens.css stays the source of
- * truth for /mark (AdminLayout.php inlines them), this file serves the
+ * truth for /mark (CardboardLayout.php inlines them), this file serves the
  * moonshine public theme. WCAG contracts: BuildCssAuditTest.
  * All values use CSS custom properties for dark/light theming.
  */

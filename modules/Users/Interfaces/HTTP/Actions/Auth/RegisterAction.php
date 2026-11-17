@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Users\Interfaces\HTTP\Actions\Auth;
 
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
@@ -87,7 +87,7 @@ final class RegisterAction
         // Auto-login after successful registration.
         $auth->establishSession($result['user'], $request->getClientIp());
 
-        return Response::redirect(AuthTemplate::returnTo($request) ?? AdminRoutePolicy::prefix());
+        return Response::redirect(AuthTemplate::returnTo($request) ?? MarkRoutePolicy::prefix());
     }
 
 }

@@ -22,13 +22,13 @@ use PHPUnit\Framework\TestCase;
  * object context` the moment a filter pill rendered, because
  * `buildFilterUrl()` was declared static while resolving its href through
  * `$this->url('media.index')`. The suite was green — nothing rendered the
- * page, and `bin/build/admin-smoke.sh` never walks media — so the panel was
+ * page, and `bin/build/mark-smoke.sh` never walks media — so the panel was
  * the first thing to notice.
  *
  * Nothing here asserts the styling of a pill. It asserts that the page is
  * RENDERED: the filter bar, the folder control and the pagination helper all
  * run, which is exactly the code the fatal lived in. The `HX-Request` header
- * keeps AdminLayout out of the picture (`handle()` then returns the bare
+ * keeps CardboardLayout out of the picture (`handle()` then returns the bare
  * `#media-content` fragment), so the test needs no shell context and no theme
  * while still executing every filter-link path.
  *

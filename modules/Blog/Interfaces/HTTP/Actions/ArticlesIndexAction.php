@@ -7,9 +7,9 @@ namespace Modules\Blog\Interfaces\HTTP\Actions;
 use Modules\Blog\Application\BlogServices;
 use Modules\Blog\Application\Services\BlogCrudService;
 use Modules\Blog\Interfaces\HTTP\ArticlesTableRenderer;
-use Modules\Cardboard\Application\Services\AdminLocale;
+use Modules\Cardboard\Application\Services\CardboardLocale;
 use Modules\Cardboard\Application\Services\BulkActions;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
@@ -38,9 +38,9 @@ final class ArticlesIndexAction
     {
         // Allowlisted at the boundary: the raw param is re-emitted into
         // row/filter/create URLs, so anything outside sk/en would reflect
-        // verbatim (AdminLocale::raw() is the identity on legit values).
-        $localeRaw = AdminLocale::raw($request->queryString('locale', 'sk'));
-        $locale = AdminLocale::canonical($localeRaw);
+        // verbatim (CardboardLocale::raw() is the identity on legit values).
+        $localeRaw = CardboardLocale::raw($request->queryString('locale', 'sk'));
+        $locale = CardboardLocale::canonical($localeRaw);
         $search = $request->queryString('q');
         $periodRaw = $request->queryString('period');
         $period = isset(self::PERIOD_DAYS[$periodRaw]) ? $periodRaw : '';
@@ -61,7 +61,7 @@ final class ArticlesIndexAction
 
         $grid = $this->renderGrid($paginated, $localeRaw, $search, $period, $page, $totalPages, $total, $sort, $dir);
 
-        $breadcrumb = AdminLayout::breadcrumb([
+        $breadcrumb = CardboardLayout::breadcrumb([
             ['label' => 'Dashboard', 'href' => $this->url('mark.dashboard')],
             ['label' => 'Articles'],
         ]);
@@ -69,19 +69,19 @@ final class ArticlesIndexAction
         $content = $breadcrumb . $filterBars . $grid;
 
         // HTMX: return only the content div (no search input to avoid re-triggering).
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             return Response::html($this->renderContent($paginated, $localeRaw, $search, $period, $page, $totalPages, $total, $sort, $dir));
         }
 
         $toast = '';
         $toastMessage = $request->queryString('toast');
         if ('' !== $toastMessage) {
-            $toast = AdminLayout::toast(urldecode($toastMessage));
+            $toast = CardboardLayout::toast(urldecode($toastMessage));
         }
 
         $recentArticles = $this->recentItems($articles, $localeRaw);
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Articles',
             $content . $toast,
             'articles',
@@ -229,7 +229,7 @@ final class ArticlesIndexAction
             $cta = $hasFilter ? '' : $this->url('articles.create') . '?locale=' . $locale;
             $ctaLabel = $hasFilter ? '' : 'New article';
 
-            return $searchInput . AdminLayout::emptyState($emptyTitle, $emptyDesc, $cta, $ctaLabel);
+            return $searchInput . CardboardLayout::emptyState($emptyTitle, $emptyDesc, $cta, $ctaLabel);
         }
 
         $bulkBar = BulkActions::actionBarWithPublish(
@@ -256,7 +256,7 @@ final class ArticlesIndexAction
         $countInfo = '<div class="m-muted" style="font-size:13px;margin-bottom:12px;">Showing ' . count($articles) . ' of ' . $total . ' articles</div>';
         $tableHtml = ArticlesTableRenderer::table($articles, $locale, $sort, $dir, router: $this->router());
 
-        $skeleton = AdminLayout::skeletonTable([
+        $skeleton = CardboardLayout::skeletonTable([
             ['5%'], ['30%'], ['15%'], ['20%'], ['20%'], ['15%'],
         ]);
 
@@ -276,15 +276,15 @@ final class ArticlesIndexAction
         $periodInclude = '' !== $period ? ', [name="period"]' : '';
         $sortInclude = 'date' !== $sort || 'desc' !== $dir ? ', [name="sort"], [name="dir"]' : '';
         $periodHidden = '' !== $period
-            ? '<input type="hidden" name="period" value="' . AdminLayout::e($period) . '">'
+            ? '<input type="hidden" name="period" value="' . CardboardLayout::e($period) . '">'
             : '';
         $sortHidden = 'date' !== $sort || 'desc' !== $dir
-            ? '<input type="hidden" name="sort" value="' . AdminLayout::e($sort) . '">'
-                . '<input type="hidden" name="dir" value="' . AdminLayout::e($dir) . '">'
+            ? '<input type="hidden" name="sort" value="' . CardboardLayout::e($sort) . '">'
+                . '<input type="hidden" name="dir" value="' . CardboardLayout::e($dir) . '">'
             : '';
 
         return '<div class="m-filter-bar m-filter-bar--search m-filter-row__search">'
-            . '<input type="search" name="q" value="' . AdminLayout::e($search) . '"'
+            . '<input type="search" name="q" value="' . CardboardLayout::e($search) . '"'
             . ' hx-get="' . $this->url('articles.index') . '"'
             . ' hx-trigger="keyup changed delay:300ms, search"'
             . ' hx-target="#articles-content"'
@@ -293,7 +293,7 @@ final class ArticlesIndexAction
             . ' hx-indicator="#articles-skeleton"'
             . ' placeholder="Search articles..."'
             . ' class="m-input--search">'
-            . '<input type="hidden" name="locale" value="' . AdminLayout::e($locale) . '">'
+            . '<input type="hidden" name="locale" value="' . CardboardLayout::e($locale) . '">'
             . $periodHidden
             . $sortHidden
             . '</div>';
@@ -318,7 +318,7 @@ final class ArticlesIndexAction
         foreach ($labels as $value => $label) {
             $href = $this->url('articles.index') . '?locale=' . $localeRaw . ('' !== $value ? '&period=' . $value : '');
             $class = $value === $period ? 'm-pill m-pill-active' : 'm-pill';
-            $html .= '<a class="' . $class . '" href="' . $href . '">' . AdminLayout::e($label) . '</a>';
+            $html .= '<a class="' . $class . '" href="' . $href . '">' . CardboardLayout::e($label) . '</a>';
         }
 
         // Flexible spacer pushes the language toggle to the right edge; on

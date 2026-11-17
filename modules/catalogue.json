@@ -114,8 +114,8 @@
                 "PageCache"
             ]
         },
-        "RestAdmin": {
-            "source": "modules/RestAdmin",
+        "RestPanel": {
+            "source": "modules/RestPanel",
             "requires": [
                 "Cardboard"
             ]

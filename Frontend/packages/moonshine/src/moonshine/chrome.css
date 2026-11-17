@@ -1,7 +1,7 @@
 /* ── Moonshine public chrome — horizontal top bar (MoonShine top-menu idiom) ──
  *
  * The ADMIN surfaces keep the fixed left sidebar: that markup comes from
- * Cardboard's AdminLayout templates and the `mark` bundle, never from this
+ * the `CardboardLayout` templates and the `mark` bundle, never from this
  * stylesheet. This file styles the PUBLIC reading chrome, which is a plain
  * sticky top bar — brand on the left, nav links across the middle, utility
  * cluster on the right, collapsing to a burger drawer under 900px.

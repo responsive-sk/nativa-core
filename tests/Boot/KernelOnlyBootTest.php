@@ -6,7 +6,7 @@ namespace Tests\Boot;
 
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Interfaces\HTTP\Kernel;
-use Modules\Core\Interfaces\HTTP\Middleware\AdminUnavailableMiddleware;
+use Modules\Core\Interfaces\HTTP\Middleware\MarkUnavailableMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareInterface;
 use Modules\Core\Interfaces\HTTP\Router;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -25,7 +25,7 @@ use PHPUnit\Framework\TestCase;
  * present for the admin surface to exist: a module that PROVIDES the auth port
  * (Users — its `#[AsAuthProvider]` `UsersAuthProvider` is DISCOVERED by
  * `AuthProviderRegistry`) and, when it is absent, the kernel answers the admin
- * prefix with 404 through `AdminUnavailableMiddleware`. Without a provider the
+ * prefix with 404 through `MarkUnavailableMiddleware`. Without a provider the
  * surface does not exist even when a module still ROUTES it: measured
  * 2026-11-09, `Cardboard` without `Users` answered 200 to a guest because the
  * gate was never wired, which is the defect this file was written to rule out.
@@ -60,7 +60,7 @@ final class KernelOnlyBootTest extends TestCase
         // before routing, so an anonymous request is 302 whether or not the
         // route exists — and never the 200 that served the admin dashboard
         // to a guest (the measured defect, plan fix-mark-access-control).
-        yield 'admin'      => ['GET', '/mark',        $gated ? 302 : 404];
+        yield 'mark'       => ['GET', '/mark',        $gated ? 302 : 404];
     }
 
     #[Test]
@@ -82,7 +82,7 @@ final class KernelOnlyBootTest extends TestCase
         } else {
             // The composition root's other branch: with no provider the admin
             // prefix does not exist, even if a module routes it.
-            $kernel->addMiddleware(new AdminUnavailableMiddleware());
+            $kernel->addMiddleware(new MarkUnavailableMiddleware());
         }
 
         $response = $kernel->handle(Request::create($method, $uri));

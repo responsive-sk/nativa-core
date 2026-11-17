@@ -6,7 +6,7 @@ namespace Modules\Blog\Tests;
 
 use Modules\Blog\Application\Services\BlogArticlesService;
 use Modules\Blog\Application\Services\BlogCrudService;
-use Modules\Cardboard\Application\Services\AdminLocale;
+use Modules\Cardboard\Application\Services\CardboardLocale;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
@@ -43,7 +43,7 @@ use PHPUnit\Framework\TestCase;
  * delete a test, on purpose, rather than quietly ship the over-delete.
  *
  * AppPaths has no root override (measured — `storage()` is always the
- * checkout, the same fact the admin-smoke gate snapshots around), so this test
+ * checkout, the same fact the mark-smoke gate snapshots around), so this test
  * writes into the tree's own storage and removes exactly what it created,
  * under slugs no one else would use.
  */
@@ -180,10 +180,10 @@ final class ArticleCoverDeletionTest extends TestCase
     #[Test]
     public function theDeleteWorksWithTheFullLocaleCodeTheAdminActuallyPasses(): void
     {
-        // This test exists because the admin-smoke gate caught the defect it
+        // This test exists because the mark-smoke gate caught the defect it
         // was written for. Every other test here passes 'sk', because that is
         // what the generator's `localeFor()` returns — but the admin delete
-        // goes through `AdminLocale::canonical()`, which returns `sk_SK`.
+        // goes through `CardboardLocale::canonical()`, which returns `sk_SK`.
         //
         // Handed `sk_SK`, `collides()` compares by language code, so its
         // `continue` never fires, the article matches ITSELF as "another
@@ -194,7 +194,7 @@ final class ArticleCoverDeletionTest extends TestCase
         $article = $this->writeArticle('sk', $this->slug);
         $cover = $this->writeCover($this->slug . '.svg');
 
-        $locale = AdminLocale::canonical('sk_SK');
+        $locale = CardboardLocale::canonical('sk_SK');
         $this->assertSame('sk_SK', $locale, 'the admin really does pass the full code');
 
         $this->assertTrue((new BlogCrudService())->delete($this->slug, $locale));

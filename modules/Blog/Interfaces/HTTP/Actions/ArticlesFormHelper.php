@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Blog\Interfaces\HTTP\Actions;
 
 use Modules\Blog\Application\BlogServices;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\Users\Infrastructure\Persistence\Repositories\UserRepository;
 use View\ViewRenderer;
@@ -49,7 +49,7 @@ final class ArticlesFormHelper
         $options = self::datalistOptions(self::existingCategories($locale));
 
         return '<input type="text" id="category" name="category"'
-            . ' value="' . AdminLayout::e($currentValue) . '"'
+            . ' value="' . CardboardLayout::e($currentValue) . '"'
             . ' list="category-options" autocomplete="off">'
             . '<datalist id="category-options">' . $options . '</datalist>';
     }
@@ -65,7 +65,7 @@ final class ArticlesFormHelper
         $options = self::datalistOptions(self::existingTags($locale));
 
         return '<input type="text" id="tags" name="tags"'
-            . ' value="' . AdminLayout::e($currentValue) . '"'
+            . ' value="' . CardboardLayout::e($currentValue) . '"'
             . ' list="tags-options" autocomplete="off" placeholder="php, clean-code, architecture">'
             . '<datalist id="tags-options">' . $options . '</datalist>';
     }
@@ -131,12 +131,12 @@ final class ArticlesFormHelper
 
         if (!$hasCurrent) {
             $label = '' !== $currentValue ? $currentValue : 'Custom author';
-            $html .= '<option value="' . AdminLayout::e($currentValue) . '" selected>' . AdminLayout::e($label) . '</option>';
+            $html .= '<option value="' . CardboardLayout::e($currentValue) . '" selected>' . CardboardLayout::e($label) . '</option>';
         }
 
         foreach ($options as $option) {
             $selected = 0 === strcasecmp($option['email'], $currentValue) ? ' selected' : '';
-            $html .= '<option value="' . AdminLayout::e($option['email']) . '"' . $selected . '>' . AdminLayout::e($option['name']) . '</option>';
+            $html .= '<option value="' . CardboardLayout::e($option['email']) . '"' . $selected . '>' . CardboardLayout::e($option['name']) . '</option>';
         }
 
         $html .= '</select>';
@@ -176,7 +176,7 @@ final class ArticlesFormHelper
         $options = '';
 
         foreach ($values as $value) {
-            $options .= '<option value="' . AdminLayout::e($value) . '">';
+            $options .= '<option value="' . CardboardLayout::e($value) . '">';
         }
 
         return $options;

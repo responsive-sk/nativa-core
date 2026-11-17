@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Interfaces\HTTP\Actions;
 
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
@@ -25,7 +25,7 @@ use Modules\Notifications\Interfaces\HTTP\NotificationsServices;
  * already reaches Users, and Users is what writes the inbox.
  *
  * Nothing here decides WHO may read an inbox: the `/mark` gate requires
- * `mark.access` for the path (see `AdminRoutePolicy`), and every query takes the
+ * `mark.access` for the path (see `MarkRoutePolicy`), and every query takes the
  * signed-in user id from the session. A notification id in a URL is not an
  * authorization: `markRead()` scopes on the notifiable, so another user's row
  * answers "nothing changed" rather than clearing.
@@ -106,9 +106,9 @@ final class NotificationsAction
         if (null === $userId) {
             // Behind AuthMiddleware this cannot happen; rendering an empty inbox
             // beats throwing on the one page whose job is to reassure.
-            return AdminLayout::render(
+            return CardboardLayout::render(
                 'Notifications',
-                AdminLayout::emptyState('Nothing to show', 'Sign in to see your inbox.'),
+                CardboardLayout::emptyState('Nothing to show', 'Sign in to see your inbox.'),
                 'notifications',
                 router: $this->router(),
             );
@@ -133,9 +133,9 @@ final class NotificationsAction
         } catch (\Throwable $e) {
             error_log('[notifications] inbox unavailable: ' . $e->getMessage());
 
-            return AdminLayout::render(
+            return CardboardLayout::render(
                 'Notifications',
-                AdminLayout::emptyState(
+                CardboardLayout::emptyState(
                     'Inbox unavailable',
                     'The notifications database has not been created yet — run bin/cms migrate.',
                 ),
@@ -159,10 +159,10 @@ final class NotificationsAction
         $content = $this->summary($unread, $page->total()) . $this->listHtml($notifications);
 
         if ($page->lastPage() > 1) {
-            $content .= AdminLayout::pager($view['meta'], $view['links']);
+            $content .= CardboardLayout::pager($view['meta'], $view['links']);
         }
 
-        return AdminLayout::render(
+        return CardboardLayout::render(
             'Notifications',
             $content,
             'notifications',
@@ -191,8 +191,8 @@ final class NotificationsAction
         }
 
         return '<div class="m-card"><form class="m-form" method="POST" action="'
-            . AdminLayout::e($this->url('mark.notifications.read-all')) . '">'
-            . AdminLayout::csrfField()
+            . CardboardLayout::e($this->url('mark.notifications.read-all')) . '">'
+            . CardboardLayout::csrfField()
             . '<button class="m-btn m-btn-primary" type="submit">Mark all as read</button>'
             . '</form></div>' . $summary;
     }
@@ -203,7 +203,7 @@ final class NotificationsAction
     private function listHtml(array $notifications): string
     {
         if ([] === $notifications) {
-            return AdminLayout::emptyState(
+            return CardboardLayout::emptyState(
                 'No notifications',
                 'Moderation alerts land here — a comment or a question that waits for you.',
             );
@@ -224,12 +224,12 @@ final class NotificationsAction
     {
         $body = '' === $notification->body()
             ? ''
-            : '<div class="m-muted">' . nl2br(AdminLayout::e($notification->body()), false) . '</div>';
+            : '<div class="m-muted">' . nl2br(CardboardLayout::e($notification->body()), false) . '</div>';
 
         $href = $notification->href();
         $open = '' === $href
             ? ''
-            : ' <a class="m-btn m-btn-sm m-btn-ghost" href="' . AdminLayout::e($href) . '">Open</a>';
+            : ' <a class="m-btn m-btn-sm m-btn-ghost" href="' . CardboardLayout::e($href) . '">Open</a>';
 
         $unreadBadge = $notification->isRead()
             ? ''
@@ -238,16 +238,16 @@ final class NotificationsAction
         $markRead = $notification->isRead()
             ? ''
             : '<form class="m-inline-form" method="POST" action="'
-                . AdminLayout::e($this->url('mark.notifications.read', ['id' => $notification->id()])) . '">'
-                . AdminLayout::csrfField()
+                . CardboardLayout::e($this->url('mark.notifications.read', ['id' => $notification->id()])) . '">'
+                . CardboardLayout::csrfField()
                 . '<button class="m-btn m-btn-ghost m-btn-sm" type="submit">Mark read</button>'
                 . '</form>';
 
         return '<tr>'
-            . '<td><strong>' . AdminLayout::e($notification->title()) . '</strong>' . $unreadBadge
-            . '<div class="m-mono m-muted">' . AdminLayout::e($notification->kind()) . '</div>'
+            . '<td><strong>' . CardboardLayout::e($notification->title()) . '</strong>' . $unreadBadge
+            . '<div class="m-mono m-muted">' . CardboardLayout::e($notification->kind()) . '</div>'
             . $body . '</td>'
-            . '<td class="m-mono">' . AdminLayout::relativeTime($notification->createdAt()) . '</td>'
+            . '<td class="m-mono">' . CardboardLayout::relativeTime($notification->createdAt()) . '</td>'
             . '<td>' . $open . $markRead . '</td>'
             . '</tr>';
     }

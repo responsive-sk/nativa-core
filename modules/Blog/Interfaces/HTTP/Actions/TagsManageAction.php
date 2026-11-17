@@ -7,7 +7,7 @@ namespace Modules\Blog\Interfaces\HTTP\Actions;
 use Modules\Audit\Interfaces\HTTP\AuditServices;
 use Modules\Blog\Application\BlogServices;
 use Modules\Blog\Application\Services\BlogPageCache;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
@@ -36,11 +36,11 @@ final class TagsManageAction
         $counts = $this->buildTagIndex();
         $tags = BlogServices::taxonomy()->allTags();
 
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
         $rows = $this->tagRows($tags, $counts, $csrf);
 
         $table = '' === $rows
-            ? AdminLayout::emptyState('No tags yet', 'Create a tag here or add one to an article.')
+            ? CardboardLayout::emptyState('No tags yet', 'Create a tag here or add one to an article.')
             : '<table class="m-table"><thead><tr><th>Tag</th><th>Articles</th><th>Rename</th><th></th></tr></thead><tbody>'
             . $rows
             . '</tbody></table>';
@@ -55,7 +55,7 @@ final class TagsManageAction
             . '</div>'
             . $this->toast($request);
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Tags',
             $content,
             'tags',
@@ -136,7 +136,7 @@ final class TagsManageAction
     {
         $message = $request->queryString('toast');
 
-        return '' !== $message ? AdminLayout::toast(urldecode($message)) : '';
+        return '' !== $message ? CardboardLayout::toast(urldecode($message)) : '';
     }
 
     /**
@@ -145,13 +145,13 @@ final class TagsManageAction
     private function createForm(string $csrf): string
     {
         return '<div id="create-form" class="m-filter-bar m-create-panel">'
-            . '<form method="POST" action="' . AdminLayout::e($this->url('tags.create')) . '" class="m-inline-form">'
+            . '<form method="POST" action="' . CardboardLayout::e($this->url('tags.create')) . '" class="m-inline-form">'
             . $csrf
             . '<input type="text" name="tag" class="m-input" placeholder="New tag name" required>'
             . '<button class="m-btn m-btn-primary m-btn-sm">Create</button>'
             . '</form>'
             . '</div>'
-            . AdminLayout::script(
+            . CardboardLayout::script(
                 '(function(){var p=document.getElementById("create-form");if(!p)return;'
                 . 'if(location.hash==="#create-form"){var f=p.querySelector("input[type=text]");if(f)f.focus();return;}'
                 . 'p.hidden=true;'
@@ -171,14 +171,14 @@ final class TagsManageAction
         $rows = '';
 
         foreach ($tags as $tag) {
-            $tagEsc = AdminLayout::e($tag);
+            $tagEsc = CardboardLayout::e($tag);
             $count = $counts[strtolower($tag)] ?? 0;
             $rows .= '<tr>'
                 . "<td><strong>{$tagEsc}</strong></td>"
                 . "<td>{$count}</td>"
                 . '<td>'
                 . '<div class="m-btn-group">'
-                . '<form method="POST" action="' . AdminLayout::e($this->url('tags.rename')) . '" class="m-inline-form">'
+                . '<form method="POST" action="' . CardboardLayout::e($this->url('tags.rename')) . '" class="m-inline-form">'
                 . "{$csrf}"
                 . "<input type=\"hidden\" name=\"old_tag\" value=\"{$tagEsc}\">"
                 . '<input type="text" name="new_tag" class="m-input m-input--compact" placeholder="New name" required>'
@@ -188,11 +188,11 @@ final class TagsManageAction
                 . '</td>'
                 . '<td>'
                 . '<div class="m-btn-group">'
-                . '<form method="POST" action="' . AdminLayout::e($this->url('tags.delete')) . '" class="m-inline-form">'
+                . '<form method="POST" action="' . CardboardLayout::e($this->url('tags.delete')) . '" class="m-inline-form">'
                 . "{$csrf}"
                 . "<input type=\"hidden\" name=\"tag\" value=\"{$tagEsc}\">"
                 . '<button class="m-btn m-btn-error m-btn-sm m-btn-icon" '
-                . "\"data-confirm=\\\"Remove tag &quot;{$tagEsc}&quot; from all articles?\\\" title=\\\"Delete tag\\\">" . AdminLayout::iconDelete() . '</button>'
+                . "\"data-confirm=\\\"Remove tag &quot;{$tagEsc}&quot; from all articles?\\\" title=\\\"Delete tag\\\">" . CardboardLayout::iconDelete() . '</button>'
                 . '</form>'
                 . '</div>'
                 . '</td>'

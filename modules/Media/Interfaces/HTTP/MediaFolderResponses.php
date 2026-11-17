@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Media\Interfaces\HTTP;
 
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Kernel\Contracts\RouterInterface;
@@ -43,8 +43,8 @@ final class MediaFolderResponses
 
     private static function answer(RouterInterface $router, Request $request, string $message, string $type, string $folder): Response
     {
-        if (AdminLayout::isHtmx($request)) {
-            return Response::html(AdminLayout::toast($message, $type));
+        if (CardboardLayout::isHtmx($request)) {
+            return Response::html(CardboardLayout::toast($message, $type));
         }
 
         $query = '' !== $folder ? 'folder=' . urlencode($folder) . '&' : '';

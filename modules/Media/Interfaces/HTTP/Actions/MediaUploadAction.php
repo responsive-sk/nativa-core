@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Media\Interfaces\HTTP\Actions;
 
 use Modules\Audit\Interfaces\HTTP\AuditServices;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\PageCache\Application\Services\CacheInvalidator;
 use View\ViewRenderer;
 use Modules\Core\Infrastructure\Env;
@@ -101,8 +101,8 @@ final class MediaUploadAction
      */
     private function uploadForm(array $errors = []): string
     {
-        $errorHtml = AdminLayout::messages($errors, 'err');
-        $csrf = AdminLayout::csrfField();
+        $errorHtml = CardboardLayout::messages($errors, 'err');
+        $csrf = CardboardLayout::csrfField();
         $cloudinaryConfigured = '' !== (Env::get('CLOUDINARY_CLOUD_NAME', '') ?? '');
 
         $providerHtml = '';
@@ -115,14 +115,14 @@ final class MediaUploadAction
         $folderOptions = $this->localFolderOptions();
         $content = ViewRenderer::render('Modules/Media/Interfaces/HTTP/templates/media-upload-form.phtml', ['url' => $this->urlBuilder(), 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'providerHtml' => $providerHtml, 'folderOptions' => $folderOptions, 'uploadLimits' => MediaUploadLimits::formConfig(), 'serverLimitLabel' => MediaUploadLimits::iniLabel('upload_max_filesize')]);
 
-        return AdminLayout::render('Upload media', $content, 'media', router: $this->router());
+        return CardboardLayout::render('Upload media', $content, 'media', router: $this->router());
     }
 
     private function localFolderOptions(): string
     {
         $options = '';
         foreach (MediaServices::media()->getFolders('local') as $folder) {
-            $escaped = AdminLayout::e($folder);
+            $escaped = CardboardLayout::e($folder);
             $options .= '<option value="' . $escaped . '">';
         }
 

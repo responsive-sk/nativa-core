@@ -2,7 +2,7 @@
  *
  * Separate Vite entry on purpose: mark.css is a shrink-only legacy baseline
  * (tests/Architecture/ThemeFileSizeTest.php), so new admin chrome lands in
- * its own file. Linked by AdminLayout::markCssLinks() / CompactLayout next
+ * its own file. Linked by CardboardLayout::markCssLinks() / CompactLayout next
  * to the mark.css entry.
  */
 

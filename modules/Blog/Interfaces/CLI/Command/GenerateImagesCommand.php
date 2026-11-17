@@ -27,7 +27,7 @@ use RuntimeException;
  *
  *   It used to extend `Symfony\Component\Console\Command\Command`, which
  *   `symfony/console` being `require-dev` only makes unloadable — the
- *   `admin-smoke` and `boot` jobs deliberately run with no `vendor/`, and so
+ *   `mark-smoke` and `boot` jobs deliberately run with no `vendor/`, and so
  *   does a production deployment. So `$argv` in, an exit code out, and
  *   `CliOutput` as the contract — the same seam `DatabaseMigrator` uses.
  *   `bin/cms` owns the printing; this class owns the behaviour, so a test can

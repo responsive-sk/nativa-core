@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Interfaces\HTTP\Actions;
 
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Cardboard\Interfaces\HTTP\CardboardServices;
 use Modules\PageCache\Application\Services\CacheInvalidator;
 use View\ViewRenderer;
@@ -65,7 +65,7 @@ final class UsersAction
             $users = $this->filterUsers($users, $search);
         }
 
-        $escapedSearch = AdminLayout::e($search);
+        $escapedSearch = CardboardLayout::e($search);
         $searchInput = '<div class="m-filter-bar">'
             . '<input type="search" name="q" value="' . $escapedSearch . '" class="m-input--filter"'
             . ' hx-get="' . $this->url('mark.users') . '"'
@@ -79,19 +79,19 @@ final class UsersAction
         $grid = \Modules\Users\Interfaces\HTTP\UsersTableRenderer::render($users, $this->router());
 
         // HTMX: return partial HTML.
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             return Response::html($grid);
         }
 
         $toast = '';
         $toastMessage = $request->queryString('toast');
         if ('' !== $toastMessage) {
-            $toast = AdminLayout::toast(urldecode($toastMessage));
+            $toast = CardboardLayout::toast(urldecode($toastMessage));
         }
 
         $content = $searchInput . $grid . $toast;
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Users',
             $content,
             'users',
@@ -177,7 +177,7 @@ final class UsersAction
             $events::userChanged($user->id(), $events::OP_CREATE, $request->getClientIp(), $this->eventContext($user->email()));
         }
 
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             $response = Response::html('');
             $response->setHeader('HX-Redirect', $this->url('mark.users') . '?toast=User+created+successfully');
 
@@ -198,7 +198,7 @@ final class UsersAction
 
         return Response::html($this->form(
             'Edit user — ' . $user->name(),
-            $this->url('mark.users.edit', ['id' => AdminLayout::e($user->id())]),
+            $this->url('mark.users.edit', ['id' => CardboardLayout::e($user->id())]),
             'Save changes',
             [],
             ['name' => $user->name(), 'email' => $user->email()],
@@ -253,7 +253,7 @@ final class UsersAction
             $events::userChanged($user->id(), $events::OP_UPDATE, $request->getClientIp(), $this->eventContext($user->email()));
         }
 
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             $response = Response::html('');
             $response->setHeader('HX-Redirect', $this->url('mark.users') . '?toast=User+saved+successfully');
 
@@ -283,7 +283,7 @@ final class UsersAction
             }
         }
 
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             return Response::html('');
         }
 
@@ -307,21 +307,21 @@ final class UsersAction
         ?\Modules\Users\Domain\Entities\User $user = null,
         ?Request $request = null,
     ): string {
-        $errorHtml = AdminLayout::messages($errors, 'err');
+        $errorHtml = CardboardLayout::messages($errors, 'err');
         $roles = CardboardServices::roles()->allRoles();
         $roleOptions = '';
 
         foreach ($roles as $role) {
-            $roleId = AdminLayout::e((string) $role['id']);
-            $roleName = AdminLayout::e((string) $role['name']);
+            $roleId = CardboardLayout::e((string) $role['id']);
+            $roleName = CardboardLayout::e((string) $role['name']);
             $selected = in_array((string) $role['id'], $selectedRoleIds, true) ? ' selected' : '';
             $roleOptions .= "<option value=\"{$roleId}\"{$selected}>{$roleName}</option>";
         }
 
-        $name = AdminLayout::e($values['name'] ?? '');
-        $email = AdminLayout::e($values['email'] ?? '');
+        $name = CardboardLayout::e($values['name'] ?? '');
+        $email = CardboardLayout::e($values['email'] ?? '');
         $activeChecked = (null === $user || $user->isActive()) ? ' checked' : '';
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
         $passwordHint = null !== $user
             ? '<p class="m-muted m-hint">Leave blank to keep the current password.</p>'
             : '';
@@ -331,19 +331,19 @@ final class UsersAction
         // shared picker updates after a selection.
         $avatar = null !== $user ? $user->avatar() : null;
         $avatarPreview = $this->avatarPreview($avatar);
-        $avatarValue = null !== $avatar ? AdminLayout::e($avatar) : '';
+        $avatarValue = null !== $avatar ? CardboardLayout::e($avatar) : '';
         $removeAvatar = null !== $avatar
             ? '<div class="m-check"><input type="checkbox" id="remove_avatar" name="remove_avatar" value="1"><label for="remove_avatar">Remove avatar</label></div>'
             : '';
 
-        $htmx = null !== $request && AdminLayout::isHtmx($request);
-        $hxPost = $htmx ? ' hx-post="' . AdminLayout::e($action) . '" hx-indicator="#user-spinner"' : '';
+        $htmx = null !== $request && CardboardLayout::isHtmx($request);
+        $hxPost = $htmx ? ' hx-post="' . CardboardLayout::e($action) . '" hx-indicator="#user-spinner"' : '';
         $spinner = '<span class="htmx-indicator" id="user-spinner">⏳</span> ';
 
         $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/users-form.phtml', ['avatarPreview' => $avatarPreview, 'avatarValue' => $avatarValue, 'url' => $this->urlBuilder(), 'action' => $action, 'activeChecked' => $activeChecked, 'csrf' => $csrf, 'email' => $email, 'errorHtml' => $errorHtml, 'hxPost' => $hxPost, 'name' => $name, 'passwordHint' => $passwordHint, 'removeAvatar' => $removeAvatar, 'roleOptions' => $roleOptions, 'spinner' => $spinner, 'submitLabel' => $submitLabel])
             . \Modules\Media\Interfaces\HTTP\MediaEditorHelper::editorScript($this->router(), null);
 
-        return AdminLayout::render($title, $content, 'users', router: $this->router());
+        return CardboardLayout::render($title, $content, 'users', router: $this->router());
     }
 
     /**
@@ -413,7 +413,7 @@ final class UsersAction
     {
         return Response::html($this->form(
             'Edit user — ' . $user->name(),
-            $this->url('mark.users.edit', ['id' => AdminLayout::e($user->id())]),
+            $this->url('mark.users.edit', ['id' => CardboardLayout::e($user->id())]),
             'Save changes',
             $errors,
             ['name' => $name, 'email' => $email],
@@ -435,7 +435,7 @@ final class UsersAction
             : null;
 
         return '<div id="image-preview" style="margin-top:8px;' . (null !== $src ? '' : 'display:none;') . '">'
-            . '<img id="image-preview-img" src="' . AdminLayout::e($src ?? '') . '" alt="Preview"'
+            . '<img id="image-preview-img" src="' . CardboardLayout::e($src ?? '') . '" alt="Preview"'
             . ' style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--cba-border);">'
             . '</div>';
     }

@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Blog\Interfaces\HTTP;
 
 use Modules\Cardboard\Application\Services\BulkActions;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Modules\Core\Kernel\Contracts\RouterInterface;
 use Modules\Locales\Interfaces\HTTP\LocalesServices;
@@ -43,10 +43,10 @@ final class ArticlesTableRenderer
         }
 
         $headers = BulkActions::headerCell()
-            . AdminLayout::sortableHeader('Title', 'title', $sort, $dir, $baseParams)
-            . AdminLayout::sortableHeader('Date', 'date', $sort, $dir, $baseParams)
+            . CardboardLayout::sortableHeader('Title', 'title', $sort, $dir, $baseParams)
+            . CardboardLayout::sortableHeader('Date', 'date', $sort, $dir, $baseParams)
             . '<th>Author</th>'
-            . AdminLayout::sortableHeader('Status', 'published', $sort, $dir, $baseParams)
+            . CardboardLayout::sortableHeader('Status', 'published', $sort, $dir, $baseParams)
             . '<th>Badges</th><th>Actions</th>';
 
         return '<div class="m-table-scroll">'
@@ -83,17 +83,17 @@ final class ArticlesTableRenderer
     {
         // Defense in depth beside the actions' boundary allowlist: a future
         // caller passing a raw param must not get attribute breakout.
-        $locale = AdminLayout::e($locale);
-        $slug = AdminLayout::e($article['slug']);
-        $title = AdminLayout::e($article['title']);
-        $date = AdminLayout::e($article['date']);
-        $author = AdminLayout::e($article['author']);
+        $locale = CardboardLayout::e($locale);
+        $slug = CardboardLayout::e($article['slug']);
+        $title = CardboardLayout::e($article['title']);
+        $date = CardboardLayout::e($article['date']);
+        $author = CardboardLayout::e($article['author']);
         $editHref = $router->url('articles.edit', ['slug' => $slug]) . '?locale=' . $locale;
         $checkbox = BulkActions::checkboxCell($article['slug']);
-        $csrf = AdminLayout::csrfField();
-        $iconView = AdminLayout::iconView();
-        $iconEdit = AdminLayout::iconEdit();
-        $iconDelete = AdminLayout::iconDelete();
+        $csrf = CardboardLayout::csrfField();
+        $iconView = CardboardLayout::iconView();
+        $iconEdit = CardboardLayout::iconEdit();
+        $iconDelete = CardboardLayout::iconDelete();
         $mapper = ContentLocaleServices::mapper();
         $viewHref = $mapper->urlPrefix($mapper->code($locale)) . '/blog/' . $slug;
 
@@ -111,14 +111,14 @@ final class ArticlesTableRenderer
         return '<tr>'
             . $checkbox
             . '<td><strong>' . $title . '</strong><br><span class="m-copy m-muted m-hint" data-copy="'
-            . AdminLayout::e($slugUrl) . '">' . $slug . $copyIcon . '</span></td>'
+            . CardboardLayout::e($slugUrl) . '">' . $slug . $copyIcon . '</span></td>'
             . '<td>' . $date . '</td>'
             . '<td>' . $author . '</td>'
             . '<td>' . $switch . '</td>'
             . '<td style="max-width:260px;">' . $statusBadges . '</td>'
             . '<td style="white-space:nowrap;">'
             . '<div class="m-btn-group">'
-            . '<a class="m-btn m-btn-sm m-btn-icon" href="' . AdminLayout::e($viewHref) . '"'
+            . '<a class="m-btn m-btn-sm m-btn-icon" href="' . CardboardLayout::e($viewHref) . '"'
             . ' target="_blank" rel="noopener" data-tooltip="View article" title="View">' . $iconView . '</a>'
             . '<a class="m-btn m-btn-sm m-btn-icon" href="' . $editHref . '"'
             . ' data-tooltip="Edit article" title="Edit">' . $iconEdit . '</a>'
@@ -166,10 +166,10 @@ final class ArticlesTableRenderer
             $badges .= '<span class="m-badge m-badge-purple">Members</span> ';
         }
         if ('' !== $article['category']) {
-            $badges .= '<span class="m-badge m-badge-info">' . AdminLayout::e($article['category']) . '</span> ';
+            $badges .= '<span class="m-badge m-badge-info">' . CardboardLayout::e($article['category']) . '</span> ';
         }
         foreach ($article['tags'] as $tag) {
-            $badges .= '<span class="m-badge m-badge-gray">' . AdminLayout::e($tag) . '</span> ';
+            $badges .= '<span class="m-badge m-badge-gray">' . CardboardLayout::e($tag) . '</span> ';
         }
 
         return $badges;
@@ -181,8 +181,8 @@ final class ArticlesTableRenderer
             ? 'Delete this article? It will be unpublished first, then deleted.'
             : 'Delete this article?';
 
-        return '<form method="POST" action="' . AdminLayout::e($router->url('articles.delete', ['slug' => $slug]) . '?locale=' . $locale) . '"'
-            . ' hx-delete="' . AdminLayout::e($router->url('articles.delete', ['slug' => $slug]) . '?locale=' . $locale) . '"'
+        return '<form method="POST" action="' . CardboardLayout::e($router->url('articles.delete', ['slug' => $slug]) . '?locale=' . $locale) . '"'
+            . ' hx-delete="' . CardboardLayout::e($router->url('articles.delete', ['slug' => $slug]) . '?locale=' . $locale) . '"'
             . ' data-confirm="' . $confirm . '"'
             . ' hx-target="closest tr"'
             . ' hx-swap="outerHTML swap:500ms"'

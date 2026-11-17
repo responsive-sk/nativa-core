@@ -18,7 +18,7 @@ use ReflectionUnionType;
  * thing this tree will not compromise.
  *
  * The claim is that the kernel runtime has zero Composer dependencies, and
- * three CI jobs (`admin-smoke`, `boot`, `extract-check`) plus every production
+ * three CI jobs (`mark-smoke`, `boot`, `extract-check`) plus every production
  * deployment run with no `vendor/` to keep it honest. What that claim does NOT
  * cover is a contract whose *type* names a package: such a class fails to load
  * with a fatal, which is exactly the failure the CI jobs exist to catch — but

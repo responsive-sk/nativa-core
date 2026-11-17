@@ -6,8 +6,8 @@ declare(strict_types = 1);
 /*
  * bin/cardboard-rest-mcp — the REST admin's MCP server, over stdio.
  *
- * The protocol lives in the module (`Modules\RestAdmin\Interfaces\MCP\Server`),
- * because that is the slice `module:add RestAdmin` copies. This file is the
+ * The protocol lives in the module (`Modules\RestPanel\Interfaces\MCP\Server`),
+ * because that is the slice `module:add RestPanel` copies. This file is the
  * process: it boots the kernel the way `bin/cms` does, refuses politely when
  * the module is not installed, and hands stdin/stdout to the server.
  *
@@ -19,13 +19,13 @@ declare(strict_types = 1);
 
 require_once __DIR__ . '/../src/init.php';
 
-if (!class_exists('Modules\\RestAdmin\\Interfaces\\MCP\\Server')) {
-    fwrite(STDERR, 'cardboard-rest-mcp: the RestAdmin module is not installed. Run `php bin/cms module:add RestAdmin`.' . PHP_EOL);
+if (!class_exists('Modules\\RestPanel\\Interfaces\\MCP\\Server')) {
+    fwrite(STDERR, 'cardboard-rest-mcp: the RestPanel module is not installed. Run `php bin/cms module:add RestPanel`.' . PHP_EOL);
     exit(1);
 }
 
-$server = new \Modules\RestAdmin\Interfaces\MCP\Server(
-    \Modules\RestAdmin\Interfaces\MCP\ToolRegistry::default(),
+$server = new \Modules\RestPanel\Interfaces\MCP\Server(
+    \Modules\RestPanel\Interfaces\MCP\ToolRegistry::default(),
 );
 
 $server->serve(STDIN, STDOUT);

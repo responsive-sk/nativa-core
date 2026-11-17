@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Auth\Tests;
 
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Auth\Domain\AuthIdentity;
 use Modules\Auth\Domain\Contracts\AuthProvider;
 use Modules\Core\Domain\Contracts\SecurityEventSink;
@@ -152,7 +152,7 @@ final class AuthMiddlewareDenialTest extends TestCase
      */
     private function adminPath(): string
     {
-        return AdminRoutePolicy::prefix() . '/users';
+        return MarkRoutePolicy::prefix() . '/users';
     }
 
     #[Test]

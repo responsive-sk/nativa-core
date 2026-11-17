@@ -106,16 +106,16 @@ function wire_queue_handlers(): void
     // jobs are drained by the panel's "Process now" button in the WEB process —
     // a handler registered only for the CLI would leave that button reporting
     // "0 processed, 1 failed" with the reason parked in failed_jobs.
-    if (class_exists('Modules\Users\Application\Services\AdminNotificationHandler')
-        && class_exists('Modules\Users\Application\Services\AdminNotifier')
+    if (class_exists('Modules\Users\Application\Services\MarkNotificationHandler')
+        && class_exists('Modules\Users\Application\Services\MarkNotifier')
     ) {
         // A closure, not a static register(): Users must not import Queue. Queue
-        // reaches Users through Audit (`QueueAdminAction` writes an audit row and
+        // reaches Users through Audit (`QueueAction` writes an audit row and
         // `AuditServices` authenticates through Users), so that edge would close a
         // cycle the catalogue refuses. This file already names both sides inline
         // and is the one list every DELIVERY process wires.
         \Modules\Queue\Interfaces\HTTP\QueueServices::handlers()->register(
-            \Modules\Users\Application\Services\AdminNotificationHandler::HANDLER,
+            \Modules\Users\Application\Services\MarkNotificationHandler::HANDLER,
             static function (array $args): void {
                 // The inbox is wired HERE, not inside the handler, for the same
                 // reason the handler itself is wired here: Notifications is an
@@ -129,8 +129,8 @@ function wire_queue_handlers(): void
                     $inbox = \Modules\Notifications\Interfaces\HTTP\NotificationsServices::inbox();
                 }
 
-                (new \Modules\Users\Application\Services\AdminNotificationHandler(
-                    \Modules\Users\Application\Services\AdminNotifier::create(),
+                (new \Modules\Users\Application\Services\MarkNotificationHandler(
+                    \Modules\Users\Application\Services\MarkNotifier::create(),
                     $inbox,
                 ))->handle($args);
             },

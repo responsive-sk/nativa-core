@@ -51,7 +51,7 @@ use Modules\Core\Infrastructure\Bootstrap\Bootstrapper;
 use Modules\Core\Infrastructure\Env;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Interfaces\HTTP\Kernel;
-use Modules\Core\Interfaces\HTTP\Middleware\AdminUnavailableMiddleware;
+use Modules\Core\Interfaces\HTTP\Middleware\MarkUnavailableMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareInterface;
 use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\RateLimitMiddleware;
@@ -278,7 +278,7 @@ function http_kernel(): Kernel
         $kernel->addMiddleware($authGate);
         error_log('[auth] wired ' . $authProvider::class);
     } else {
-        $kernel->addMiddleware(new AdminUnavailableMiddleware());
+        $kernel->addMiddleware(new MarkUnavailableMiddleware());
         error_log('[auth] absent — no provider module, admin paths answer 404');
     }
 

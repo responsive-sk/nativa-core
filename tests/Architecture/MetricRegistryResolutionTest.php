@@ -14,7 +14,7 @@ use ReflectionMethod;
  * Measured 2026-10-17, the day the `modules` dashboard card was added. The card
  * was correct, committed, pushed, and reported this:
  *
- *     Cardboard  drift: AdminNavService.php, BulkEntityGate.php, AdminLayout.php
+ *     Cardboard  drift: CardboardNavService.php, BulkEntityGate.php, CardboardLayout.php
  *
  * …while not appearing on `/mark` at all. `MetricRegistry::all()` returned ten
  * providers; the eleventh was missing and had been missing the whole time.

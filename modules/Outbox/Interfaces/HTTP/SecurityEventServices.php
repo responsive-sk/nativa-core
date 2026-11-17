@@ -90,11 +90,11 @@ final class SecurityEventServices
      */
     private static function permissionForEntity(string $entity): ?string
     {
-        if (!class_exists('Modules\\Users\\Domain\\AdminRoutePolicy')) {
+        if (!class_exists('Modules\\Users\\Domain\\MarkRoutePolicy')) {
             return null;
         }
 
-        return \Modules\Core\Domain\AdminRoutePolicy::permissionForEntity($entity);
+        return \Modules\Core\Domain\MarkRoutePolicy::permissionForEntity($entity);
     }
 
     /**

@@ -143,7 +143,7 @@ final class CoverPathResolver
      * `sk_SK`), and the default when the name is neither.
      *
      * `existingCovers()` is reached from the admin delete, which passes what
-     * `AdminLocale::canonical()` returns — `sk_SK` — while the generator gets
+     * `CardboardLocale::canonical()` returns — `sk_SK` — while the generator gets
      * its locale from `localeFor()`, which returns `sk`. Handing `sk_SK`
      * straight to `collides()` makes the article match **itself**: the
      * comparison there is by language code, so the `continue` never fires, the

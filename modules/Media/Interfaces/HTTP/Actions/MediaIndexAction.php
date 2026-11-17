@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Media\Interfaces\HTTP\Actions;
 
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use View\InlineJs;
 use View\ViewRenderer;
 use Modules\Core\Infrastructure\Env;
@@ -72,7 +72,7 @@ final class MediaIndexAction
      */
     private function page(Request $request, string $content): Response
     {
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             return Response::html($content);
         }
 
@@ -86,7 +86,7 @@ final class MediaIndexAction
             $actions[] = ['label' => 'Cloudinary library', 'href' => $this->url('media.cloudinary')];
         }
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Media',
             $content . $selectAllScript . $this->toast($request),
             'media',
@@ -103,8 +103,8 @@ final class MediaIndexAction
             return '<div class="m-card"><p class="m-muted">No media files yet.</p></div>';
         }
 
-        $csrf = AdminLayout::csrfField();
-        $iconDelete = AdminLayout::iconDelete();
+        $csrf = CardboardLayout::csrfField();
+        $iconDelete = CardboardLayout::iconDelete();
         $cells = '';
         foreach ($assets as $asset) {
             $cells .= $this->renderCell($asset);
@@ -115,17 +115,17 @@ final class MediaIndexAction
 
     private function renderCell(MediaAsset $asset): string
     {
-        $id = AdminLayout::e($asset->id());
-        $name = AdminLayout::e($asset->originalName());
-        $editHref = AdminLayout::e($this->url('media.edit', ['id' => $asset->id()]));
+        $id = CardboardLayout::e($asset->id());
+        $name = CardboardLayout::e($asset->originalName());
+        $editHref = CardboardLayout::e($this->url('media.edit', ['id' => $asset->id()]));
         // '' when the provider cannot be built here (a cloudinary row in an
         // environment without credentials) — the card links to its edit page
         // and shows the placeholder instead of taking the index down.
         $url = MediaServices::urlFor($asset);
-        $urlEscaped = AdminLayout::e('' !== $url ? $url : $editHref);
+        $urlEscaped = CardboardLayout::e('' !== $url ? $url : $editHref);
         $size = $this->formatSize($asset->size());
-        $mime = AdminLayout::e($asset->mimeType());
-        $date = AdminLayout::e(AdminLayout::formatTime($asset->createdAt(), 'Y-m-d'));
+        $mime = CardboardLayout::e($asset->mimeType());
+        $date = CardboardLayout::e(CardboardLayout::formatTime($asset->createdAt(), 'Y-m-d'));
         $viewCount = $asset->viewCount();
         $category = $asset->category();
         $tags = $asset->tags();
@@ -135,7 +135,7 @@ final class MediaIndexAction
 
         // Category badge.
         $categoryBadge = '' !== $category
-            ? '<span class="m-badge">' . AdminLayout::e($category) . '</span>'
+            ? '<span class="m-badge">' . CardboardLayout::e($category) . '</span>'
             : '';
 
         // Provider badge — which storage this file actually lives on.
@@ -143,18 +143,18 @@ final class MediaIndexAction
 
         // Folder — a local reference to where the file lives (root = none).
         $folder = $asset->folder();
-        $folderInfo = '' !== $folder ? AdminLayout::e($folder) . ' · ' : '';
+        $folderInfo = '' !== $folder ? CardboardLayout::e($folder) . ' · ' : '';
 
         // Tags chips.
         $tagsHtml = '';
         foreach ($tags as $tag) {
-            $escapedTag = AdminLayout::e($tag);
+            $escapedTag = CardboardLayout::e($tag);
             $tagsHtml .= '<span class="m-media-card__tag">' . $escapedTag . '</span>';
         }
 
         $viewsHtml = self::viewsHtml($viewCount);
 
-        $iconEdit = AdminLayout::iconEdit();
+        $iconEdit = CardboardLayout::iconEdit();
 
         return ViewRenderer::render('Modules/Media/Interfaces/HTTP/templates/media-grid.phtml', ['categoryBadge' => $categoryBadge, 'date' => $date, 'editHref' => $editHref, 'folderInfo' => $folderInfo, 'iconEdit' => $iconEdit, 'id' => $id, 'mime' => $mime, 'name' => $name, 'providerBadge' => $providerBadge, 'size' => $size, 'tagsHtml' => $tagsHtml, 'thumb' => $thumb, 'urlEscaped' => $urlEscaped, 'viewsHtml' => $viewsHtml]);
     }
@@ -181,8 +181,8 @@ final class MediaIndexAction
         }
 
         $preview = MediaServices::previewUrl($asset, 300);
-        $urlEscaped = AdminLayout::e('' !== $preview ? $preview : $url);
-        $nameEscaped = AdminLayout::e($asset->originalName());
+        $urlEscaped = CardboardLayout::e('' !== $preview ? $preview : $url);
+        $nameEscaped = CardboardLayout::e($asset->originalName());
 
         return "<img src=\"{$urlEscaped}\" alt=\"{$nameEscaped}\" loading=\"lazy\" class=\"m-media-card__thumb-img\">";
     }
@@ -253,7 +253,7 @@ final class MediaIndexAction
             $href = $this->buildFilterUrl($key, $currentSort, $currentCategory, $currentTag, $currentSource, $currentFolder);
             $isActive = $key === $currentType;
             $class = $isActive ? 'm-pill m-pill-active' : 'm-pill';
-            $typeLinks .= "<a href=\"{$href}\" class=\"{$class}\" hx-get=\"{$href}\" hx-target=\"#media-content\" hx-swap=\"outerHTML\" hx-push-url=\"true\">" . AdminLayout::e($label) . '</a>';
+            $typeLinks .= "<a href=\"{$href}\" class=\"{$class}\" hx-get=\"{$href}\" hx-target=\"#media-content\" hx-swap=\"outerHTML\" hx-push-url=\"true\">" . CardboardLayout::e($label) . '</a>';
         }
 
         // Sort dropdown — HTMX with hx-trigger change.
@@ -262,7 +262,7 @@ final class MediaIndexAction
         $sortSelect = '<select name="sort" class="m-input m-input--compact" ' . $hxCommon . '>';
         foreach ($sortOptions as $val => $label) {
             $selected = $val === $currentSort ? ' selected' : '';
-            $sortSelect .= '<option value="' . $val . '"' . $selected . '>' . AdminLayout::e($label) . '</option>';
+            $sortSelect .= '<option value="' . $val . '"' . $selected . '>' . CardboardLayout::e($label) . '</option>';
         }
         $sortSelect .= '</select>';
 
@@ -271,7 +271,7 @@ final class MediaIndexAction
         $catSelect .= '<option value="">All categories</option>';
         foreach ($categories as $cat) {
             $selected = $cat === $currentCategory ? ' selected' : '';
-            $catSelect .= '<option value="' . AdminLayout::e($cat) . '"' . $selected . '>' . AdminLayout::e($cat) . '</option>';
+            $catSelect .= '<option value="' . CardboardLayout::e($cat) . '"' . $selected . '>' . CardboardLayout::e($cat) . '</option>';
         }
         $catSelect .= '</select>';
 
@@ -283,7 +283,7 @@ final class MediaIndexAction
                 $href = $this->buildFilterUrl($currentType, $currentSort, $currentCategory, $t, $currentSource, $currentFolder);
                 $isActive = $t === $currentTag;
                 $class = $isActive ? 'm-pill m-pill-active' : 'm-pill';
-                $tagLinks .= "<a href=\"{$href}\" class=\"{$class}\" hx-get=\"{$href}\" hx-target=\"#media-content\" hx-swap=\"outerHTML\" hx-push-url=\"true\">" . AdminLayout::e($t) . '</a>';
+                $tagLinks .= "<a href=\"{$href}\" class=\"{$class}\" hx-get=\"{$href}\" hx-target=\"#media-content\" hx-swap=\"outerHTML\" hx-push-url=\"true\">" . CardboardLayout::e($t) . '</a>';
             }
         }
 
@@ -312,7 +312,7 @@ final class MediaIndexAction
 
         $isError = 'error' === $request->query('toast-type');
 
-        return AdminLayout::toast(urldecode($message), $isError ? 'err' : 'ok');
+        return CardboardLayout::toast(urldecode($message), $isError ? 'err' : 'ok');
     }
 
     /**
@@ -333,7 +333,7 @@ final class MediaIndexAction
         }
 
         return ViewRenderer::render('Modules/Media/Interfaces/HTTP/templates/media-folder-manage.phtml', ['url' => $this->urlBuilder(), 
-            'csrf'        => AdminLayout::csrfField(),
+            'csrf'        => CardboardLayout::csrfField(),
             'rows'        => $rows,
             'folderCount' => (string) count($folders),
         ]);
@@ -350,22 +350,22 @@ final class MediaIndexAction
      */
     private function folderManageRow(string $path): string
     {
-        $escaped = AdminLayout::e($path);
+        $escaped = CardboardLayout::e($path);
         $id = 'folder-rename-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($path));
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
 
         return '<div class="m-folder-row">'
-            . '<form class="m-folder-row__rename" method="post" action="' . AdminLayout::e($this->url('media.folder-rename')) . '">'
+            . '<form class="m-folder-row__rename" method="post" action="' . CardboardLayout::e($this->url('media.folder-rename')) . '">'
             . $csrf
             . '<input type="hidden" name="from" value="' . $escaped . '">'
-            . '<label class="m-folder-row__name" for="' . AdminLayout::e((string) $id) . '">'
+            . '<label class="m-folder-row__name" for="' . CardboardLayout::e((string) $id) . '">'
             . '<span class="m-folder-row__icon">' . MediaIcons::folder() . '</span>'
             . '<span class="m-folder-row__path">' . $escaped . '</span>'
             . '</label>'
-            . '<input class="m-input m-folder-row__input" id="' . AdminLayout::e((string) $id) . '" type="text" name="to" placeholder="New path" required>'
+            . '<input class="m-input m-folder-row__input" id="' . CardboardLayout::e((string) $id) . '" type="text" name="to" placeholder="New path" required>'
             . '<button class="m-btn m-btn-sm" type="submit">Rename</button>'
             . '</form>'
-            . '<form class="m-folder-row__delete" method="post" action="' . AdminLayout::e($this->url('media.folder-delete')) . '">'
+            . '<form class="m-folder-row__delete" method="post" action="' . CardboardLayout::e($this->url('media.folder-delete')) . '">'
             . $csrf
             . '<input type="hidden" name="path" value="' . $escaped . '">'
             . '<label class="m-folder-row__cascade"><input type="checkbox" name="cascade" value="1"> delete its files too</label>'
@@ -404,16 +404,16 @@ final class MediaIndexAction
 
         $tiles = '';
         foreach ($counts as $path => $count) {
-            $href = AdminLayout::e($this->buildFilterUrl($type, $sort, $category, $tag, $source, $path));
+            $href = CardboardLayout::e($this->buildFilterUrl($type, $sort, $category, $tag, $source, $path));
             $asset = $previews[$path] ?? null;
 
             $tiles .= ViewRenderer::render('Modules/Media/Interfaces/HTTP/templates/media-folder-tile.phtml', [
                 'class'      => $path === $currentFolder ? 'm-folder-card m-folder-card--active' : 'm-folder-card',
                 'href'       => $href,
                 'linkAttrs'  => 'hx-get="' . $href . '" hx-target="#media-content" hx-swap="outerHTML" hx-push-url="true"',
-                'previewUrl' => null !== $asset ? AdminLayout::e(MediaServices::previewUrl($asset)) : '',
+                'previewUrl' => null !== $asset ? CardboardLayout::e(MediaServices::previewUrl($asset)) : '',
                 'icon'       => MediaIcons::folder(),
-                'name'       => AdminLayout::e($path),
+                'name'       => CardboardLayout::e($path),
                 'count'      => (string) $count,
             ]);
         }
@@ -434,15 +434,15 @@ final class MediaIndexAction
         $fields = '';
 
         if ('' !== $currentType) {
-            $fields .= '<input type="hidden" name="type" value="' . AdminLayout::e($currentType) . '">';
+            $fields .= '<input type="hidden" name="type" value="' . CardboardLayout::e($currentType) . '">';
         }
 
         if ('' !== $currentTag) {
-            $fields .= '<input type="hidden" name="tag" value="' . AdminLayout::e($currentTag) . '">';
+            $fields .= '<input type="hidden" name="tag" value="' . CardboardLayout::e($currentTag) . '">';
         }
 
         if ('' !== $currentSource) {
-            $fields .= '<input type="hidden" name="source" value="' . AdminLayout::e($currentSource) . '">';
+            $fields .= '<input type="hidden" name="source" value="' . CardboardLayout::e($currentSource) . '">';
         }
 
         return $fields;
@@ -461,7 +461,7 @@ final class MediaIndexAction
             $href = $this->buildFilterUrl($type, $sort, $category, $tag, $key, $folder);
             $isActive = $key === $current;
             $class = $isActive ? 'm-pill m-pill-active' : 'm-pill';
-            $pills .= "<a href=\"{$href}\" class=\"{$class}\" hx-get=\"{$href}\" hx-target=\"#media-content\" hx-swap=\"outerHTML\" hx-push-url=\"true\">" . AdminLayout::e($label) . '</a>';
+            $pills .= "<a href=\"{$href}\" class=\"{$class}\" hx-get=\"{$href}\" hx-target=\"#media-content\" hx-swap=\"outerHTML\" hx-push-url=\"true\">" . CardboardLayout::e($label) . '</a>';
         }
 
         return $pills;
@@ -481,7 +481,7 @@ final class MediaIndexAction
         $select .= '<option value="">All folders</option>';
         foreach ($folders as $folder) {
             $selected = $folder === $current ? ' selected' : '';
-            $select .= '<option value="' . AdminLayout::e($folder) . '"' . $selected . '>' . AdminLayout::e($folder) . '</option>';
+            $select .= '<option value="' . CardboardLayout::e($folder) . '"' . $selected . '>' . CardboardLayout::e($folder) . '</option>';
         }
         $select .= '</select>';
 
@@ -503,7 +503,7 @@ final class MediaIndexAction
         $provider = $asset->provider() ?: MediaServices::storage()->getName();
         $class = 'cloudinary' === $provider ? 'm-badge m-badge-info' : 'm-badge m-badge-gray';
 
-        return '<span class="' . $class . '">' . AdminLayout::e($provider) . '</span>';
+        return '<span class="' . $class . '">' . CardboardLayout::e($provider) . '</span>';
     }
 
     /**
@@ -539,8 +539,8 @@ final class MediaIndexAction
 
     private function renderStats(int $total): string
     {
-        $totalDisplay = AdminLayout::e((string) $total);
-        $provider = AdminLayout::e(MediaServices::storage()->getName());
+        $totalDisplay = CardboardLayout::e((string) $total);
+        $provider = CardboardLayout::e(MediaServices::storage()->getName());
 
         return ViewRenderer::render('Modules/Media/Interfaces/HTTP/templates/media-edit-inline.phtml', ['provider' => $provider, 'totalDisplay' => $totalDisplay]);
     }

@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Media\Interfaces\HTTP\Actions;
 
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use View\ViewRenderer;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
@@ -130,7 +130,7 @@ final readonly class MediaCloudinaryAction
         if ('' !== $requested && $requested !== $landing) {
             try {
                 $vars = $this->browse($api, $landing, '');
-                $vars['noticeHtml'] = AdminLayout::messages([
+                $vars['noticeHtml'] = CardboardLayout::messages([
                     'That folder could not be opened — showing ' . ('' !== $landing ? $landing : 'the library root') . '.',
                 ], 'err');
 
@@ -160,10 +160,10 @@ final readonly class MediaCloudinaryAction
             'crumbsHtml'    => $this->crumbs($folder, MediaService::normalizeFolder($api->folder()), false),
             'foldersHtml'   => $this->folderTiles($api, $api->folders($folder), $folder, false),
             'cardsHtml'     => $this->cardsHtml($api, $listing['resources']),
-            'summaryHtml'   => '<span class="m-muted">' . AdminLayout::e((string) $listing['total_count']) . ' resources in this folder</span>',
-            'csrf'          => AdminLayout::csrfField(),
-            'currentFolder' => AdminLayout::e($folder),
-            'nextHref'      => AdminLayout::e($nextHref),
+            'summaryHtml'   => '<span class="m-muted">' . CardboardLayout::e((string) $listing['total_count']) . ' resources in this folder</span>',
+            'csrf'          => CardboardLayout::csrfField(),
+            'currentFolder' => CardboardLayout::e($folder),
+            'nextHref'      => CardboardLayout::e($nextHref),
         ];
     }
 
@@ -173,7 +173,7 @@ final readonly class MediaCloudinaryAction
     private function state(string $message): array
     {
         return [
-            'noticeHtml'    => AdminLayout::messages([$message], 'err'),
+            'noticeHtml'    => CardboardLayout::messages([$message], 'err'),
             'crumbsHtml'    => '',
             'foldersHtml'   => '',
             'cardsHtml'     => '',
@@ -203,7 +203,7 @@ final readonly class MediaCloudinaryAction
                 $message .= sprintf(' %d could not be deleted.', $failedCount);
             }
 
-            return AdminLayout::messages([$message], $failedCount > 0 ? 'err' : 'ok');
+            return CardboardLayout::messages([$message], $failedCount > 0 ? 'err' : 'ok');
         }
 
         $imported = $request->query('imported');
@@ -212,23 +212,23 @@ final readonly class MediaCloudinaryAction
         if (is_string($imported) && is_numeric($imported)) {
             $skippedCount = is_string($skipped) && is_numeric($skipped) ? (int) $skipped : 0;
 
-            return AdminLayout::messages([
+            return CardboardLayout::messages([
                 sprintf('Imported %d, skipped %d.', (int) $imported, $skippedCount),
             ], 'ok');
         }
 
         $error = $request->query('error');
         if ('selection' === $error) {
-            return AdminLayout::messages(['Select at least one file first.'], 'err');
+            return CardboardLayout::messages(['Select at least one file first.'], 'err');
         }
         if ('too-many' === $error) {
-            return AdminLayout::messages(['One batch takes at most 50 files at a time.'], 'err');
+            return CardboardLayout::messages(['One batch takes at most 50 files at a time.'], 'err');
         }
         if ('unreachable' === $error) {
-            return AdminLayout::messages(['The Cloudinary library could not be reached — nothing was imported.'], 'err');
+            return CardboardLayout::messages(['The Cloudinary library could not be reached — nothing was imported.'], 'err');
         }
         if ('unconfigured' === $error) {
-            return AdminLayout::messages(['Cloudinary is not configured, so nothing can be deleted.'], 'err');
+            return CardboardLayout::messages(['Cloudinary is not configured, so nothing can be deleted.'], 'err');
         }
 
         return '';
@@ -243,7 +243,7 @@ final readonly class MediaCloudinaryAction
      */
     private function crumbs(string $folder, string $landing, bool $atRoot): string
     {
-        $html = '<a class="m-pill' . ($atRoot ? ' m-pill-active' : '') . '" href="' . AdminLayout::e($this->url('media.cloudinary')) . '?root=1">Library</a>';
+        $html = '<a class="m-pill' . ($atRoot ? ' m-pill-active' : '') . '" href="' . CardboardLayout::e($this->url('media.cloudinary')) . '?root=1">Library</a>';
 
         if ($atRoot) {
             return $html;
@@ -258,10 +258,10 @@ final readonly class MediaCloudinaryAction
             return '';
         }
 
-        $href = AdminLayout::e($this->url('media.cloudinary') . '?' . http_build_query(['folder' => $landing]));
+        $href = CardboardLayout::e($this->url('media.cloudinary') . '?' . http_build_query(['folder' => $landing]));
         $separator = ' <span class="m-muted">/</span> ';
 
-        return $separator . '<a class="m-pill' . ($folder === $landing ? ' m-pill-active' : '') . '" href="' . $href . '">' . AdminLayout::e($landing) . '</a>';
+        return $separator . '<a class="m-pill' . ($folder === $landing ? ' m-pill-active' : '') . '" href="' . $href . '">' . CardboardLayout::e($landing) . '</a>';
     }
 
     /**
@@ -280,7 +280,7 @@ final readonly class MediaCloudinaryAction
         $prefix = $landing;
         foreach ($segments as $segment) {
             $prefix = '' === $prefix ? $segment : $prefix . '/' . $segment;
-            $label = AdminLayout::e($segment);
+            $label = CardboardLayout::e($segment);
             $separator = ' <span class="m-muted">/</span> ';
 
             if ($prefix === $folder) {
@@ -288,7 +288,7 @@ final readonly class MediaCloudinaryAction
                 continue;
             }
 
-            $href = AdminLayout::e($this->url('media.cloudinary') . '?' . http_build_query(['folder' => $prefix]));
+            $href = CardboardLayout::e($this->url('media.cloudinary') . '?' . http_build_query(['folder' => $prefix]));
             $html .= $separator . '<a class="m-pill" href="' . $href . '">' . $label . '</a>';
         }
 
@@ -315,16 +315,16 @@ final readonly class MediaCloudinaryAction
 
         $tiles = '';
         foreach ($folders as $child) {
-            $href = AdminLayout::e($this->url('media.cloudinary') . '?' . http_build_query(['folder' => $child['path']]));
+            $href = CardboardLayout::e($this->url('media.cloudinary') . '?' . http_build_query(['folder' => $child['path']]));
             $isCurrent = !$atRoot && $child['path'] === $currentFolder;
 
             $tiles .= ViewRenderer::render('Modules/Media/Interfaces/HTTP/templates/media-folder-tile.phtml', [
                 'class'      => 'm-folder-card' . ($isCurrent ? ' m-folder-card--active' : ''),
                 'href'       => $href,
                 'linkAttrs'  => '',
-                'previewUrl' => AdminLayout::e($previews[$child['path']] ?? ''),
+                'previewUrl' => CardboardLayout::e($previews[$child['path']] ?? ''),
                 'icon'       => MediaIcons::folder(),
-                'name'       => AdminLayout::e($child['name']),
+                'name'       => CardboardLayout::e($child['name']),
                 'count'      => '',
             ]);
         }
@@ -368,12 +368,12 @@ final readonly class MediaCloudinaryAction
             $isImage = 'image' === (is_string($resource['resource_type'] ?? null) ? $resource['resource_type'] : '');
 
             $html .= ViewRenderer::render('Modules/Media/Interfaces/HTTP/templates/media-cloudinary-card.phtml', [
-                'publicId' => AdminLayout::e($publicId),
+                'publicId' => CardboardLayout::e($publicId),
                 // The card is 150px tall, so the grid asks for a 300px square
                 // and the anchor still opens the original.
-                'thumbUrl' => AdminLayout::e($isImage ? $api->thumbUrl($publicId, 300) : $api->url($publicId)),
-                'fullUrl'  => AdminLayout::e($api->url($publicId)),
-                'label'    => AdminLayout::e($this->label($resource, $publicId)),
+                'thumbUrl' => CardboardLayout::e($isImage ? $api->thumbUrl($publicId, 300) : $api->url($publicId)),
+                'fullUrl'  => CardboardLayout::e($api->url($publicId)),
+                'label'    => CardboardLayout::e($this->label($resource, $publicId)),
                 'isImage'  => $isImage,
                 'tracked'  => isset($trackedPaths[$publicId]),
             ]);
@@ -402,7 +402,7 @@ final readonly class MediaCloudinaryAction
     {
         $content = ViewRenderer::render('Modules/Media/Interfaces/HTTP/templates/media-cloudinary.phtml', $vars + ['url' => $this->urlBuilder()]);
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Cloudinary library',
             $content,
             'media',

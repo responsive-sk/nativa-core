@@ -17,7 +17,7 @@ namespace Modules\Core\Interfaces\CLI;
  * because PHP silently skips a class it cannot resolve when matching a union
  * type, and nobody noticed for as long as nobody wrote it down. That is a
  * terrible foundation for the one claim this tree makes about itself: it has no
- * Composer dependencies at runtime, and the `admin-smoke` and `boot` jobs run
+ * Composer dependencies at runtime, and the `mark-smoke` and `boot` jobs run
  * with no `vendor/` to keep that honest. A kernel contract naming a dev
  * package is a dependency on a language behaviour rather than on nothing.
  *

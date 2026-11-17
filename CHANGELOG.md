@@ -5,6 +5,75 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### One vocabulary: no `admin` in a path
+
+The panel answers at `/mark`, its routes are `mark.*`, its classes are `m-` and
+its design system is `mark.css`; `ADMIN_PATH` already defaults to that spelling.
+The names on disk were the one place the application and its files disagreed, so
+a leaked archive, an error trace or a `git ls-files` listing named the panel with
+the one word the runtime never uses. This round makes the tree say what the
+application says. It is a vocabulary rule, not a security control: the gate
+stays fail-closed, and who may open the panel does not change because a file was
+renamed.
+
+**Changed**
+
+- The kernel's route table is `MarkRoutePolicy` and the no-provider gate is
+  `MarkUnavailableMiddleware`; `isAdminPath()` is `isMarkPath()`. Their tests
+  follow: `MarkPathPrefixTest`, `MarkWithoutProviderTest`,
+  `MarkClassContractTest`, `MarkRouteUrlNamesTest`,
+  `MarkRoutePolicyCoverageTest`.
+- Cardboard's own classes and assets: `CardboardLayout` (57 call sites),
+  `CardboardNavService`, `CardboardLocale`, `mark-shell.js`,
+  `mark-shell-commands.js`, `mark-theme-init.js`, and the settings table
+  template `settings-nav-table.phtml`.
+- Catalogue siblings: `OutboxAction`, `QueueAction`, `MarkNotifier`,
+  `MarkNotificationHandler`, `EnsureOperatorCommand`; tests `MarkEscapeTest`,
+  `OutboxListTest`, `QueueApiTest`, `QueueWorkTest`, `MarkAccessControlTest`,
+  `MarkInboxWiringTest`, `MarkNotificationTest`, `EnsureOperatorCommandTest`.
+- `RestAdmin` is `RestPanel`: the module directory, the namespace
+  `Modules\RestPanel`, the catalogue entry, and the MCP entry point's help
+  text. `/mark/rest` and the `mark.rest*` names are unchanged.
+- `admin-smoke` references are `mark-smoke` (`SECURITY.md`, `bin/cms`,
+  `KernelContractTest`, `MigratorInterface`, the module docblocks that quote
+  the gate). The script itself lives in the source repository.
+- The settings screen's panel-nav editor moved with the vocabulary:
+  `/mark/settings/admin-nav` is `/mark/settings/panel-nav`, its route names
+  are `mark.settings.panel-nav*`, the handlers are `savePanelNav`-style and
+  the tab key is `panel-nav`. The REST panel's audit events are
+  `restpanel.*`.
+- The panel's database file is `restpanel.db`. The module key,
+  `HealthTool`'s name, the snapshot directory and the tests follow; `bin/cms
+  migrate` adopts the rows from `restadmin.db` once (`ATTACH` + `INSERT OR
+  IGNORE` in foreign-key order) and retires the old file as
+  `restpanel-legacy.db`. It runs after the tables exist and only while the new
+  file has no services, so a second migrate is a no-op.
+
+**Added**
+
+- `tests/Architecture/FileNameVocabularyTest.php`: no tracked path segment may
+  carry the word. Its ledger excused today's 130 paths and had to end **empty**;
+  an entry that stopped excusing anything failed too, so an excuse cannot
+  outlive its defect. A second case tokenises declarations and catches a type
+  renamed without its file. 130 paths → 0. The round's plan is
+  `.ai-factory/plans/feature-mark-file-vocabulary.md`.
+
+**Measured**
+
+- `git ls-files | grep -i admin`: 0. `composer test`: 889 tests, 3152
+  assertions, 3 skipped. `make lint`, `make analyze`, `make mago-lint` and
+  `make mago-guard`: exit 0. `bin/build/install-catalogue.sh`: 22 modules;
+  `php bin/cms migrate`: exit 0.
+- Installed slices are gitignored, so a rename reaches `src/Modules/*` only
+  through `module:remove`/`module:add`. The first run after `isMarkPath()`
+  failed 58 times on the stale slices — the rule `AGENTS.md` states, measured.
+
+**Not changed, with the reason recorded**
+
+- `ADMIN_PATH`, the `admin` role, `menu_items.location = 'admin'`, the `admin.*`
+  translation group and the `user:admin` command string: configuration, RBAC and
+  content data, not paths. Renaming any of them is a migration.
+
 ### UTC timestamps: one clock on disk, the operator's clock on screen
 
 The writers stamped `date()` and the panels printed the stored string back, so

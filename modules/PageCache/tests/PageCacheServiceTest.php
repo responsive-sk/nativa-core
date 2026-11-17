@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\PageCache\Tests;
 
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
@@ -117,7 +117,7 @@ final class PageCacheServiceTest extends TestCase
     /**
      * A form's token is per SESSION. A body that contains it is not a page a
      * shared key may hold: the next visitor would post a credential that is not
-     * theirs. Found by `bin/build/admin-smoke.sh` — the first guest comment on a
+     * theirs. Found by `bin/build/mark-smoke.sh` — the first guest comment on a
      * cached article page came back 403.
      */
     #[Test]
@@ -373,7 +373,7 @@ final class PageCacheServiceTest extends TestCase
     {
         yield 'a POST is never a page' => ['POST', '/', []];
 
-        yield 'the admin surface' => ['GET', AdminRoutePolicy::prefix(), []];
+        yield 'the admin surface' => ['GET', MarkRoutePolicy::prefix(), []];
 
         yield 'a guide is the file' => ['GET', '/docs/kernel', []];
 

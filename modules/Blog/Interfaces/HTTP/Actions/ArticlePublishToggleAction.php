@@ -9,8 +9,8 @@ use Modules\Blog\Application\BlogServices;
 use Modules\Blog\Application\Services\BlogCrudService;
 use Modules\Blog\Interfaces\HTTP\ArticlesTableRenderer;
 use Modules\Blog\Application\Services\BlogPageCache;
-use Modules\Cardboard\Application\Services\AdminLocale;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Application\Services\CardboardLocale;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
@@ -36,8 +36,8 @@ final class ArticlePublishToggleAction
     {
         $slug = (string) ($request->routeParam('slug') ?? '');
         $localeRaw = $request->queryString('locale', 'sk');
-        $localeParam = AdminLocale::raw($localeRaw);
-        $locale = AdminLocale::canonical($localeRaw);
+        $localeParam = CardboardLocale::raw($localeRaw);
+        $locale = CardboardLocale::canonical($localeRaw);
 
         $crud = new BlogCrudService();
         $guard = BlogServices::writeGuard();
@@ -59,7 +59,7 @@ final class ArticlePublishToggleAction
             $this->record($request, $slug, $locale, $to);
         }
 
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             return $this->row($crud, $slug, $locale, $localeParam);
         }
 
@@ -118,7 +118,7 @@ final class ArticlePublishToggleAction
     private function refused(string $slug): Response
     {
         return Response::html(
-            AdminLayout::render('Not your article', BlogServices::ownership()->refusal($slug), router: $this->router()),
+            CardboardLayout::render('Not your article', BlogServices::ownership()->refusal($slug), router: $this->router()),
             403,
         );
     }

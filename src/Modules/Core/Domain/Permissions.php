@@ -21,7 +21,7 @@ namespace Modules\Core\Domain;
  * `Modules\Core\Domain\Permissions`, and three consumers could not reach it:
  * `Cardboard` kept a **local copy** of the admin permission table to stay a leaf
  * for the install-closure scanner, `Outbox` named it in a docblock only, and
- * the kernel's own `ThemeResolver` duplicated `AdminRoutePolicy::isAdminPath()`
+ * the kernel's own `ThemeResolver` duplicated `MarkRoutePolicy::isMarkPath()`
  * because Core may not import a feature module.
  *
  * A vocabulary that every layer needs is not one module's business. It is data

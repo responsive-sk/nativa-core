@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
  * INSTALLED copy, skips on a kernel-only tree).
  *
  * The command used to be a `Symfony\...\Command`, so in a tree with no
- * `vendor/` — which is every production deployment, and the `admin-smoke` and
+ * `vendor/` — which is every production deployment, and the `mark-smoke` and
  * `boot` CI jobs — it could not be loaded at all. It is plain PHP now, and the
  * contract is argv in, an exit code out. That is what these tests pin, with the
  * exit code carrying the weight: `outbox:process` exists so a cron entry or a
@@ -150,7 +150,7 @@ final class ProcessOutboxCommandTest extends TestCase
         // constructor and `withProcessed()` stamps `processed_at = now` — and
         // `cleanProcessed('7 days')` keeps a row processed *less* than seven
         // days ago. Backdating is the only way to reach the branch, and
-        // OutboxAdminListTest seeds the same table the same way.
+        // OutboxListTest seeds the same table the same way.
         $this->seedProcessed('2000-01-01 00:00:00');
 
         $pruned = $this->collector();
@@ -218,7 +218,7 @@ final class ProcessOutboxCommandTest extends TestCase
         // The whole reason this class was rewritten: `symfony/console` is
         // require-dev only, so a command extending it is unloadable in a tree
         // with no vendor/ — which is every production deployment, and the
-        // admin-smoke and boot jobs.
+        // mark-smoke and boot jobs.
         //
         // A PHPUnit run always HAS vendor/, so it cannot prove the absence by
         // running the command; what it CAN prove is the shape that causes it.

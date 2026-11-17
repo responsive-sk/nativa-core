@@ -29,7 +29,7 @@ use RuntimeException;
  *   `InputInterface` / `OutputInterface`. `symfony/console` is `require-dev`
  *   only — the kernel runtime has no Composer packages at all — so the class
  *   could not even be *loaded* in the trees that matter most: the
- *   `admin-smoke` and `boot` CI jobs deliberately run with no `vendor/`, and
+ *   `mark-smoke` and `boot` CI jobs deliberately run with no `vendor/`, and
  *   so does a production deployment. A command that fatals in production
  *   because of a dev dependency is not a command.
  *

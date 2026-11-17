@@ -19,7 +19,7 @@ use Modules\Cardboard\Infrastructure\Registry\CardboardRegistry;
  * running tree and the committed catalogue are allowed to disagree — and they
  * do, quietly.
  *
- * Measured 2026-10-17, six modules after each other. `AdminRoutePolicy` and
+ * Measured 2026-10-17, six modules after each other. `MarkRoutePolicy` and
  * `Permissions` moved to `Modules\Core\Domain`; Cardboard's two local copies of
  * the permission table were deleted. Every gate was green — phpstan, the suite,
  * the ratchet, the admin smoke over HTTP — and the installed slice still carried

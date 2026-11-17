@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Auth\Interfaces\HTTP\Middleware;
 
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Auth\Domain\AuthIdentity;
 use Modules\Auth\Domain\Contracts\AuthProvider;
 use Modules\Core\Domain\Contracts\SecurityEventSink;
@@ -74,7 +74,7 @@ final readonly class AuthMiddleware implements MiddlewareInterface
             // The owner's spelling, not a literal: a deployment running
             // /admin must not bounce a signed-in user back to the internal
             // /mark alias and make them question the address.
-            return Response::redirect(AdminRoutePolicy::prefix());
+            return Response::redirect(MarkRoutePolicy::prefix());
         }
 
         return $next($request);

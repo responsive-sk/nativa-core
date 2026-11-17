@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Cardboard\Interfaces\HTTP\Actions;
 
 use Modules\Cardboard\Domain\Model\Period;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Cardboard\Interfaces\HTTP\CardboardServices;
 use View\ViewRenderer;
 use Modules\Core\Infrastructure\Http\Request;
@@ -68,14 +68,14 @@ final class DashboardAction
         ];
 
         foreach ($system as $label => $value) {
-            $systemRows .= "<tr><td>{$label}</td><td class=\"m-mono\">" . AdminLayout::e($value) . '</td></tr>';
+            $systemRows .= "<tr><td>{$label}</td><td class=\"m-mono\">" . CardboardLayout::e($value) . '</td></tr>';
         }
 
         $systemInfo = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/dashboard.phtml', ['systemRows' => $systemRows]);
 
         $content = $periodSelector . $statCards . $quickActions . $systemInfo;
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             $siteName . ' — Dashboard',
             $content,
         router: $this->router()));
@@ -108,7 +108,7 @@ final class DashboardAction
             $qs = http_build_query($params);
             $active = $period === $current ? ' m-btn--active' : '';
             $html .= '<a class="m-btn' . $active . '" href="' . $this->url('mark.dashboard') . '?' . $qs . '">'
-                . AdminLayout::e($period->label()) . '</a>';
+                . CardboardLayout::e($period->label()) . '</a>';
         }
 
         $html .= '</div></div>';

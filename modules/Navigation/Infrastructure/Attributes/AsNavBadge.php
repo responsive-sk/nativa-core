@@ -7,7 +7,7 @@ namespace Modules\Navigation\Infrastructure\Attributes;
 use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
 
 /**
- * Marks a class as an admin-nav badge provider for auto-discovery.
+ * Marks a class as an panel-nav badge provider for auto-discovery.
  *
  * Classes annotated with #[AsNavBadge] are discovered by NavBadgeRegistry.
  * The priority only matters when two providers speak for the SAME nav item —

@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Cardboard\Interfaces\HTTP\Actions;
 
 use Modules\Cardboard\Application\Services\IconRegistry;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Cardboard\Interfaces\HTTP\CardboardServices;
 use Modules\PageCache\Application\Services\CacheInvalidator;
 use View\ViewRenderer;
@@ -43,12 +43,12 @@ use Themes\ThemeSettings;
 #[Route(path: '/mark/settings/nav/{id}/delete', method: 'POST', name: 'mark.settings.nav.delete', handlerMethod: 'deleteNav')]
 #[Route(path: '/mark/settings/nav/reorder', method: 'POST', name: 'mark.settings.nav.reorder', handlerMethod: 'reorderNav')]
 #[Route(path: '/mark/settings/flush-cache', method: 'POST', name: 'mark.settings.flush-cache', handlerMethod: 'flushCache')]
-#[Route(path: '/mark/settings/admin-nav', method: 'POST', name: 'mark.settings.admin-nav', handlerMethod: 'saveAdminNav')]
-#[Route(path: '/mark/settings/admin-nav/{id}/toggle', method: 'POST', name: 'mark.settings.admin-nav.toggle', handlerMethod: 'toggleAdminNav')]
-#[Route(path: '/mark/settings/admin-nav/{id}/sort', method: 'POST', name: 'mark.settings.admin-nav.sort', handlerMethod: 'sortAdminNav')]
-#[Route(path: '/mark/settings/admin-nav/{id}/delete', method: 'POST', name: 'mark.settings.admin-nav.delete', handlerMethod: 'deleteAdminNav')]
-#[Route(path: '/mark/settings/admin-nav/reorder', method: 'POST', name: 'mark.settings.admin-nav.reorder', handlerMethod: 'reorderAdminNav')]
-#[Route(path: '/mark/settings/admin-nav/{id}/icon', method: 'POST', name: 'mark.settings.admin-nav.icon', handlerMethod: 'updateAdminNavIcon')]
+#[Route(path: '/mark/settings/panel-nav', method: 'POST', name: 'mark.settings.panel-nav', handlerMethod: 'savePanelNav')]
+#[Route(path: '/mark/settings/panel-nav/{id}/toggle', method: 'POST', name: 'mark.settings.panel-nav.toggle', handlerMethod: 'togglePanelNav')]
+#[Route(path: '/mark/settings/panel-nav/{id}/sort', method: 'POST', name: 'mark.settings.panel-nav.sort', handlerMethod: 'sortPanelNav')]
+#[Route(path: '/mark/settings/panel-nav/{id}/delete', method: 'POST', name: 'mark.settings.panel-nav.delete', handlerMethod: 'deletePanelNav')]
+#[Route(path: '/mark/settings/panel-nav/reorder', method: 'POST', name: 'mark.settings.panel-nav.reorder', handlerMethod: 'reorderPanelNav')]
+#[Route(path: '/mark/settings/panel-nav/{id}/icon', method: 'POST', name: 'mark.settings.panel-nav.icon', handlerMethod: 'updatePanelNavIcon')]
 final class SettingsAction
 {
     use ResolvesRouteUrls;
@@ -67,14 +67,14 @@ final class SettingsAction
     {
         $settings = CardboardServices::settings();
         $all = $settings->all();
-        $csrf = AdminLayout::csrfField();
-        $errorHtml = AdminLayout::messages($errors, 'err');
+        $csrf = CardboardLayout::csrfField();
+        $errorHtml = CardboardLayout::messages($errors, 'err');
 
-        $siteName = AdminLayout::e(is_string($all['site_name'] ?? null) ? $all['site_name'] : '');
-        $siteDescription = AdminLayout::e(is_string($all['site_description'] ?? null) ? $all['site_description'] : '');
-        $adminEmail = AdminLayout::e(is_string($all['admin_email'] ?? null) ? $all['admin_email'] : '');
-        $timezone = AdminLayout::e(is_string($all['timezone'] ?? null) ? $all['timezone'] : 'UTC');
-        $locale = AdminLayout::e(is_string($all['locale'] ?? null) ? $all['locale'] : 'en_US');
+        $siteName = CardboardLayout::e(is_string($all['site_name'] ?? null) ? $all['site_name'] : '');
+        $siteDescription = CardboardLayout::e(is_string($all['site_description'] ?? null) ? $all['site_description'] : '');
+        $adminEmail = CardboardLayout::e(is_string($all['admin_email'] ?? null) ? $all['admin_email'] : '');
+        $timezone = CardboardLayout::e(is_string($all['timezone'] ?? null) ? $all['timezone'] : 'UTC');
+        $locale = CardboardLayout::e(is_string($all['locale'] ?? null) ? $all['locale'] : 'en_US');
         $regRaw = $all['registration_enabled'] ?? '1';
         $registrationEnabled = is_string($regRaw) ? '1' === $regRaw : true;
         $regChecked = $registrationEnabled ? ' checked' : '';
@@ -85,14 +85,14 @@ final class SettingsAction
         $tokenTable = $this->designTokensTable($settings->designTokens());
         $navTable = $this->headerNavTable($csrf);
 
-        $adminNavItems = CardboardServices::adminNav()->allItems();
+        $panelNavItems = CardboardServices::panelNav()->allItems();
         $iconOptions = IconRegistry::optionsHtml();
-        $parentOptions = $this->adminParentOptions($adminNavItems);
-        $adminNavTable = $this->adminNavTable($adminNavItems, $csrf);
+        $parentOptions = $this->panelParentOptions($panelNavItems);
+        $panelNavTable = $this->panelNavTable($panelNavItems, $csrf);
 
-        $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => AdminLayout::settingsTabs($this->urlBuilder(), 'general'), 'adminEmail' => $adminEmail, 'adminNavTable' => $adminNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
+        $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'general'), 'adminEmail' => $adminEmail, 'panelNavTable' => $panelNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
 
-        return AdminLayout::render(
+        return CardboardLayout::render(
             'Settings',
             $content,
             'settings',
@@ -225,7 +225,7 @@ final class SettingsAction
         string $csrf,
         \Closure $url,
     ): string {
-        $themeName = AdminLayout::e($theme);
+        $themeName = CardboardLayout::e($theme);
         $schema = $module instanceof ThemeSettings ? $module->settingsSchema() : [];
 
         if ([] === $schema) {
@@ -245,18 +245,18 @@ final class SettingsAction
             $current = is_string($raw) && $field->accepts($raw) ? $raw : $field->fallbackValue();
             $id = 'theme-setting-' . $field->key;
             $name = 'theme_settings[' . $field->key . ']';
-            $fields .= '<label for="' . AdminLayout::e($id) . '">' . AdminLayout::e($field->label) . '</label>';
+            $fields .= '<label for="' . CardboardLayout::e($id) . '">' . CardboardLayout::e($field->label) . '</label>';
             $fields .= match ($field->type) {
                 'select' => self::themeSettingSelect($field, $id, $name, $current),
-                default  => '<input type="text" id="' . AdminLayout::e($id) . '" name="' . AdminLayout::e($name)
-                    . '" value="' . AdminLayout::e($current) . '">',
+                default  => '<input type="text" id="' . CardboardLayout::e($id) . '" name="' . CardboardLayout::e($name)
+                    . '" value="' . CardboardLayout::e($current) . '">',
             };
         }
 
         return '<div class="m-card">'
             . '<h2 class="m-heading">Theme settings — ' . $themeName . '</h2>'
             . '<p class="m-muted m-card-intro">Options this theme declares. Stored per theme, so switching back restores them.</p>'
-            . '<form class="m-form" method="POST" action="' . AdminLayout::e($url('mark.settings.theme')) . '">'
+            . '<form class="m-form" method="POST" action="' . CardboardLayout::e($url('mark.settings.theme')) . '">'
             . $csrf
             . $fields
             . '<div><button class="m-btn m-btn-primary" type="submit">Save theme settings</button></div>'
@@ -271,11 +271,11 @@ final class SettingsAction
 
         foreach ($field->options as $value => $label) {
             $selected = (string) $value === $current ? ' selected' : '';
-            $options .= '<option value="' . AdminLayout::e((string) $value) . '"' . $selected . '>'
-                . AdminLayout::e($label) . '</option>';
+            $options .= '<option value="' . CardboardLayout::e((string) $value) . '"' . $selected . '>'
+                . CardboardLayout::e($label) . '</option>';
         }
 
-        return '<select id="' . AdminLayout::e($id) . '" name="' . AdminLayout::e($name) . '">' . $options . '</select>';
+        return '<select id="' . CardboardLayout::e($id) . '" name="' . CardboardLayout::e($name) . '">' . $options . '</select>';
     }
 
     /**
@@ -308,9 +308,9 @@ final class SettingsAction
         $rows = '';
 
         foreach ($tokens as $key => $value) {
-            $tokenKey = AdminLayout::e((string) $key);
+            $tokenKey = CardboardLayout::e((string) $key);
             $json = json_encode($value);
-            $tokenValue = AdminLayout::e(is_string($value) ? $value : (false === $json ? '' : $json));
+            $tokenValue = CardboardLayout::e(is_string($value) ? $value : (false === $json ? '' : $json));
             $rows .= "<tr><td><code>{$tokenKey}</code></td><td>{$tokenValue}</td></tr>";
         }
 
@@ -322,18 +322,18 @@ final class SettingsAction
     }
 
     /**
-     * Parent options for the admin-nav add form — top-level items only, because
+     * Parent options for the panel-nav add form — top-level items only, because
      * a group cannot nest inside a group.
      *
      * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}> $items
      */
-    private function adminParentOptions(array $items): string
+    private function panelParentOptions(array $items): string
     {
         $options = '<option value="">None (top-level)</option>';
 
         foreach ($items as $item) {
             if (null === ($item['parent_id'] ?? null)) {
-                $options .= '<option value="' . AdminLayout::e($item['id']) . '">' . AdminLayout::e($item['label']) . '</option>';
+                $options .= '<option value="' . CardboardLayout::e($item['id']) . '">' . CardboardLayout::e($item['label']) . '</option>';
             }
         }
 
@@ -341,31 +341,31 @@ final class SettingsAction
     }
 
     /**
-     * The admin-navigation table: one row per item, plus the drag toolbar and
+     * The panel-navigation table: one row per item, plus the drag toolbar and
      * the "Save order" button the shared widget binds to.
      *
      * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}> $items
      */
-    private function adminNavTable(array $items, string $csrf): string
+    private function panelNavTable(array $items, string $csrf): string
     {
         $rows = '';
 
         foreach ($items as $item) {
-            $itemId = AdminLayout::e($item['id']);
-            $label = AdminLayout::e($item['label']);
-            $href = AdminLayout::e($item['href']);
+            $itemId = CardboardLayout::e($item['id']);
+            $label = CardboardLayout::e($item['label']);
+            $href = CardboardLayout::e($item['href']);
             $isActive = $item['is_active'];
             $statusClass = $isActive ? 'm-nav-row__status m-nav-row__status--active' : 'm-nav-row__status m-nav-row__status--hidden';
             $statusText = $isActive ? 'Active' : 'Hidden';
-            $iconDelete = AdminLayout::iconDelete();
+            $iconDelete = CardboardLayout::iconDelete();
             $currentIcon = $item['icon'];
             $iconSelect = '<select name="icon" data-icon-select class="m-icon-select">'
                 . IconRegistry::optionsHtml($currentIcon) . '</select>';
             // Indent children visually.
             $isChild = null !== ($item['parent_id'] ?? null);
-            $iconUrl = $this->url('mark.settings.admin-nav.icon', ['id' => $itemId]);
-            $toggleUrl = $this->url('mark.settings.admin-nav.toggle', ['id' => $itemId]);
-            $deleteUrl = $this->url('mark.settings.admin-nav.delete', ['id' => $itemId]);
+            $iconUrl = $this->url('mark.settings.panel-nav.icon', ['id' => $itemId]);
+            $toggleUrl = $this->url('mark.settings.panel-nav.toggle', ['id' => $itemId]);
+            $deleteUrl = $this->url('mark.settings.panel-nav.delete', ['id' => $itemId]);
             $indent = $isChild ? ' class="m-nav-row--child"' : '';
             $prefix = $isChild ? '<span class="m-nav-row__branch">└</span> ' : '';
             $rows .= "<tr data-nav-id=\"{$itemId}\" draggable=\"true\"{$indent}>
@@ -398,7 +398,7 @@ final class SettingsAction
             return '<p class="m-muted">No admin nav items — using defaults.</p>';
         }
 
-        return ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-admin-table.phtml', ['url' => $this->urlBuilder(), 'adminNavRows' => $rows]);
+        return ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-nav-table.phtml', ['url' => $this->urlBuilder(), 'panelNavRows' => $rows]);
     }
 
     /**
@@ -416,10 +416,10 @@ final class SettingsAction
     {
         $rows = '';
         foreach (CardboardServices::menu()->findByLocation('header') as $item) {
-            $itemId = AdminLayout::e((string) $item['id']);
-            $label = AdminLayout::e((string) $item['label']);
-            $href = AdminLayout::e((string) $item['href']);
-            $iconDelete = AdminLayout::iconDelete();
+            $itemId = CardboardLayout::e((string) $item['id']);
+            $label = CardboardLayout::e((string) $item['label']);
+            $href = CardboardLayout::e((string) $item['href']);
+            $iconDelete = CardboardLayout::iconDelete();
             $deleteUrl = $this->url('mark.settings.nav.delete', ['id' => $itemId]);
             $rows .= "<tr data-nav-id=\"{$itemId}\" draggable=\"true\">"
                 . '<td class="m-drag-handle" title="Drag to reorder">⋮⋮</td>'
@@ -445,7 +445,7 @@ final class SettingsAction
             . ' data-nav-save-order>Save order</button>'
             . '</div>'
             . '<div class="m-table-scroll"><table class="m-table" id="header-nav-table" data-nav-table'
-            . ' data-reorder-url="' . AdminLayout::e($this->url('mark.settings.nav.reorder')) . '">'
+            . ' data-reorder-url="' . CardboardLayout::e($this->url('mark.settings.nav.reorder')) . '">'
             . '<thead><tr><th class="m-table__cell--drag"></th><th>Label</th><th>Href</th><th></th></tr></thead>'
             . "<tbody>{$rows}</tbody></table></div>";
     }
@@ -624,7 +624,7 @@ final class SettingsAction
         return Response::redirect($this->url('mark.settings'));
     }
 
-    public function saveAdminNav(Request $request): Response
+    public function savePanelNav(Request $request): Response
     {
         $label = trim($request->bodyString('label'));
         $href = trim($request->bodyString('href'));
@@ -646,26 +646,26 @@ final class SettingsAction
         if ('' !== $label && '' !== $href) {
             CardboardServices::menu()->create($label, $href, 'admin', $sort, '' !== $parentId ? $parentId : null, false, null, $icon);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.admin-nav', 'settings', 'Added admin nav item ' . $label, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav', 'settings', 'Added admin nav item ' . $label, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));
     }
 
-    public function toggleAdminNav(Request $request): Response
+    public function togglePanelNav(Request $request): Response
     {
         $id = $request->routeParam('id');
 
         if (null !== $id) {
             CardboardServices::menu()->toggleActive($id);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.admin-nav.toggle', 'settings', 'Toggled admin nav item ' . $id, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.toggle', 'settings', 'Toggled admin nav item ' . $id, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));
     }
 
-    public function sortAdminNav(Request $request): Response
+    public function sortPanelNav(Request $request): Response
     {
         $id = $request->routeParam('id');
         $sortRaw = $request->body('sort_order');
@@ -674,33 +674,33 @@ final class SettingsAction
         if (null !== $id) {
             CardboardServices::menu()->updateSortOrder($id, $sort);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.admin-nav.sort', 'settings', 'Reordered admin nav item ' . $id . ' to ' . $sort, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.sort', 'settings', 'Reordered admin nav item ' . $id . ' to ' . $sort, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));
     }
 
-    public function deleteAdminNav(Request $request): Response
+    public function deletePanelNav(Request $request): Response
     {
         $id = $request->routeParam('id');
 
         if (null !== $id) {
             CardboardServices::menu()->delete($id);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.admin-nav.delete', 'settings', 'Deleted admin nav item ' . $id, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.delete', 'settings', 'Deleted admin nav item ' . $id, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));
     }
 
-    public function reorderAdminNav(Request $request): Response
+    public function reorderPanelNav(Request $request): Response
     {
         $pairs = $this->reorderPairs($request);
 
         if ([] !== $pairs) {
             CardboardServices::menu()->batchUpdateSortOrder($pairs);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.admin-nav.reorder', 'settings', 'Reordered admin nav (' . count($pairs) . ' items)', $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.reorder', 'settings', 'Reordered admin nav (' . count($pairs) . ' items)', $request->getClientIp());
         }
 
         return Response::html('ok');
@@ -762,7 +762,7 @@ final class SettingsAction
         return $pairs;
     }
 
-    public function updateAdminNavIcon(Request $request): Response
+    public function updatePanelNavIcon(Request $request): Response
     {
         $id = $request->routeParam('id');
         $icon = $request->bodyString('icon');
@@ -770,7 +770,7 @@ final class SettingsAction
         if (null !== $id && IconRegistry::isValid($icon)) {
             CardboardServices::menu()->updateIcon($id, $icon);
             CacheInvalidator::flush();
-            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.admin-nav.icon', 'settings', 'Updated icon for admin nav item ' . $id, $request->getClientIp());
+            \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.icon', 'settings', 'Updated icon for admin nav item ' . $id, $request->getClientIp());
         }
 
         return Response::redirect($this->url('mark.settings'));

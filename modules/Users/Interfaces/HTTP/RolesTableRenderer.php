@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Users\Interfaces\HTTP;
 
 use Modules\Cardboard\Application\Services\BulkActions;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Kernel\Contracts\RouterInterface;
 
 /**
@@ -30,7 +30,7 @@ final class RolesTableRenderer
 
         $bulkBar = BulkActions::actionBar('roles', $router->url('mark.bulk-delete'));
 
-        $skeleton = AdminLayout::skeletonTable([
+        $skeleton = CardboardLayout::skeletonTable([
             ['60%'], ['10%'],
         ]);
 
@@ -49,13 +49,13 @@ final class RolesTableRenderer
      */
     private static function row(array $role, RouterInterface $router): string
     {
-        $id = AdminLayout::e((string) $role['id']);
-        $name = AdminLayout::e((string) $role['name']);
-        $description = AdminLayout::e($role['description']);
+        $id = CardboardLayout::e((string) $role['id']);
+        $name = CardboardLayout::e((string) $role['name']);
+        $description = CardboardLayout::e($role['description']);
         $checkbox = BulkActions::checkboxCell((string) $role['id']);
-        $iconPerms = AdminLayout::iconPermissions();
-        $iconDelete = AdminLayout::iconDelete();
-        $csrf = AdminLayout::csrfField();
+        $iconPerms = CardboardLayout::iconPermissions();
+        $iconDelete = CardboardLayout::iconDelete();
+        $csrf = CardboardLayout::csrfField();
 
         return '<tr>'
             . $checkbox
@@ -63,10 +63,10 @@ final class RolesTableRenderer
             . '<td>'
             . '<div class="m-btn-group">'
             . '<a class="m-btn m-btn-sm m-btn-icon"'
-            . ' href="' . AdminLayout::e($router->url('mark.roles.permissions', ['id' => $id])) . '"'
+            . ' href="' . CardboardLayout::e($router->url('mark.roles.permissions', ['id' => $id])) . '"'
             . ' data-tooltip="Permissions" title="Permissions">' . $iconPerms . '</a>'
-            . '<form method="POST" action="' . AdminLayout::e($router->url('mark.roles.delete', ['id' => $id])) . '"'
-            . ' hx-delete="' . AdminLayout::e($router->url('mark.roles.delete', ['id' => $id])) . '"'
+            . '<form method="POST" action="' . CardboardLayout::e($router->url('mark.roles.delete', ['id' => $id])) . '"'
+            . ' hx-delete="' . CardboardLayout::e($router->url('mark.roles.delete', ['id' => $id])) . '"'
             . ' data-confirm="Delete this role?"'
             . ' hx-target="closest tr"'
             . ' hx-swap="outerHTML swap:500ms"'

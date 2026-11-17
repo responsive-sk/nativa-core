@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Settings\Interfaces\HTTP;
 
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Shell\ShellContextProvider;
 use Shell\ShellNavItem;
 use Themes\ThemePreference;
@@ -52,7 +52,7 @@ use Modules\Settings\Application\DTOs\MenuItemDTO;
  * session started. Crucially that guard is kept: a public page must not hand a
  * session to a reader who never logged in.
  *
- * The admin surface is not spelled here at all: `AdminRoutePolicy::isAdminPath()`
+ * The admin surface is not spelled here at all: `MarkRoutePolicy::isMarkPath()`
  * is the one owner, reading the optional `ADMIN_PATH` prefix with `/mark` as
  * the default, so a deployment that moves the panel moves this filter with it.
  *
@@ -274,7 +274,7 @@ final class SettingsShellContextProvider implements ShellContextProvider
 
     private static function isAdminHref(string $href): bool
     {
-        return AdminRoutePolicy::isAdminPath($href);
+        return MarkRoutePolicy::isMarkPath($href);
     }
 
     /**

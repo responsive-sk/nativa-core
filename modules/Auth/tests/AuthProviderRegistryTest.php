@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  * checkout skips it in `setUp()`, and the provider the workstation installs
  * (Users) is asserted through the PORT, never by name. The kernel-only run
  * asserts the other half of the same contract: no Auth class, no admin gate,
- * and `/mark` answers 404 through `AdminUnavailableMiddleware`.
+ * and `/mark` answers 404 through `MarkUnavailableMiddleware`.
  *
  * Two halves, and the second one needs files:
  *

@@ -8,7 +8,7 @@ use Modules\Blog\Application\BlogServices;
 use Modules\Blog\Application\Services\BlogArticleHelper;
 use Modules\Blog\Application\Services\BlogArticlesService;
 use Modules\Blog\Application\Services\StructuredDataService;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
@@ -159,7 +159,7 @@ final class AuthorProfileAction
      */
     private function memberSince(string $createdAt): string
     {
-        $date = AdminLayout::formatTime($createdAt, 'Y-m-d');
+        $date = CardboardLayout::formatTime($createdAt, 'Y-m-d');
 
         return '' === $date ? '' : 'Member since ' . $date;
     }

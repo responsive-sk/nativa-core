@@ -8,8 +8,8 @@ use Modules\Audit\Interfaces\HTTP\AuditServices;
 use Modules\Blog\Application\Services\BlogCrudService;
 use Modules\Blog\Application\Services\CoverJobs;
 use Modules\Blog\Application\Services\BlogPageCache;
-use Modules\Cardboard\Application\Services\AdminLocale;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Application\Services\CardboardLocale;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use View\ViewRenderer;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
@@ -88,7 +88,7 @@ final class ArticlesCreateAction
             $request->getClientIp(),
         );
 
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             $response = Response::html('');
             $response->setHeader('HX-Redirect', $this->url('articles.index') . '?locale=' . $locale . '&toast=Article+created+successfully');
 
@@ -104,18 +104,18 @@ final class ArticlesCreateAction
      */
     private function form(array $data, string $locale, array $errors = [], ?Request $request = null): string
     {
-        $errorHtml = AdminLayout::messages($errors, 'err');
-        $csrf = AdminLayout::csrfField();
-        $e = static fn (string $key, string $default = ''): string => AdminLayout::e($data[$key] ?? $default);
+        $errorHtml = CardboardLayout::messages($errors, 'err');
+        $csrf = CardboardLayout::csrfField();
+        $e = static fn (string $key, string $default = ''): string => CardboardLayout::e($data[$key] ?? $default);
 
         $localeParam = ContentLocaleServices::mapper()->languageCode($locale);
         $backHref = $this->url('articles.index') . '?locale=' . $localeParam;
 
-        $htmx = null !== $request && AdminLayout::isHtmx($request);
-        $hxPost = $htmx ? ' hx-post="' . AdminLayout::e($this->url('articles.create')) . '?locale=' . $localeParam . '" hx-indicator="#create-spinner"' : '';
+        $htmx = null !== $request && CardboardLayout::isHtmx($request);
+        $hxPost = $htmx ? ' hx-post="' . CardboardLayout::e($this->url('articles.create')) . '?locale=' . $localeParam . '" hx-indicator="#create-spinner"' : '';
         $spinner = '<span class="htmx-indicator" id="create-spinner">⏳</span> ';
 
-        $content = '<form method="POST" action="' . AdminLayout::e($this->url('articles.create')) . '?locale=' . $localeParam . '"' . $hxPost . '>'
+        $content = '<form method="POST" action="' . CardboardLayout::e($this->url('articles.create')) . '?locale=' . $localeParam . '"' . $hxPost . '>'
             . $errorHtml
             . $this->formFields($csrf, $data, $locale)
             . '<div class="m-filter-bar">'
@@ -126,7 +126,7 @@ final class ArticlesCreateAction
             . ArticlesFormHelper::mediaPickerScript($this->router())
             . ArticlesFormHelper::formGuardScript();
 
-        return AdminLayout::render('New article', $content, 'articles', router: $this->router());
+        return CardboardLayout::render('New article', $content, 'articles', router: $this->router());
     }
 
     /**
@@ -134,7 +134,7 @@ final class ArticlesCreateAction
      */
     private function formFields(string $csrf, array $data, string $locale): string
     {
-        $e = static fn (string $key, string $default = ''): string => AdminLayout::e($data[$key] ?? $default);
+        $e = static fn (string $key, string $default = ''): string => CardboardLayout::e($data[$key] ?? $default);
 
         $localeInput = '<input type="hidden" name="locale" value="' . $e('locale', $locale) . '">';
         $dateValue = $e('date', date('Y-m-d'));
@@ -255,6 +255,6 @@ final class ArticlesCreateAction
     {
         $localeRaw = $request->queryString('locale', 'sk');
 
-        return AdminLocale::canonical($localeRaw);
+        return CardboardLocale::canonical($localeRaw);
     }
 }

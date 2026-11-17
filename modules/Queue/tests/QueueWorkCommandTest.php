@@ -93,14 +93,14 @@ final class QueueWorkCommandTest extends TestCase
             $seen[] = $args;
         });
 
-        $id = QueueServices::queue()->push('smoke.known', ['from' => 'admin-smoke']);
+        $id = QueueServices::queue()->push('smoke.known', ['from' => 'mark-smoke']);
 
         $result = QueueServices::work();
 
         $this->assertSame(1, $result['processed']);
         $this->assertSame(0, $result['failed']);
         $this->assertSame(0, QueueServices::exitCode($result));
-        $this->assertSame([['from' => 'admin-smoke']], $seen);
+        $this->assertSame([['from' => 'mark-smoke']], $seen);
         $this->assertNull(QueueServices::queue()->findJob($id), 'a delivered job leaves `jobs`.');
     }
 

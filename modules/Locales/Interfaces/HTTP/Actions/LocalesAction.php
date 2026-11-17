@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Locales\Interfaces\HTTP\Actions;
 
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\PageCache\Application\Services\CacheInvalidator;
 use View\ViewRenderer;
 use Modules\Core\Infrastructure\Http\Request;
@@ -77,7 +77,7 @@ final class LocalesAction
 
         $content = $this->listHtml($activeLocale, $group, $search, $translations, $imported, $exported);
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Translations',
             $content,
             'locales',
@@ -230,7 +230,7 @@ final class LocalesAction
         $file = $_FILES['translation_file'] ?? null;
 
         if (!is_array($file) || UPLOAD_ERR_OK !== ($file['error'] ?? UPLOAD_ERR_NO_FILE)) {
-            return Response::html(AdminLayout::render(
+            return Response::html(CardboardLayout::render(
                 'Translations',
                 $this->messageBox('Import failed — no valid file uploaded.'),
                 'locales',
@@ -241,7 +241,7 @@ final class LocalesAction
         $contents = '' !== $tmpPath && is_file($tmpPath) ? file_get_contents($tmpPath) : false;
 
         if (false === $contents) {
-            return Response::html(AdminLayout::render(
+            return Response::html(CardboardLayout::render(
                 'Translations',
                 $this->messageBox('Import failed — could not read the uploaded file.'),
                 'locales',
@@ -251,7 +251,7 @@ final class LocalesAction
         $data = json_decode($contents, true);
 
         if (!is_array($data)) {
-            return Response::html(AdminLayout::render(
+            return Response::html(CardboardLayout::render(
                 'Translations',
                 $this->messageBox('Import failed — the file is not valid JSON.'),
                 'locales',
@@ -261,9 +261,9 @@ final class LocalesAction
         [$locale, $entries] = $this->parseImport($data);
 
         if (!Locale::fromString($locale)->isAvailable()) {
-            return Response::html(AdminLayout::render(
+            return Response::html(CardboardLayout::render(
                 'Translations',
-                $this->messageBox('Import failed — unknown locale "' . AdminLayout::e($locale) . '".'),
+                $this->messageBox('Import failed — unknown locale "' . CardboardLayout::e($locale) . '".'),
                 'locales',
             router: $this->router()));
         }
@@ -287,13 +287,13 @@ final class LocalesAction
         array $values = [],
         bool $editing = false,
     ): string {
-        $errorHtml = AdminLayout::messages($errors, 'err');
-        $csrf = AdminLayout::csrfField();
+        $errorHtml = CardboardLayout::messages($errors, 'err');
+        $csrf = CardboardLayout::csrfField();
 
-        $key = AdminLayout::e($values['key'] ?? '');
-        $value = AdminLayout::e($values['value'] ?? '');
-        $group = AdminLayout::e($values['group'] ?? 'general');
-        $localeLabel = AdminLayout::e(Locale::fromString($values['locale'] ?? 'sk_SK')->name());
+        $key = CardboardLayout::e($values['key'] ?? '');
+        $value = CardboardLayout::e($values['value'] ?? '');
+        $group = CardboardLayout::e($values['group'] ?? 'general');
+        $localeLabel = CardboardLayout::e(Locale::fromString($values['locale'] ?? 'sk_SK')->name());
 
         // Key and locale are immutable on edit — shown as read-only info so
         // an admin can never change them silently (they are not submitted).
@@ -306,7 +306,7 @@ final class LocalesAction
 
         $content = ViewRenderer::render('Modules/Locales/Interfaces/HTTP/templates/locales-list.phtml', ['url' => $this->urlBuilder(), 'action' => $action, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'group' => $group, 'keyField' => $keyField, 'localeField' => $localeField, 'submitLabel' => $submitLabel, 'value' => $value]);
 
-        return AdminLayout::render($title, $content, 'locales', router: $this->router());
+        return CardboardLayout::render($title, $content, 'locales', router: $this->router());
     }
 
     /**
@@ -321,15 +321,15 @@ final class LocalesAction
         ?int $exported = null,
     ): string {
         $rows = '';
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
 
         foreach ($translations as $translation) {
-            $id = AdminLayout::e($translation->id);
-            $key = AdminLayout::e($translation->key);
-            $value = AdminLayout::e($translation->value);
-            $rowGroup = AdminLayout::e($translation->group);
-            $iconEdit = AdminLayout::iconEdit();
-            $iconDelete = AdminLayout::iconDelete();
+            $id = CardboardLayout::e($translation->id);
+            $key = CardboardLayout::e($translation->key);
+            $value = CardboardLayout::e($translation->value);
+            $rowGroup = CardboardLayout::e($translation->group);
+            $iconEdit = CardboardLayout::iconEdit();
+            $iconDelete = CardboardLayout::iconDelete();
             $rows .= ViewRenderer::render('Modules/Locales/Interfaces/HTTP/templates/locales-edit.phtml', ['url' => $this->urlBuilder(), 'csrf' => $csrf, 'iconDelete' => $iconDelete, 'iconEdit' => $iconEdit, 'id' => $id, 'key' => $key, 'rowGroup' => $rowGroup, 'value' => $value, 'source' => $translation->source]);
         }
 
@@ -354,30 +354,30 @@ final class LocalesAction
 
         foreach (Locale::available() as $code => $locale) {
             $active = $code === $activeLocale ? ' layout-sidebar__link--active' : '';
-            $label = AdminLayout::e($locale->name());
+            $label = CardboardLayout::e($locale->name());
             // Inactive tabs inherit the page bg (transparent nav) — use muted
             // ink (≥ 4.5:1 in both themes) instead of the nav-white `inherit`.
             $style = '' === $active ? ' m-pill--muted' : '';
-            $localeTabs .= '<a class="m-pill' . $active . $style . '" href="' . AdminLayout::e($this->url('mark.locales') . '?locale=' . $code) . '">' . $label . '</a>';
+            $localeTabs .= '<a class="m-pill' . $active . $style . '" href="' . CardboardLayout::e($this->url('mark.locales') . '?locale=' . $code) . '">' . $label . '</a>';
         }
 
-        $groupValue = AdminLayout::e($group);
-        $searchValue = AdminLayout::e($search);
+        $groupValue = CardboardLayout::e($group);
+        $searchValue = CardboardLayout::e($search);
         $importNotice = $imported > 0
             ? '<div class="m-alert m-alert-success">Import completed: ' . $imported . ' translations.</div>'
             : '';
         $exportNotice = match (true) {
             null === $exported => '',
             0 === $exported => '<div class="m-alert m-alert-warning">Nothing to export — this locale has no database rows yet.</div>',
-            default => '<div class="m-alert m-alert-success">Exported ' . $exported . ' translations to <code>storage/locales/' . AdminLayout::e($activeLocale) . '.json</code>.</div>',
+            default => '<div class="m-alert m-alert-success">Exported ' . $exported . ' translations to <code>storage/locales/' . CardboardLayout::e($activeLocale) . '.json</code>.</div>',
         };
 
         return $importNotice
             . $exportNotice
             . '<div class="m-filter-row">'
             . '<div class="m-filter-bar">' . $localeTabs . '</div>'
-            . '<form method="GET" action="' . AdminLayout::e($this->url('mark.locales')) . '" class="m-filter-form">'
-            . '<input type="hidden" name="locale" value="' . AdminLayout::e($activeLocale) . '">'
+            . '<form method="GET" action="' . CardboardLayout::e($this->url('mark.locales')) . '" class="m-filter-form">'
+            . '<input type="hidden" name="locale" value="' . CardboardLayout::e($activeLocale) . '">'
             . '<input type="text" name="group" class="m-input" placeholder="group (nav, home…)" value="' . $groupValue . '">'
             . '<input type="text" name="q" class="m-input" placeholder="Search…" value="' . $searchValue . '">'
             . '<button class="m-btn m-btn-sm" type="submit">Filter</button>'
@@ -390,14 +390,14 @@ final class LocalesAction
      */
     private function exportForm(string $locale): string
     {
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
 
         return '<div class="m-card">'
             . '<h2 class="m-heading">Export JSON</h2>'
-            . '<p class="m-muted m-hint">Writes this locale\'s database rows to <code>storage/locales/' . AdminLayout::e($locale) . '.json</code>. That file is the fallback for a key the database does not carry — a fresh install, a restored database, or a key shipped before its migration — so a missing row renders words instead of the raw key.</p>'
-            . '<form class="m-form" method="POST" action="' . AdminLayout::e($this->url('mark.locales.export')) . '">'
+            . '<p class="m-muted m-hint">Writes this locale\'s database rows to <code>storage/locales/' . CardboardLayout::e($locale) . '.json</code>. That file is the fallback for a key the database does not carry — a fresh install, a restored database, or a key shipped before its migration — so a missing row renders words instead of the raw key.</p>'
+            . '<form class="m-form" method="POST" action="' . CardboardLayout::e($this->url('mark.locales.export')) . '">'
             . $csrf
-            . '<input type="hidden" name="locale" value="' . AdminLayout::e($locale) . '">'
+            . '<input type="hidden" name="locale" value="' . CardboardLayout::e($locale) . '">'
             . '<div><button class="m-btn" type="submit">Export to JSON</button></div>'
             . '</form></div>';
     }
@@ -407,11 +407,11 @@ final class LocalesAction
      */
     private function importForm(): string
     {
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
 
         return '<div class="m-card">'
             . '<h2 class="m-heading">Import JSON</h2>'
-            . '<form class="m-form" method="POST" action="' . AdminLayout::e($this->url('mark.locales.import')) . '" enctype="multipart/form-data">'
+            . '<form class="m-form" method="POST" action="' . CardboardLayout::e($this->url('mark.locales.import')) . '" enctype="multipart/form-data">'
             . $csrf
             . '<input type="file" name="translation_file" accept="application/json,.json" required>'
             . '<p class="m-muted m-hint">Flat {"nav.home": "Home"} or grouped {"locale": "en_US", "translations": {...}}</p>'
@@ -557,8 +557,8 @@ final class LocalesAction
 
     private function messageBox(string $message): string
     {
-        return '<div class="cba-msg cba-msg--err">' . AdminLayout::e($message) . '</div>'
-            . '<p><a class="m-btn m-btn-ghost" href="' . AdminLayout::e($this->url('mark.locales')) . '">Back to translations</a></p>';
+        return '<div class="cba-msg cba-msg--err">' . CardboardLayout::e($message) . '</div>'
+            . '<p><a class="m-btn m-btn-ghost" href="' . CardboardLayout::e($this->url('mark.locales')) . '">Back to translations</a></p>';
     }
 
     private function localeOptions(string $selected): string
@@ -567,7 +567,7 @@ final class LocalesAction
 
         foreach (Locale::available() as $code => $locale) {
             $isSelected = $code === $selected ? ' selected' : '';
-            $options .= "<option value=\"{$code}\"{$isSelected}>" . AdminLayout::e($locale->name()) . '</option>';
+            $options .= "<option value=\"{$code}\"{$isSelected}>" . CardboardLayout::e($locale->name()) . '</option>';
         }
 
         return $options;

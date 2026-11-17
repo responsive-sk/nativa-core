@@ -16,7 +16,7 @@ use Modules\Core\Infrastructure\Http\Response;
  * through a content permission. Verified live before this gate existed.
  *
  * NOTE (single-admin-module variant): the permission map below is a local
- * copy of Users' AdminRoutePolicy::permissionForEntity (permission strings
+ * copy of Users' MarkRoutePolicy::permissionForEntity (permission strings
  * only) so Cardboard keeps zero `use Modules\<Feature>` lines and stays a
  * leaf for the install-closure scanner. The caller passes the session user
  * as object (duck-typed: hasPermission(string): bool, id(): string).

@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Users\Interfaces\HTTP;
 
 use Modules\Cardboard\Application\Services\BulkActions;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Core\Kernel\Contracts\RouterInterface;
 use Modules\Users\Domain\Entities\User;
 
@@ -31,7 +31,7 @@ final class UsersTableRenderer
 
         $bulkBar = BulkActions::actionBar('users', $router->url('mark.bulk-delete'));
 
-        $skeleton = AdminLayout::skeletonTable([
+        $skeleton = CardboardLayout::skeletonTable([
             ['30%'], ['50%'], ['40%'], ['20%'], ['10%'],
         ]);
 
@@ -47,17 +47,17 @@ final class UsersTableRenderer
 
     private static function row(User $user, RouterInterface $router): string
     {
-        $id = AdminLayout::e($user->id());
-        $name = AdminLayout::e($user->name());
-        $email = AdminLayout::e($user->email());
-        $roles = implode(', ', array_map(AdminLayout::e(...), $user->roles()));
+        $id = CardboardLayout::e($user->id());
+        $name = CardboardLayout::e($user->name());
+        $email = CardboardLayout::e($user->email());
+        $roles = implode(', ', array_map(CardboardLayout::e(...), $user->roles()));
         $badge = $user->isActive()
             ? '<span class="m-badge m-badge-success">Active</span>'
             : '<span class="m-badge m-badge-error">Disabled</span>';
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
         $checkbox = BulkActions::checkboxCell($user->id());
-        $iconEdit = AdminLayout::iconEdit();
-        $iconDelete = AdminLayout::iconDelete();
+        $iconEdit = CardboardLayout::iconEdit();
+        $iconDelete = CardboardLayout::iconDelete();
 
         return '<tr>'
             . $checkbox
@@ -67,10 +67,10 @@ final class UsersTableRenderer
             . '<td>' . $badge . '</td>'
             . '<td>'
             . '<div class="m-btn-group">'
-            . '<a class="m-btn m-btn-sm m-btn-icon" href="' . AdminLayout::e($router->url('mark.users.edit', ['id' => $id])) . '"'
+            . '<a class="m-btn m-btn-sm m-btn-icon" href="' . CardboardLayout::e($router->url('mark.users.edit', ['id' => $id])) . '"'
             . ' data-tooltip="Edit user" title="Edit">' . $iconEdit . '</a>'
-            . '<form method="POST" action="' . AdminLayout::e($router->url('mark.users.delete', ['id' => $id])) . '"'
-            . ' hx-delete="' . AdminLayout::e($router->url('mark.users.delete', ['id' => $id])) . '"'
+            . '<form method="POST" action="' . CardboardLayout::e($router->url('mark.users.delete', ['id' => $id])) . '"'
+            . ' hx-delete="' . CardboardLayout::e($router->url('mark.users.delete', ['id' => $id])) . '"'
             . ' data-confirm="Delete this user?"'
             . ' hx-target="closest tr"'
             . ' hx-swap="outerHTML swap:500ms"'

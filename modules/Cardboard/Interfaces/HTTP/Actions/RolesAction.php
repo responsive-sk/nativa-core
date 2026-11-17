@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Interfaces\HTTP\Actions;
 
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Cardboard\Interfaces\HTTP\CardboardServices;
 use Modules\PageCache\Application\Services\CacheInvalidator;
 use View\ViewRenderer;
@@ -55,7 +55,7 @@ final class RolesAction
             $allRoles = $this->filterRoles($allRoles, $search);
         }
 
-        $escapedSearch = AdminLayout::e($search);
+        $escapedSearch = CardboardLayout::e($search);
         $searchInput = '<div class="m-filter-bar">'
             . '<input type="search" name="q" value="' . $escapedSearch . '" class="m-input--filter"'
             . ' hx-get="' . $this->url('mark.roles') . '"'
@@ -69,22 +69,22 @@ final class RolesAction
         $grid = \Modules\Users\Interfaces\HTTP\RolesTableRenderer::render($allRoles, $this->router());
 
         // HTMX: return partial HTML.
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             return Response::html($grid);
         }
 
         $toast = '';
         $toastMessage = $request->queryString('toast');
         if ('' !== $toastMessage) {
-            $toast = AdminLayout::toast(urldecode($toastMessage));
+            $toast = CardboardLayout::toast(urldecode($toastMessage));
         }
 
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
         $spinner = '<span class="htmx-indicator" id="role-spinner">⏳</span> ';
 
         $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/roles-list.phtml', ['url' => $this->urlBuilder(), 'csrf' => $csrf, 'grid' => $grid, 'searchInput' => $searchInput, 'spinner' => $spinner, 'toast' => $toast]);
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Roles',
             $content,
             'roles',
@@ -129,7 +129,7 @@ final class RolesAction
             }
         }
 
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             $response = Response::html('');
             $response->setHeader('HX-Redirect', $this->url('mark.roles') . '?toast=Role+created+successfully');
 
@@ -158,7 +158,7 @@ final class RolesAction
             }
         }
 
-        if (AdminLayout::isHtmx($request)) {
+        if (CardboardLayout::isHtmx($request)) {
             return Response::html('');
         }
 
@@ -180,7 +180,7 @@ final class RolesAction
         }
 
         $assigned = $roles->permissionIdsForRole($id);
-        $csrf = AdminLayout::csrfField();
+        $csrf = CardboardLayout::csrfField();
         $groupId = (string) $role['id'];
 
         $grouped = [];
@@ -193,20 +193,20 @@ final class RolesAction
         foreach ($grouped as $group => $permissions) {
             $checks = '';
             foreach ($permissions as $permission) {
-                $pid = AdminLayout::e((string) $permission['id']);
-                $pname = AdminLayout::e((string) $permission['name']);
-                $pdesc = AdminLayout::e($permission['description']);
+                $pid = CardboardLayout::e((string) $permission['id']);
+                $pname = CardboardLayout::e((string) $permission['name']);
+                $pdesc = CardboardLayout::e($permission['description']);
                 $checked = in_array((string) $permission['id'], $assigned, true) ? ' checked' : '';
 
                 $checks .= "<label><input type=\"checkbox\" name=\"permissions[]\" value=\"{$pid}\"{$checked}> {$pname} <span class=\"m-muted\">— {$pdesc}</span></label>";
             }
 
-            $sections .= '<h3 class="m-heading m-heading--sm">' . AdminLayout::e($group) . "</h3><div class=\"cba-checkgrid\">{$checks}</div>";
+            $sections .= '<h3 class="m-heading m-heading--sm">' . CardboardLayout::e($group) . "</h3><div class=\"cba-checkgrid\">{$checks}</div>";
         }
 
         $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/roles-permissions.phtml', ['url' => $this->urlBuilder(), 'csrf' => $csrf, 'groupId' => $groupId, 'sections' => $sections]);
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Permissions — ' . (string) $role['name'],
             $content,
             'roles',
@@ -262,16 +262,16 @@ final class RolesAction
         $rows = '';
 
         foreach (CardboardServices::roles()->allPermissions() as $permission) {
-            $name = AdminLayout::e((string) $permission['name']);
-            $description = AdminLayout::e($permission['description']);
-            $group = AdminLayout::e($permission['group_name']);
+            $name = CardboardLayout::e((string) $permission['name']);
+            $description = CardboardLayout::e($permission['description']);
+            $group = CardboardLayout::e($permission['group_name']);
 
             $rows .= "<tr><td><span class=\"cba-badge cba-badge--ok\">{$group}</span></td><td><code>{$name}</code></td><td>{$description}</td></tr>";
         }
 
         $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/roles-form.phtml', ['rows' => $rows]);
 
-        return Response::html(AdminLayout::render(
+        return Response::html(CardboardLayout::render(
             'Permissions',
             $content,
             'roles',

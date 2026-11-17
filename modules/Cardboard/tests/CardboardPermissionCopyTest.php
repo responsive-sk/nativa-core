@@ -4,9 +4,9 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Tests;
 
-use Modules\Cardboard\Application\Services\AdminNavService;
+use Modules\Cardboard\Application\Services\CardboardNavService;
 use Modules\Cardboard\Application\Services\BulkEntityGate;
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Core\Domain\Permissions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +17,7 @@ use ReflectionMethod;
  * true to the owner.
  *
  * Cardboard deliberately holds two local copies of Users' permission
- * vocabulary: `AdminNavService::permissionTable()` (17 prefixes, so the admin
+ * vocabulary: `CardboardNavService::permissionTable()` (17 prefixes, so the admin
  * nav never offers a link the policy will refuse) and
  * `BulkEntityGate::permissionForEntity()` (4 entities, because the POST body
  * names what a bulk route acts on). Both exist to keep zero
@@ -27,12 +27,12 @@ use ReflectionMethod;
  *
  * So the copy stays and this test guards it instead:
  *
- *   - every prefix `AdminRoutePolicy` classifies has a row in the nav copy,
+ *   - every prefix `MarkRoutePolicy` classifies has a row in the nav copy,
  *     no row points at a path the policy does not classify, and each row's
  *     permission is the owner's answer;
  *   - every value is a name `Permissions::all()` owns — a typo here is a nav
  *     item nobody can ever see, not a compile error;
- *   - every entity `AdminRoutePolicy::bulkEntities()` knows gets the owner's
+ *   - every entity `MarkRoutePolicy::bulkEntities()` knows gets the owner's
  *     permission, and an unknown entity still fails closed.
  *
  * The tables are private and stay private: reflection is how the guard reads
@@ -59,7 +59,7 @@ final class CardboardPermissionCopyTest extends TestCase
     public function theNavCopyClassifiesExactlyThePrefixesThePolicyDoes(): void
     {
         $local = $this->localNavTable();
-        $owned = AdminRoutePolicy::prefixes();
+        $owned = MarkRoutePolicy::prefixes();
 
         $missing = array_values(array_diff($owned, array_keys($local)));
         $extra = array_values(array_diff(array_keys($local), $owned));
@@ -67,14 +67,14 @@ final class CardboardPermissionCopyTest extends TestCase
         self::assertSame(
             [],
             $missing,
-            "these prefixes are classified by AdminRoutePolicy but missing from Cardboard's nav copy:\n  "
+            "these prefixes are classified by MarkRoutePolicy but missing from Cardboard's nav copy:\n  "
             . implode("\n  ", $missing),
         );
 
         self::assertSame(
             [],
             $extra,
-            "Cardboard's nav copy gates paths no AdminRoutePolicy row classifies:\n  "
+            "Cardboard's nav copy gates paths no MarkRoutePolicy row classifies:\n  "
             . implode("\n  ", $extra),
         );
     }
@@ -85,7 +85,7 @@ final class CardboardPermissionCopyTest extends TestCase
         $drift = [];
 
         foreach ($this->localNavTable() as $prefix => $permission) {
-            $owned = AdminRoutePolicy::requiredPermission($prefix);
+            $owned = MarkRoutePolicy::requiredPermission($prefix);
 
             if ($owned !== $permission) {
                 $drift[] = sprintf(
@@ -100,7 +100,7 @@ final class CardboardPermissionCopyTest extends TestCase
         self::assertSame(
             [],
             $drift,
-            "Cardboard's nav copy answers differently from AdminRoutePolicy:\n"
+            "Cardboard's nav copy answers differently from MarkRoutePolicy:\n"
             . implode("\n", $drift)
             . "\n\nThe copy is deliberate — Cardboard stays a leaf — but it must move"
             . ' when the owner moves. Fix the row, do not add a third permission name.',
@@ -130,9 +130,9 @@ final class CardboardPermissionCopyTest extends TestCase
         $method = new ReflectionMethod(BulkEntityGate::class, 'permissionForEntity');
         $drift = [];
 
-        foreach (AdminRoutePolicy::bulkEntities() as $entity) {
+        foreach (MarkRoutePolicy::bulkEntities() as $entity) {
             $copied = $method->invoke(null, $entity);
-            $owned = AdminRoutePolicy::permissionForEntity($entity);
+            $owned = MarkRoutePolicy::permissionForEntity($entity);
 
             if ($copied !== $owned) {
                 $drift[] = sprintf(
@@ -147,7 +147,7 @@ final class CardboardPermissionCopyTest extends TestCase
         self::assertSame(
             [],
             $drift,
-            "Cardboard's bulk entity gate differs from AdminRoutePolicy::permissionForEntity():\n"
+            "Cardboard's bulk entity gate differs from MarkRoutePolicy::permissionForEntity():\n"
             . implode("\n", $drift),
         );
 
@@ -165,7 +165,7 @@ final class CardboardPermissionCopyTest extends TestCase
      */
     private function localNavTable(): array
     {
-        $method = new ReflectionMethod(AdminNavService::class, 'permissionTable');
+        $method = new ReflectionMethod(CardboardNavService::class, 'permissionTable');
         $table = $method->invoke(null);
 
         self::assertIsArray($table);

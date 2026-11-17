@@ -11,7 +11,7 @@ namespace Modules\Users\Application\Services;
  * Pure arrays, no queue, no database: the producers push through
  * `QueueServices` themselves (Comments and Questions already depend on this
  * module, and this module must not depend on Queue — see
- * `AdminNotificationHandler`'s docblock for the cycle that would create). What
+ * `MarkNotificationHandler`'s docblock for the cycle that would create). What
  * both producers must agree on is the payload, and that is this class.
  *
  * ## The payload is a SNAPSHOT, unlike `Blog\CoverJobs`' two identifiers

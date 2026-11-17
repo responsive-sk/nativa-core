@@ -26,7 +26,7 @@ use Modules\Notifications\Infrastructure\Persistence\Repositories\SqliteNotifica
  * That question is the Users module's — it owns users, roles and the permission
  * vocabulary — so this service is handed a list of ids. Keeping the policy out
  * of here is what lets the module stay a leaf: it imports Core and Database and
- * nothing else, which is why `AdminNotificationHandler` (Users) may depend on it
+ * nothing else, which is why `MarkNotificationHandler` (Users) may depend on it
  * without closing a cycle through Cardboard.
  *
  * Failures are NOT swallowed here. A missing table, a locked database or a

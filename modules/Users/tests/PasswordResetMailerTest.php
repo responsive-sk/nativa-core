@@ -46,7 +46,7 @@ use PHPUnit\Framework\TestCase;
  * ## The two files these tests touch
  *
  * `DB_USERS` points at a temp database built by the module's own migrator (the
- * `AdminAccessControlTest` pattern), so the flow runs against real tables. The
+ * `MarkAccessControlTest` pattern), so the flow runs against real tables. The
  * dev-developer case drives the REAL `storage/logs/app.log`, because the path
  * the dev transport writes to is part of what the factory decides — so that one
  * test snapshots the file first and restores those exact bytes in tearDown(),

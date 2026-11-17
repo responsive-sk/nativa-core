@@ -25,7 +25,7 @@ use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
  *     is a generated hash (`bin2hex(random_bytes(16))`), so a provider keyed
  *     on `_questions` matches nothing in a real install while looking correct
  *     against the hardcoded fallback list. The `href` is what
- *     `AdminRoutePolicy::requiredPermission()` already keys on, what the nav
+ *     `MarkRoutePolicy::requiredPermission()` already keys on, what the nav
  *     filter gates, and what a route actually declares — so the badge is
  *     keyed on the same string the permission is.
  *  2. **Zero or less is silence.** A count `<= 0` renders nothing at all: an

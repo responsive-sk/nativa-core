@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Interfaces\HTTP;
 
-use Modules\Cardboard\Application\Services\AdminNavService;
+use Modules\Cardboard\Application\Services\CardboardNavService;
 use Modules\PageCache\Application\Services\PageCacheService;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\Security\Application\Services\PasswordHasher;
@@ -21,7 +21,7 @@ use Modules\Settings\Infrastructure\Persistence\Repositories\SettingsRepository;
  *
  * NOTE (single-admin-module variant): Cardboard is the only admin module, so
  * it must not declare `use Modules\<Feature>\...` for any feature module
- * that renders through its AdminLayout (Audit, Blog, Comments, Locales,
+ * that renders through its CardboardLayout (Audit, Blog, Comments, Locales,
  * Media, Pages, Questions, Users) — the catalog derives install closures
  * from `use` lines, and such a line would close an install-order cycle.
  * Those references are fully-qualified inline (identical runtime behaviour
@@ -48,7 +48,7 @@ final class CardboardServices
 
     private static ?\Modules\Users\Application\Services\AuthService $auth = null;
 
-    private static ?AdminNavService $adminNav = null;
+    private static ?CardboardNavService $panelNav = null;
 
     private static ?PageCacheService $pageCache = null;
 
@@ -102,9 +102,9 @@ final class CardboardServices
         );
     }
 
-    public static function adminNav(): AdminNavService
+    public static function panelNav(): CardboardNavService
     {
-        return self::$adminNav ??= new AdminNavService(
+        return self::$panelNav ??= new CardboardNavService(
             DatabaseConnectionManager::instance()->connect('config'),
         );
     }
@@ -158,7 +158,7 @@ final class CardboardServices
         self::$settings = null;
         self::$menu = null;
         self::$auth = null;
-        self::$adminNav = null;
+        self::$panelNav = null;
         self::$pageCache = null;
         self::$pageCrud = null;
         self::$blogCrud = null;

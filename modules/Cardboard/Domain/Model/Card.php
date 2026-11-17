@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Cardboard\Domain\Model;
 
 use Modules\Cardboard\Domain\Contracts\ChartContract;
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 
 /**
  * Card — immutable dashboard stat card value object.
@@ -165,7 +165,7 @@ final readonly class Card
     private function renderHead(): string
     {
         return '<header class="m-stat__head">'
-            . '<h3 class="m-stat__label">' . AdminLayout::e($this->label) . '</h3>'
+            . '<h3 class="m-stat__label">' . CardboardLayout::e($this->label) . '</h3>'
             . (null !== $this->trend ? $this->trend->render() : '')
             . '</header>';
     }
@@ -203,7 +203,7 @@ final readonly class Card
             return '';
         }
 
-        return '<div class="m-stat-subtitle">' . AdminLayout::e($subtitleText) . '</div>';
+        return '<div class="m-stat-subtitle">' . CardboardLayout::e($subtitleText) . '</div>';
     }
 
     /**
@@ -214,8 +214,8 @@ final readonly class Card
         $actionsHtml = '';
         foreach ($this->actions as $link) {
             $actionsHtml .= '<a class="m-stat-link" href="'
-                . AdminLayout::e($link->href) . '">'
-                . AdminLayout::e($link->label) . '</a>';
+                . CardboardLayout::e($link->href) . '">'
+                . CardboardLayout::e($link->label) . '</a>';
         }
 
         if ('' === $actionsHtml) {

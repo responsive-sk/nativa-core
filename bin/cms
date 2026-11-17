@@ -440,12 +440,12 @@ function cmdMigrate(): void
  */
 function cmdUserAdmin(array $argv): void
 {
-    if (!class_exists(\Modules\Users\Interfaces\CLI\Command\EnsureAdminCommand::class)) {
+    if (!class_exists(\Modules\Users\Interfaces\CLI\Command\EnsureOperatorCommand::class)) {
         fail('user:admin needs the Users module (bin/cms module:add Users).');
     }
 
     $db = \Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager::instance()->connect('users');
-    $command = new \Modules\Users\Interfaces\CLI\Command\EnsureAdminCommand($db);
+    $command = new \Modules\Users\Interfaces\CLI\Command\EnsureOperatorCommand($db);
 
     exit($command->run(array_merge(['user:admin'], array_slice($argv, 2)), output()));
 }
@@ -645,7 +645,7 @@ function output(): CliOutput
  * Work one batch of queued jobs — the queue's operator surface.
  *
  * `DatabaseQueue::work()` shipped with exactly one call site in the whole tree:
- * an inline `php` heredoc inside `bin/build/admin-smoke.sh`. So the queue had a
+ * an inline `php` heredoc inside `bin/build/mark-smoke.sh`. So the queue had a
  * worker that no operator could put in crontab, no support answer could point
  * at, and no documentation could describe — the gate was the only place on the
  * planet that could run it. (The end-of-request drain that ships today is the

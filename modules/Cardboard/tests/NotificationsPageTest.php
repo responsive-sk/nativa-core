@@ -31,7 +31,7 @@ use PHPUnit\Framework\TestCase;
  * 3. **"Mark all as read" sweeps everyone.** The other inbox is asserted to keep
  *    its unread count after the sweep.
  *
- * The page is rendered through the real `AdminLayout` rather than a fragment, so
+ * The page is rendered through the real `CardboardLayout` rather than a fragment, so
  * the seeded Notifications nav row and the CSRF field are exercised too — the
  * two things a stubbed layout would hide. Both databases are throwaway files
  * through `DB_NOTIFICATIONS` / `DB_CONFIG`, and the session is saved and

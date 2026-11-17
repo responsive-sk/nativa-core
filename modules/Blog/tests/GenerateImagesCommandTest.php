@@ -25,7 +25,7 @@ use PHPUnit\Framework\TestCase;
  * a crash, because neither is visible.
  *
  * AppPaths has no root override (measured — `storage()` is always the
- * checkout, the same fact the admin-smoke gate snapshots around), so this test
+ * checkout, the same fact the mark-smoke gate snapshots around), so this test
  * writes into the tree's own storage and removes exactly what it created,
  * under a slug no one else would use.
  */

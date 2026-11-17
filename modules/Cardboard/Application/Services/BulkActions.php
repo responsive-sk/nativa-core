@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Application\Services;
 
-use Modules\Cardboard\Interfaces\HTTP\AdminLayout;
+use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use View\ViewRenderer;
 use Modules\Core\Interfaces\HTTP\Middleware\CsrfMiddleware;
 
@@ -32,7 +32,7 @@ final class BulkActions
      * defaults; this Application-layer service stays locale-agnostic.
      *
      * The labels are user-editable locale data (editable in /mark/locales),
-     * so they are HTML-escaped here at the render boundary (AdminLayout::e(),
+     * so they are HTML-escaped here at the render boundary (CardboardLayout::e(),
      * ENT_QUOTES) before reaching attributes or element content — the same
      * convention the callers' $slug/$locale already follow.
      *
@@ -43,7 +43,7 @@ final class BulkActions
     public static function markSwitch(string $publishAction, string $locale, string $csrf, bool $published, array $labels): string
     {
         $labels = self::escapeLabels($labels);
-        $action = AdminLayout::e($publishAction . '?locale=' . $locale);
+        $action = CardboardLayout::e($publishAction . '?locale=' . $locale);
         $state = $published ? 'on' : 'off';
         $tooltip = $published ? $labels['tooltip_unpublish'] : $labels['tooltip_publish'];
         $aria = $published
@@ -79,10 +79,10 @@ final class BulkActions
     private static function escapeLabels(array $labels): array
     {
         return [
-            'draft'             => AdminLayout::e($labels['draft']),
-            'published'         => AdminLayout::e($labels['published']),
-            'tooltip_publish'   => AdminLayout::e($labels['tooltip_publish']),
-            'tooltip_unpublish' => AdminLayout::e($labels['tooltip_unpublish']),
+            'draft'             => CardboardLayout::e($labels['draft']),
+            'published'         => CardboardLayout::e($labels['published']),
+            'tooltip_publish'   => CardboardLayout::e($labels['tooltip_publish']),
+            'tooltip_unpublish' => CardboardLayout::e($labels['tooltip_unpublish']),
         ];
     }
 
@@ -91,7 +91,7 @@ final class BulkActions
      */
     public static function checkboxCell(string $id): string
     {
-        $escaped = AdminLayout::e($id);
+        $escaped = CardboardLayout::e($id);
 
         return '<td class="m-bulk__cell">'
             . '<input type="checkbox" name="ids[]" value="' . $escaped . '"'
@@ -118,21 +118,21 @@ final class BulkActions
      */
     public static function actionBar(string $entity, string $action, string $locale = ''): string
     {
-        $escapedAction = AdminLayout::e($action);
-        $escapedEntity = AdminLayout::e($entity);
+        $escapedAction = CardboardLayout::e($action);
+        $escapedEntity = CardboardLayout::e($entity);
         $token = CsrfMiddleware::token();
         $localeInput = '' !== $locale
-            ? '<input type="hidden" name="locale" value="' . AdminLayout::e($locale) . '">'
+            ? '<input type="hidden" name="locale" value="' . CardboardLayout::e($locale) . '">'
             : '';
 
         return '<div class="m-bulk-bar" id="bulk-bar">'
             . '<span class="m-bulk-bar__count" id="bulk-count">0 selected</span>'
             // Plain POST — row checkboxes live outside this form; the ids[]
-            // are injected at submit time (AdminLayout mBulkInject) and the
+            // are injected at submit time (CardboardLayout mBulkInject) and the
             // server redirects back to the index with a toast message.
             . '<form method="POST" action="' . $escapedAction . '"'
             . ' id="bulk-form">'
-            . '<input type="hidden" name="_token" value="' . AdminLayout::e($token) . '">'
+            . '<input type="hidden" name="_token" value="' . CardboardLayout::e($token) . '">'
             . '<input type="hidden" name="entity" value="' . $escapedEntity . '">'
             . $localeInput
             . '<button type="submit" class="m-btn m-btn-error m-btn-sm"'
@@ -154,12 +154,12 @@ final class BulkActions
      */
     public static function actionBarWithPublish(string $entity, string $publishAction, string $deleteAction, string $locale = ''): string
     {
-        $escapedEntity = AdminLayout::e($entity);
-        $escapedPublish = AdminLayout::e($publishAction);
-        $escapedDelete = AdminLayout::e($deleteAction);
+        $escapedEntity = CardboardLayout::e($entity);
+        $escapedPublish = CardboardLayout::e($publishAction);
+        $escapedDelete = CardboardLayout::e($deleteAction);
         $token = CsrfMiddleware::token();
         $localeInput = '' !== $locale
-            ? '<input type="hidden" name="locale" value="' . AdminLayout::e($locale) . '">'
+            ? '<input type="hidden" name="locale" value="' . CardboardLayout::e($locale) . '">'
             : '';
 
         return '<div class="m-bulk-bar" id="bulk-bar">'
@@ -167,10 +167,10 @@ final class BulkActions
             . '<div style="display:flex;gap:6px;">'
             // Publish — plain POST: the row checkboxes live outside this
             // form, so a full-page submit + redirect-back is the only flow
-            // that can carry them (see AdminLayout mBulkInject).
+            // that can carry them (see CardboardLayout mBulkInject).
             . '<form method="POST" action="' . $escapedPublish . '"'
             . ' style="display:inline;">'
-            . '<input type="hidden" name="_token" value="' . AdminLayout::e($token) . '">'
+            . '<input type="hidden" name="_token" value="' . CardboardLayout::e($token) . '">'
             . '<input type="hidden" name="entity" value="' . $escapedEntity . '">'
             . '<input type="hidden" name="published" value="1">'
             . $localeInput
@@ -182,7 +182,7 @@ final class BulkActions
             // Unpublish — plain POST, same ids[]-injection flow as publish.
             . '<form method="POST" action="' . $escapedPublish . '"'
             . ' style="display:inline;">'
-            . '<input type="hidden" name="_token" value="' . AdminLayout::e($token) . '">'
+            . '<input type="hidden" name="_token" value="' . CardboardLayout::e($token) . '">'
             . '<input type="hidden" name="entity" value="' . $escapedEntity . '">'
             . '<input type="hidden" name="published" value="0">'
             . $localeInput
@@ -194,7 +194,7 @@ final class BulkActions
             // Delete — plain POST, same ids[]-injection flow as publish.
             . '<form method="POST" action="' . $escapedDelete . '"'
             . ' style="display:inline;" id="bulk-delete-form">'
-            . '<input type="hidden" name="_token" value="' . AdminLayout::e($token) . '">'
+            . '<input type="hidden" name="_token" value="' . CardboardLayout::e($token) . '">'
             . '<input type="hidden" name="entity" value="' . $escapedEntity . '">'
             . $localeInput
             . '<button type="submit" class="m-btn m-btn-error m-btn-sm" id="bulk-delete-btn">'

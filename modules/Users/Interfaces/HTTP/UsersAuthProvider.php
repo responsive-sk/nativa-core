@@ -8,7 +8,7 @@ use Modules\Auth\Domain\AuthIdentity;
 use Modules\Auth\Domain\Contracts\AuthProvider;
 use Modules\Auth\Infrastructure\Attributes\AsAuthProvider;
 use Modules\Core\Infrastructure\Http\Request;
-use Modules\Core\Domain\AdminRoutePolicy;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Core\Domain\Permissions;
 
 /**
@@ -34,7 +34,7 @@ use Modules\Core\Domain\Permissions;
  *   a mapping one. The bypass moves into the DATA the middleware reads, so the
  *   gate stays a dumb membership check and every denial is explainable from
  *   the identity alone.
- * - **`/mark` is not spelled here.** `AdminRoutePolicy` owns "what is admin"
+ * - **`/mark` is not spelled here.** `MarkRoutePolicy` owns "what is admin"
  *   and "what it costs"; repeating the prefix in this class is how the two
  *   drift apart. The provider delegates both questions.
  * - **The Outbox edge is a string, not an import.** `noteEvent()` names
@@ -51,7 +51,7 @@ use Modules\Core\Domain\Permissions;
  * that sits anywhere else is invisible to discovery: it has to be named for
  * the surface it answers for. The move also inverts a layer smell: this class
  * asks `AuthServices::auth()` on every request, so as a `Domain` class it
- * reached UPWARD into `Interfaces\HTTP` for its own wiring. `AdminRoutePolicy`
+ * reached UPWARD into `Interfaces\HTTP` for its own wiring. `MarkRoutePolicy`
  * and `Permissions` stay where they are — they answer policy questions for the
  * module, not for the surface.
  *
@@ -118,7 +118,7 @@ final readonly class UsersAuthProvider implements AuthProvider
      */
     public function isProtectedPath(string $path): bool
     {
-        return AdminRoutePolicy::isAdminPath($path);
+        return MarkRoutePolicy::isMarkPath($path);
     }
 
     /**
@@ -128,7 +128,7 @@ final readonly class UsersAuthProvider implements AuthProvider
      */
     public function requiredPermission(string $path): ?string
     {
-        return AdminRoutePolicy::requiredPermission($path);
+        return MarkRoutePolicy::requiredPermission($path);
     }
 
     /**

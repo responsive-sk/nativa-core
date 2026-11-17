@@ -2,7 +2,7 @@
  * vite.config.ts — the moonshine theme bundle (admin chrome behind /mark).
  *
  * Three entries in one build: the `moonshine` theme entry plus the admin
- * `mark` and `mark-switch` stylesheets that `AdminLayout::markCssLinks()`
+ * `mark` and `mark-switch` stylesheets that `CardboardLayout::markCssLinks()`
  * resolves from this package's manifest. The input keys are load-bearing —
  * `AssetManager::manifestEntry()` probes `src/<key>.ts`, `src/<key>.css` and
  * `src/<key>/index.css` — so a key may never be renamed. The admin design

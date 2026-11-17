@@ -34,8 +34,8 @@ final class CompactLayout
         $actionsHtml = '';
 
         foreach ($actions as $action) {
-            $label = AdminLayout::e($action['label']);
-            $href = AdminLayout::e($action['href']);
+            $label = CardboardLayout::e($action['label']);
+            $href = CardboardLayout::e($action['href']);
             $actionsHtml .= "<a class=\"cba__action\" href=\"{$href}\">{$label}</a>";
         }
 
@@ -43,9 +43,9 @@ final class CompactLayout
             ? "<div class=\"cba__actions\">{$actionsHtml}</div>"
             : '';
 
-        $titleEscaped = AdminLayout::e($title);
-        $currentUserName = AdminLayout::e(self::currentUserName());
-        $csrf = AdminLayout::csrfField();
+        $titleEscaped = CardboardLayout::e($title);
+        $currentUserName = CardboardLayout::e(self::currentUserName());
+        $csrf = CardboardLayout::csrfField();
 
         $navHtml = self::navHtml($activeSection, $router);
 
@@ -61,9 +61,9 @@ final class CompactLayout
 
         // Load admin CSS from the Vite bundle (m-table, m-btn, m-card, …
         // plus the mark-switch entry for the Publish/Draft switch).
-        $markCssLinks = AdminLayout::markCssLinks();
+        $markCssLinks = CardboardLayout::markCssLinks();
 
-        return ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/compact.phtml', ['actionsBar' => $actionsBar, 'content' => $content, 'csrf' => $csrf, 'currentUserName' => $currentUserName, 'htmlLang' => $htmlLang, 'htmxConfig' => $htmxConfig, 'htmxScript' => $htmxScript, 'markCssLinks' => $markCssLinks, 'navHtml' => $navHtml, 'recentJson' => $recentJson, 'titleEscaped' => $titleEscaped, 'url' => AdminLayout::urlBuilder($router)]);
+        return ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/compact.phtml', ['actionsBar' => $actionsBar, 'content' => $content, 'csrf' => $csrf, 'currentUserName' => $currentUserName, 'htmlLang' => $htmlLang, 'htmxConfig' => $htmxConfig, 'htmxScript' => $htmxScript, 'markCssLinks' => $markCssLinks, 'navHtml' => $navHtml, 'recentJson' => $recentJson, 'titleEscaped' => $titleEscaped, 'url' => CardboardLayout::urlBuilder($router)]);
     }
 
     /**
@@ -76,10 +76,10 @@ final class CompactLayout
     private static function navHtml(string $activeSection, ?RouterInterface $router): string
     {
         try {
-            $navItems = CardboardServices::adminNav()->hierarchicalItems(
+            $navItems = CardboardServices::panelNav()->hierarchicalItems(
                 $activeSection,
                 self::grantedPermissions(),
-                AdminLayout::reachablePaths($router),
+                CardboardLayout::reachablePaths($router),
             );
         } catch (\Throwable) {
             $navItems = [];
@@ -93,17 +93,17 @@ final class CompactLayout
                 $active = strtolower($item['label']) === $activeSection || $item['id'] === $activeSection
                     ? ' m-nav__link--active'
                     : '';
-                $html .= '<a class="m-nav__link' . $active . '" href="' . AdminLayout::e($item['href']) . '">'
-                    . AdminLayout::e($item['label']) . '</a>';
+                $html .= '<a class="m-nav__link' . $active . '" href="' . CardboardLayout::e($item['href']) . '">'
+                    . CardboardLayout::e($item['label']) . '</a>';
 
                 continue;
             }
 
             $buttonActive = $item['is_expanded'] ? ' m-nav__link--active' : '';
-            $html .= '<div class="m-nav__group" data-compact-group="' . AdminLayout::e($item['id']) . '">'
+            $html .= '<div class="m-nav__group" data-compact-group="' . CardboardLayout::e($item['id']) . '">'
                 . '<button type="button" class="m-nav__link m-nav__link--group' . $buttonActive . '"'
                 . ' aria-haspopup="true" aria-expanded="false">'
-                . AdminLayout::e($item['label'])
+                . CardboardLayout::e($item['label'])
                 . '<svg class="m-nav__chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
                 . '</button>'
                 . '<div class="m-nav__dropdown">';
@@ -112,8 +112,8 @@ final class CompactLayout
                 $childActive = strtolower($child['label']) === $activeSection || $child['id'] === $activeSection
                     ? ' m-nav__link--active'
                     : '';
-                $html .= '<a class="m-nav__link m-nav__link--child' . $childActive . '" href="' . AdminLayout::e($child['href']) . '">'
-                    . AdminLayout::e($child['label']) . '</a>';
+                $html .= '<a class="m-nav__link m-nav__link--child' . $childActive . '" href="' . CardboardLayout::e($child['href']) . '">'
+                    . CardboardLayout::e($child['label']) . '</a>';
             }
 
             $html .= '</div></div>';
@@ -180,7 +180,7 @@ final class CompactLayout
     {
         $token = CsrfMiddleware::token();
         $csrfHeader = '' !== $token
-            ? 'e.detail.headers["X-CSRF-Token"]="' . AdminLayout::e($token) . '";'
+            ? 'e.detail.headers["X-CSRF-Token"]="' . CardboardLayout::e($token) . '";'
             : '';
 
         return '<script nonce="__CSP_NONCE_PLACEHOLDER__">'
