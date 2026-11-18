@@ -148,26 +148,26 @@ final class MarkdownBlockRegistry
     /**
      * @param array<string, array{int, MarkdownBlockInterface}> $blocks
      */
-    private static function loadAndRegister(string $fqcn, string $file, array &$blocks): bool
+    private static function loadAndRegister(string $fqcn, string $file, array &$blocks): void
     {
         if (!class_exists($fqcn)) {
             require_once $file;
         }
 
         if (!class_exists($fqcn)) {
-            return false;
+            return;
         }
 
         $reflection = new \ReflectionClass($fqcn);
 
         if (!$reflection->implementsInterface(MarkdownBlockInterface::class)) {
-            return false;
+            return;
         }
 
         $attributes = $reflection->getAttributes(AsMarkdownBlock::class);
 
         if ([] === $attributes || $reflection->getConstructor()?->getNumberOfRequiredParameters() > 0) {
-            return false;
+            return;
         }
 
         /** @var AsMarkdownBlock $attr */
@@ -176,7 +176,5 @@ final class MarkdownBlockRegistry
         /** @var MarkdownBlockInterface $instance */
         $instance = $reflection->newInstance();
         $blocks[$attr->priority . '_' . $fqcn] = [$attr->priority, $instance];
-
-        return true;
     }
 }

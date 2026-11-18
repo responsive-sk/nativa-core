@@ -110,7 +110,7 @@ make dist-check           # a clean clone builds a green artifact
 make dist-modules-check  # clean clone + modules-install + module-set artifact
 ```
 
-`make core-export`, `make themes-check` and `make lekalo-check` do not exist
+`make core-export` and `make lekalo-check` do not exist
 here. They guard the source repository's relationship with a sibling checkout
 and its own model; the export carries neither.
 

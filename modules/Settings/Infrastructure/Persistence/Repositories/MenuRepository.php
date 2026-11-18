@@ -38,7 +38,8 @@ final readonly class MenuRepository
      */
     public function findByLocation(string $location): array
     {
-        $stmt = Statement::prepare($this->connection,
+        $stmt = Statement::prepare(
+            $this->connection,
             'SELECT * FROM menu_items
              WHERE location = :location AND is_active = 1
              ORDER BY sort_order ASC, created_at ASC',
@@ -96,7 +97,8 @@ final readonly class MenuRepository
     ): string {
         $id = bin2hex(random_bytes(16));
 
-        Statement::prepare($this->connection,
+        Statement::prepare(
+            $this->connection,
             'INSERT INTO menu_items (id, label, href, parent_item_id, sort_order, location, external, target, icon, is_active, created_at, updated_at)
              VALUES (:id, :label, :href, :parent, :sort, :loc, :ext, :target, :icon, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
         )->execute([
@@ -119,7 +121,8 @@ final readonly class MenuRepository
      */
     public function updateIcon(string $id, string $icon): void
     {
-        Statement::prepare($this->connection,
+        Statement::prepare(
+            $this->connection,
             'UPDATE menu_items SET icon = :icon, updated_at = CURRENT_TIMESTAMP WHERE id = :id',
         )->execute([':id' => $id, ':icon' => $icon]);
     }
@@ -129,7 +132,8 @@ final readonly class MenuRepository
      */
     public function toggleActive(string $id): void
     {
-        Statement::prepare($this->connection,
+        Statement::prepare(
+            $this->connection,
             'UPDATE menu_items SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = CURRENT_TIMESTAMP WHERE id = :id',
         )->execute([':id' => $id]);
     }
@@ -139,9 +143,26 @@ final readonly class MenuRepository
      */
     public function updateSortOrder(string $id, int $sortOrder): void
     {
-        Statement::prepare($this->connection,
+        Statement::prepare(
+            $this->connection,
             'UPDATE menu_items SET sort_order = :sort, updated_at = CURRENT_TIMESTAMP WHERE id = :id',
         )->execute([':id' => $id, ':sort' => $sortOrder]);
+    }
+
+    /**
+     * Move an item under a parent, or back to the top level with null.
+     *
+     * The children are not touched: they name the item by id, so a subtree
+     * follows its parent wherever it is moved. Depth is the caller's rule —
+     * `SettingsAction::movePanelNav()` refuses the shapes the sidebar cannot
+     * draw, because this layer stores what it is told.
+     */
+    public function updateParent(string $id, ?string $parentId): void
+    {
+        Statement::prepare(
+            $this->connection,
+            'UPDATE menu_items SET parent_item_id = :parent, updated_at = CURRENT_TIMESTAMP WHERE id = :id',
+        )->execute([':id' => $id, ':parent' => $parentId]);
     }
 
     /**
@@ -151,7 +172,8 @@ final readonly class MenuRepository
      */
     public function batchUpdateSortOrder(array $pairs): void
     {
-        $stmt = Statement::prepare($this->connection,
+        $stmt = Statement::prepare(
+            $this->connection,
             'UPDATE menu_items SET sort_order = :sort, updated_at = CURRENT_TIMESTAMP WHERE id = :id',
         );
 

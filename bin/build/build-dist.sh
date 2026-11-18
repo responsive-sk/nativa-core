@@ -57,7 +57,7 @@
 # duplication it brings — identical / drifted / not installed, per slice).
 #
 # No dependencies beyond bash + coreutils + tar: like `bin/cms` and
-# `extract-kernel.sh`, what builds the kernel must run where the kernel's own
+# the export check, what builds the kernel must run where the kernel's own
 # `vendor/` may not exist.
 # =============================================================================
 
@@ -90,6 +90,8 @@ APPLY_PROFILE=true
 #                       excluded below, so nothing in the artifact reads them;
 #                       `public/demo/`, when present, keeps the images a
 #                       deployment serves
+#   ./themes            the theme GALLERY: a static site that renders the
+#                       theme class names, not code the artifact runs
 #   ./Frontend          theme SOURCES: the artifact ships built bundles only
 #   ./vendor            the kernel runtime has zero Composer packages — this is
 #                       the claim the smoke test below is about to check
@@ -124,6 +126,7 @@ EXCLUDES=(
     "./.github"
     "./tests"
     "./fixtures"
+    "./themes"
     "./Frontend"
     "./vendor"
     "./bin/build"
@@ -158,7 +161,7 @@ EXCLUDES=(
 )
 
 # The runtime skeleton a fresh deployment needs (the same five directories
-# `extract-kernel.sh` calls a structural part of the tree).
+# the kernel shape check calls a structural part of the tree).
 STORAGE_DIRS=(
     "data"
     "logs"

@@ -90,7 +90,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: storage/cache/mago-spike
-          key: mago-1.58.2-x86_64-unknown-linux-gnu
+          key: mago-1.60.2-x86_64-unknown-linux-gnu
 
       - name: Guard gate
         run: make mago-guard
@@ -108,7 +108,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: storage/cache/mago-spike
-          key: mago-1.58.2-x86_64-unknown-linux-gnu
+          key: mago-1.60.2-x86_64-unknown-linux-gnu
 
       - name: Lint gate
         run: make mago-lint

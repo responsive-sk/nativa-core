@@ -90,9 +90,7 @@ final class CompactLayout
             $children = $item['children'];
 
             if ([] === $children) {
-                $active = strtolower($item['label']) === $activeSection || $item['id'] === $activeSection
-                    ? ' m-nav__link--active'
-                    : '';
+                $active = self::linkActive($item, $activeSection);
                 $html .= '<a class="m-nav__link' . $active . '" href="' . CardboardLayout::e($item['href']) . '">'
                     . CardboardLayout::e($item['label']) . '</a>';
 
@@ -109,9 +107,7 @@ final class CompactLayout
                 . '<div class="m-nav__dropdown">';
 
             foreach ($children as $child) {
-                $childActive = strtolower($child['label']) === $activeSection || $child['id'] === $activeSection
-                    ? ' m-nav__link--active'
-                    : '';
+                $childActive = self::linkActive($child, $activeSection);
                 $html .= '<a class="m-nav__link m-nav__link--child' . $childActive . '" href="' . CardboardLayout::e($child['href']) . '">'
                     . CardboardLayout::e($child['label']) . '</a>';
             }
@@ -120,6 +116,25 @@ final class CompactLayout
         }
 
         return $html;
+    }
+
+    /**
+     * The active class for one top-menu link.
+     *
+     * `is_current` is the service's answer, resolved once where the tree is
+     * built. Comparing labels here instead marked every row that shares a name,
+     * so the top menu pointed at two pages. Hand-built items carry no flag and
+     * keep the old comparison.
+     *
+     * @param array{id: string, label: string, is_current?: bool} $item
+     */
+    private static function linkActive(array $item, string $activeSection): string
+    {
+        $isActive = array_key_exists('is_current', $item)
+            ? (bool) $item['is_current']
+            : (strtolower($item['label']) === $activeSection || $item['id'] === $activeSection);
+
+        return $isActive ? ' m-nav__link--active' : '';
     }
 
     /**

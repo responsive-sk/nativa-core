@@ -96,6 +96,15 @@ final class MarkRoutePolicy
         '/mark/forms'            => Permissions::CONTENT,
         '/mark/outbox'           => Permissions::ROLES,
 
+        // Operational consoles. Running a queued job or reading the schedule
+        // reaches the whole install rather than the content a role was given,
+        // so these sit with the outbox and the audit log instead of inheriting
+        // `/mark`'s baseline. Both pages were reachable by any signed-in user
+        // before this row existed — nothing linked to them, which is not the
+        // same thing as nobody being allowed to open them.
+        '/mark/queue'            => Permissions::ROLES,
+        '/mark/schedule'         => Permissions::ROLES,
+
         // Bulk actions: the COARSE check only. The POST body names the entity,
         // and that choice is attacker-controlled, so `permissionForEntity()`
         // applies the fine-grained one before any id is touched. This row is

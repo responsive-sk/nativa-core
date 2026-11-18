@@ -40,11 +40,18 @@ use Modules\Database\Contracts\ConnectionInterface;
  * `Modules\Core\Domain\MarkRoutePolicy` exactly as it already imported
  * `Permissions`.
  *
+ * `activeSection()` — a path-to-id resolver no caller ever used, and whose
+ * prefix fallback answered with the FIRST href that matched instead of the
+ * longest (`/mark` would have named the dashboard for `/mark/users/1`) — is
+ * gone too. `hierarchicalItems()` takes the id or the label and resolves it
+ * once; a path-shaped caller can grow a path-shaped resolver when it appears,
+ * rather than leaving a wrong one in place against a future use.
+ *
  * Reads `config.db.menu_items` (location = 'mark') through its own `Statement`
  * to avoid importing another module's Infrastructure layer.
  *
  * @phpstan-type NavItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string}
- * @phpstan-type NavTreeItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string, children: list<NavItem>, is_expanded: bool}
+ * @phpstan-type NavTreeItem array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string, children: list<NavItem>, is_expanded: bool, is_current: bool}
  */
 final readonly class CardboardNavService
 {
@@ -66,7 +73,7 @@ final readonly class CardboardNavService
      * Null means "no filtering": callers with no user in hand (the settings
      * screen that configures the nav itself) render the full tree.
      *
-     * @param list<string>|null $granted
+     * @param list<string>|null             $granted
      * @param (\Closure(string): bool)|null $reachable answers whether a path is served
      *
      * @return list<NavTreeItem>
@@ -79,11 +86,54 @@ final readonly class CardboardNavService
         $expandedGroups = $this->expandedGroups($index, $activeId);
         $tree = $this->withoutUnreachable($this->buildTree($index['byId']), $reachable);
 
-        // Set is_expanded on group items.
-        foreach ($tree as &$group) {
-            $group['is_expanded'] = isset($expandedGroups[$group['id']]);
+        return $this->withCurrentItem($this->withExpandedGroups($tree, $expandedGroups), $activeId);
+    }
+
+    /**
+     * Mark the one item the hint resolved to, so a renderer never compares
+     * labels.
+     *
+     * The layout used to decide "active" by comparing its hint against every
+     * label in the tree, so two rows sharing a name were BOTH highlighted while
+     * the tree expanded neither branch: the sidebar pointed at two pages and
+     * opened none. Resolution already happens here, once, so the answer travels
+     * with the item instead of being re-derived from a name.
+     *
+     * @param list<NavTreeItem> $tree
+     *
+     * @return list<NavTreeItem>
+     */
+    private function withCurrentItem(array $tree, string $activeId): array
+    {
+        foreach ($tree as $index => $item) {
+            $item['is_current'] = '' !== $activeId && $item['id'] === $activeId;
+            $item['children'] = $this->withCurrentItem($item['children'], $activeId);
+            $tree[$index] = $item;
         }
-        unset($group);
+
+        return $tree;
+    }
+
+    /**
+     * Mark every group the walk decided is open, at any depth.
+     *
+     * The flag used to be written on top-level items only, so a nested group
+     * whose child was the active page rendered CLOSED: the sidebar showed the
+     * branch and hid the way into it. Depth is unbounded now, so the flag is
+     * applied by recursion rather than by one pass over the roots.
+     *
+     * @param list<NavTreeItem>   $tree
+     * @param array<string, true> $expanded
+     *
+     * @return list<NavTreeItem>
+     */
+    private function withExpandedGroups(array $tree, array $expanded): array
+    {
+        foreach ($tree as $index => $item) {
+            $item['is_expanded'] = isset($expanded[$item['id']]);
+            $item['children'] = $this->withExpandedGroups($item['children'], $expanded);
+            $tree[$index] = $item;
+        }
 
         return $tree;
     }
@@ -101,7 +151,7 @@ final readonly class CardboardNavService
      * panel-nav screen, and the router is not the authority for an external
      * URL. A group survives when at least one child survives.
      *
-     * @param list<NavTreeItem> $tree
+     * @param list<NavTreeItem>             $tree
      * @param (\Closure(string): bool)|null $reachable
      *
      * @return list<NavTreeItem>
@@ -116,7 +166,7 @@ final readonly class CardboardNavService
 
         foreach ($tree as $item) {
             $children = $this->withoutUnreachable($item['children'], $reachable);
-            $served = !str_starts_with($item['href'], '/mark') || $reachable($item['href']);
+            $served = self::isServed($item['href'], $reachable);
 
             if (!$served && [] === $children) {
                 continue;
@@ -127,6 +177,45 @@ final readonly class CardboardNavService
         }
 
         return $kept;
+    }
+
+    /**
+     * Whether the tree serves a nav href.
+     *
+     * A path outside `/mark` counts as served: an operator's custom link is not
+     * the router's business, and a missing external page is not this panel's
+     * answer. The rule lives here once so the renderer that hides a link and
+     * the editor that reports it cannot disagree about what hidden means.
+     */
+    private static function isServed(string $href, \Closure $reachable): bool
+    {
+        return !str_starts_with($href, '/mark') || $reachable($href);
+    }
+
+    /**
+     * Stored rows whose href the tree does not serve, so the sidebar hides
+     * them.
+     *
+     * `withoutUnreachable()` drops such a row at render, which is right — a
+     * nav that leads to a 404 teaches the author the panel is broken — and it
+     * is invisible: the operator saves a link, opens the panel, and the link
+     * is simply not there. Declarations are left out on purpose: they ship
+     * with the module that routes them, while the row is the editable half.
+     *
+     * @param (\Closure(string): bool)|null $reachable
+     *
+     * @return list<NavItem>
+     */
+    public function unservedStoredItems(?\Closure $reachable): array
+    {
+        if (null === $reachable) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $this->storedItems(),
+            static fn (array $item): bool => !self::isServed($item['href'], $reachable),
+        ));
     }
 
     /**
@@ -141,12 +230,86 @@ final readonly class CardboardNavService
     {
         $byId = [];
         $byLabel = [];
+        $seen = [];
         foreach ($flat as $item) {
             $byId[$item['id']] = $item + ['children' => [], 'is_expanded' => false];
-            $byLabel[strtolower($item['label'])] = $item['id'];
+
+            $label = self::labelKey($item['label']);
+            if ('' === $label) {
+                // A blank label is not a name: keyed on '', two nameless rows
+                // would resolve each other, and the empty hint is already
+                // "nothing active".
+                continue;
+            }
+
+            if (isset($seen[$label])) {
+                // Two rows share a name — the editor warns about it but does
+                // not forbid it — so the name fits both and therefore names
+                // neither. Left as "last row wins", `sort_order` — a column an
+                // operator drags — decided which branch opened, and a wrong
+                // branch that opens looks exactly like a right one. The id
+                // still resolves.
+                unset($byLabel[$label]);
+                continue;
+            }
+
+            $seen[$label] = true;
+            $byLabel[$label] = $item['id'];
         }
 
         return ['byId' => $byId, 'byLabel' => $byLabel];
+    }
+
+    /**
+     * The labels several active rows share, as the operator spells them.
+     *
+     * A shared name is the one thing the resolution cannot tell apart, and the
+     * editor does not forbid it: the row that owns the page then loses its
+     * active state and nothing on the panel says why. The settings screen asks
+     * this and prints the answer, so the rule is read from the same key the
+     * resolution uses instead of being restated beside it.
+     *
+     * Inactive rows are left out: a hidden row is not in the tree, so its name
+     * cannot collide with anything on the sidebar.
+     *
+     * @return list<string>
+     */
+    public function conflictingLabels(): array
+    {
+        $counts = [];
+        $labels = [];
+
+        foreach ($this->activeItems() as $item) {
+            $key = self::labelKey($item['label']);
+
+            if ('' === $key) {
+                continue;
+            }
+
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+            $labels[$key] ??= trim($item['label']);
+        }
+
+        $shared = [];
+
+        foreach ($counts as $key => $count) {
+            if ($count > 1) {
+                $shared[] = $labels[$key];
+            }
+        }
+
+        sort($shared);
+
+        return $shared;
+    }
+
+    /**
+     * The form a label is indexed by: casing and surrounding space do not make
+     * a different name.
+     */
+    private static function labelKey(string $label): string
+    {
+        return strtolower(trim($label));
     }
 
     /**
@@ -155,10 +318,20 @@ final readonly class CardboardNavService
      * Actions pass lowercase labels (e.g. 'tags'), but $byId is indexed by
      * hex DB IDs — resolve ids directly, falling back to the label map.
      *
+     * A label hint is matched whatever its casing: `byLabel` is keyed on the
+     * lowercase form, so a caller that spells the label the way the sidebar
+     * shows it ('Articles') used to miss and lose the active state silently —
+     * the page rendered, the branch stayed shut.
+     *
+     * A label two rows share is absent from `byLabel` (see `indexItems()`), so
+     * it resolves to no item rather than to whichever row sorted last.
+     *
      * @param array{byId: array<string, NavTreeItem>, byLabel: array<string, string>} $index
      */
     private function resolveActiveId(array $index, string $activeSection): string
     {
+        $activeSection = strtolower(trim($activeSection));
+
         if ('' === $activeSection) {
             return '';
         }
@@ -185,9 +358,22 @@ final readonly class CardboardNavService
             return $expanded;
         }
 
-        $activeItem = $index['byId'][$activeId];
-        if (null !== $activeItem['parent_id'] && isset($index['byId'][$activeItem['parent_id']])) {
-            $expanded[$activeItem['parent_id']] = true;
+        // Every ancestor, not just the parent: a group inside a group is shown
+        // only when the whole chain is open, and a deep item whose grandparent
+        // stayed collapsed is a page the sidebar claims to link.
+        $current = $activeId;
+        $guard = [];
+
+        while (isset($index['byId'][$current]) && !isset($guard[$current])) {
+            $guard[$current] = true;
+            $parent = $index['byId'][$current]['parent_id'];
+
+            if (null === $parent || !isset($index['byId'][$parent])) {
+                break;
+            }
+
+            $expanded[$parent] = true;
+            $current = $parent;
         }
 
         // Also expand the item itself if it is a group. Asked of the merged set
@@ -196,6 +382,7 @@ final readonly class CardboardNavService
         foreach ($index['byId'] as $candidate) {
             if ($activeId === $candidate['parent_id']) {
                 $expanded[$activeId] = true;
+
                 break;
             }
         }
@@ -215,16 +402,40 @@ final readonly class CardboardNavService
      */
     private function buildTree(array $byId): array
     {
+        /** @var array<string, list<string>> $childrenByParent */
+        $childrenByParent = [];
         foreach ($byId as $item) {
             if (null !== $item['parent_id'] && isset($byId[$item['parent_id']])) {
-                $byId[$item['parent_id']]['children'][] = $byId[$item['id']];
+                $childrenByParent[$item['parent_id']][] = $item['id'];
             }
         }
+
+        // Assembled top-down, not by patching a copy of each child into its
+        // parent: PHP arrays are values, so the copy written into a parent was
+        // the snapshot from BEFORE its own children were attached and a third
+        // level was silently lost.
+        $build = function (string $id, array $seen) use (&$build, $byId, $childrenByParent): array {
+            $item = $byId[$id];
+            $seen[$id] = true;
+            $children = [];
+
+            foreach ($childrenByParent[$id] ?? [] as $childId) {
+                if (isset($seen[$childId])) {
+                    continue;
+                }
+
+                $children[] = $build($childId, $seen);
+            }
+
+            $item['children'] = $children;
+
+            return $item;
+        };
 
         $tree = [];
         foreach ($byId as $item) {
             if (null === $item['parent_id'] || !isset($byId[$item['parent_id']])) {
-                $tree[] = $item;
+                $tree[] = $build($item['id'], []);
             }
         }
 
@@ -234,13 +445,53 @@ final readonly class CardboardNavService
     /**
      * Active admin nav items, sorted by sort_order (flat).
      *
+     * An item goes with its parent: hiding a group in the panel-nav screen has
+     * to take the group's children with it. Without that rule the child row is
+     * still active, `buildTree()` cannot find its parent and promotes it to the
+     * top level, so the operator hides "Blog" and the sidebar silently grows
+     * three loose links — the opposite of what the Vis column promised.
+     *
+     * A child whose parent is absent from the merged set keeps its old
+     * behaviour: it renders at the top level. That parent is a module that is
+     * not installed, not a row somebody switched off.
+     *
      * @return list<NavItem>
      */
     public function activeItems(): array
     {
+        $items = $this->allItems();
+
+        /** @var array<string, NavItem> $byId */
+        $byId = [];
+        foreach ($items as $item) {
+            $byId[$item['id']] = $item;
+        }
+
+        /** @var array<string, bool> $hidden */
+        $hidden = [];
+
+        $hiddenWithParent = function (string $id) use (&$hiddenWithParent, &$hidden, $byId): bool {
+            if (isset($hidden[$id])) {
+                return $hidden[$id];
+            }
+
+            // Seeded false before the walk: a parent chain that loops hides
+            // nothing rather than recursing until the request dies.
+            $hidden[$id] = false;
+
+            $item = $byId[$id] ?? null;
+            if (null === $item || null === $item['parent_id'] || !isset($byId[$item['parent_id']])) {
+                return false;
+            }
+
+            $parent = $byId[$item['parent_id']];
+
+            return $hidden[$id] = !$parent['is_active'] || $hiddenWithParent($parent['id']);
+        };
+
         return array_values(array_filter(
-            $this->allItems(),
-            static fn (array $item): bool => $item['is_active'],
+            $items,
+            static fn (array $item): bool => $item['is_active'] && !$hiddenWithParent($item['id']),
         ));
     }
 
@@ -322,7 +573,8 @@ final readonly class CardboardNavService
      */
     public function storedItems(): array
     {
-        $stmt = Statement::prepare($this->connection,
+        $stmt = Statement::prepare(
+            $this->connection,
             'SELECT id, label, href, sort_order, is_active, icon, parent_item_id FROM menu_items
              WHERE location = :loc ORDER BY sort_order ASC, created_at ASC',
         );
@@ -417,31 +669,4 @@ final readonly class CardboardNavService
         return array_values($merged);
     }
 
-    /**
-     * Determine the active section ID from the current request path.
-     *
-     * Matches the href of nav items to identify which sidebar/top-nav link
-     * should be highlighted. If a child matches, returns the child's ID
-     * (the caller can look up the parent for group expansion).
-     */
-    public function activeSection(string $currentPath): string
-    {
-        $items = $this->activeItems();
-
-        foreach ($items as $item) {
-            if ($item['href'] === $currentPath) {
-                return $item['id'];
-            }
-        }
-
-        // Fallback: match by prefix (e.g. /mark/users/123 → users)
-        foreach ($items as $item) {
-            $href = $item['href'];
-            if ('/' !== $href && str_starts_with($currentPath, $href)) {
-                return $item['id'];
-            }
-        }
-
-        return '';
-    }
 }

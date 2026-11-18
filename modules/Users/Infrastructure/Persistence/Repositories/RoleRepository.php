@@ -44,7 +44,8 @@ final readonly class RoleRepository
             return $existingId;
         }
 
-        $stmt = Statement::prepare($this->db,
+        $stmt = Statement::prepare(
+            $this->db,
             'INSERT INTO roles (id, name, description, created_at) VALUES (:id, :name, :description, CURRENT_TIMESTAMP)',
         );
         $stmt->execute([':id' => $id, ':name' => $name, ':description' => $description]);
@@ -70,7 +71,8 @@ final readonly class RoleRepository
             return $existingId;
         }
 
-        $stmt = Statement::prepare($this->db,
+        $stmt = Statement::prepare(
+            $this->db,
             'INSERT INTO permissions (id, name, description, group_name, created_at)
              VALUES (:id, :name, :description, :group, CURRENT_TIMESTAMP)',
         );
@@ -121,7 +123,8 @@ final readonly class RoleRepository
      */
     public function allPermissions(): array
     {
-        $stmt = Statement::query($this->db,
+        $stmt = Statement::query(
+            $this->db,
             'SELECT * FROM permissions ORDER BY group_name ASC, name ASC',
         );
         $rows = $stmt->fetchAll();
@@ -148,7 +151,8 @@ final readonly class RoleRepository
      */
     public function permissionIdsForRole(string $roleId): array
     {
-        $stmt = Statement::prepare($this->db,
+        $stmt = Statement::prepare(
+            $this->db,
             'SELECT permission_id FROM role_permissions WHERE role_id = :rid',
         );
         $stmt->execute([':rid' => $roleId]);
@@ -202,7 +206,8 @@ final readonly class RoleRepository
      */
     public function createRole(string $id, string $name, string $description): void
     {
-        Statement::prepare($this->db,
+        Statement::prepare(
+            $this->db,
             'INSERT INTO roles (id, name, description, created_at) VALUES (:id, :name, :description, CURRENT_TIMESTAMP)',
         )->execute([':id' => $id, ':name' => $name, ':description' => $description]);
     }
@@ -222,7 +227,8 @@ final readonly class RoleRepository
 
     public function assignPermission(string $roleId, string $permissionId): void
     {
-        $stmt = Statement::prepare($this->db,
+        $stmt = Statement::prepare(
+            $this->db,
             'INSERT OR IGNORE INTO role_permissions (role_id, permission_id, created_at)
              VALUES (:rid, :pid, CURRENT_TIMESTAMP)',
         );
@@ -252,8 +258,17 @@ final readonly class RoleRepository
                     ->execute([':rid' => $roleId, ':pid' => $pid]);
             }
             foreach ($toAdd as $pid) {
-                Statement::prepare($db, 'INSERT OR IGNORE INTO role_permissions (role_id, permission_id, created_at) VALUES (:rid, :pid, CURRENT_TIMESTAMP)')
-                    ->execute([':rid' => $roleId, ':pid' => $pid]);
+                // INSERT ... SELECT, not VALUES: `permission_id` is a foreign
+                // key into `permissions`, and the ids arrive from a form. An
+                // unknown id — a stale page, a deleted permission, a hand-made
+                // POST — was a constraint violation inside the transaction and
+                // a 500 for the operator. A row is written only when the
+                // permission exists, and the rest of the save still lands.
+                Statement::prepare(
+                    $db,
+                    'INSERT OR IGNORE INTO role_permissions (role_id, permission_id, created_at)
+                     SELECT :rid, id, CURRENT_TIMESTAMP FROM permissions WHERE id = :pid',
+                )->execute([':rid' => $roleId, ':pid' => $pid]);
             }
         });
     }

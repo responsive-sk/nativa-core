@@ -40,7 +40,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # Module name → Vite package / bundle directory. The list is read from the
 # catalogue, not kept here: this tree carries six themes and the export carries
 # one, and a hand-maintained constant made a third list (after the catalogue and
-# `sync-themes.sh`'s allow-list) that could silently disagree with both.
+# the theme copy step's allow-list) that could silently disagree with both.
 THEMES=()
 while IFS= read -r theme_dir; do
     THEMES+=("$(basename "$theme_dir")")

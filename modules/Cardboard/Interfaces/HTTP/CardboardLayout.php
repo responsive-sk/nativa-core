@@ -5,17 +5,17 @@ declare(strict_types = 1);
 namespace Modules\Cardboard\Interfaces\HTTP;
 
 use Modules\Cardboard\Application\Services\IconRegistry;
-use Themes\AssetManager;
-use View\ViewRenderer;
 use Modules\Core\Infrastructure\Env;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Paths\AppPaths;
-use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
 use Modules\Core\Interfaces\HTTP\Middleware\CsrfMiddleware;
-use Themes\ThemeResolver;
-use Modules\Core\Kernel\Contracts\RouterInterface;
 use Modules\Core\Interfaces\HTTP\Router;
+use Modules\Core\Kernel\Contracts\RouterInterface;
+use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
 use Shell\ShellContextProviderRegistry;
+use Themes\AssetManager;
+use Themes\ThemeResolver;
+use View\ViewRenderer;
 
 /**
  * CardboardLayout — shared admin page shell (task 9.5).
@@ -121,7 +121,7 @@ final class CardboardLayout
     }
 
     /**
-     * The route table's answer to "does this tree serve that menu link?"
+     * The route table's answer to "does this tree serve that menu link?".
      *
      * A callback rather than a Router dependency in `CardboardNavService`: the
      * service stays connection-only and the layout decides what a served path
@@ -722,13 +722,21 @@ final class CardboardLayout
     /**
      * Active state helpers shared by leaf links and group buttons.
      *
-     * @param array{id: string, label: string} $item full nav item or child entry
+     * `is_current` is the service's answer, resolved once from the hint where
+     * the tree is built. Re-deriving it here from labels marked every row that
+     * shares a name at once while the tree expanded none of them — two pages
+     * highlighted, neither open. Items built by hand (tests, other callers)
+     * carry no flag and keep the label comparison.
+     *
+     * @param array{id: string, label: string, is_current?: bool} $item full nav item or child entry
      *
      * @return array{class: string, aria: string}
      */
     private static function navActiveState(array $item, string $activeSection): array
     {
-        $isActive = strtolower($item['label']) === $activeSection || $item['id'] === $activeSection;
+        $isActive = array_key_exists('is_current', $item)
+            ? (bool) $item['is_current']
+            : (strtolower($item['label']) === $activeSection || $item['id'] === $activeSection);
 
         return [
             'class' => $isActive ? ' layout-sidebar__link--active' : '',
@@ -813,18 +821,34 @@ final class CardboardLayout
         $html .= '<div class="layout-sidebar__children"><div class="layout-sidebar__children-inner">';
 
         foreach ($item['children'] as $child) {
-            $state = self::navActiveState($child, $activeSection);
-            $childIcon = self::navIcon((string) $child['id'], (string) $child['icon']);
-
-            $html .= '<a class="layout-sidebar__link layout-sidebar__link--child' . $state['class'] . '" href="' . self::e((string) $child['href']) . '"' . $state['aria'] . '>';
-            $html .= $childIcon;
-            $html .= '<span class="layout-sidebar__link-label">' . self::e((string) $child['label']) . '</span>';
-            $html .= '</a>';
+            // A child that has children of its own is a group again, one level
+            // in. Recursing is what makes the tree in `CardboardNavService`
+            // reachable: before this, a nested group rendered as its own href
+            // and its children were dropped without a word.
+            $html .= [] !== $child['children']
+                ? self::navGroupHtml($child, $activeSection)
+                : self::navChildHtml($child, $activeSection);
         }
 
         $html .= '</div></div></div>';
 
         return $html;
+    }
+
+    /**
+     * One leaf child of a group.
+     *
+     * @param array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string} $child
+     */
+    private static function navChildHtml(array $child, string $activeSection): string
+    {
+        $state = self::navActiveState($child, $activeSection);
+        $childIcon = self::navIcon((string) $child['id'], (string) $child['icon']);
+
+        return '<a class="layout-sidebar__link layout-sidebar__link--child' . $state['class'] . '" href="' . self::e((string) $child['href']) . '"' . $state['aria'] . '>'
+            . $childIcon
+            . '<span class="layout-sidebar__link-label">' . self::e((string) $child['label']) . '</span>'
+            . '</a>';
     }
 
     /**

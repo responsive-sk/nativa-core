@@ -1,4 +1,4 @@
-#:schema https://mago.carthage.software/1.58.2/schema.json
+#:schema https://mago.carthage.software/1.60.2/schema.json
 #
 # =============================================================================
 # mago.toml — the Mago spike, informational only.
@@ -182,6 +182,15 @@ single-class-per-file = { enabled = false }
 
 [guard]
 mode = "default"
+# No `[guard.structural]` rules, and the `WARN Structural guard checks were
+# skipped` line on every run says exactly that. The check set exists
+# (`[[guard.structural.rules]]` with `must-be-final`, `must-be-named`,
+# `must-be-abstract`, `must-be-readonly`, …), but the sentence this repo
+# defends is the dependency perimeter below. Structural policy here would be
+# taste nobody decided on: `KernelShapeTest` and `docs/kernel-shape.md` own
+# shape, `php-cs-fixer` owns spelling, and a second rule set would be a policy
+# with no decision behind it. The warning is therefore the honest report of a
+# deliberate configuration, not a broken gate.
 # Kernel slice only: `tests`/`public`/`bin` are consumers of the rule, not
 # subjects of it, `src/Themes` is a tree the kernel renders for (permitted
 # above), and the two composition roots name modules on purpose. `modules/` is

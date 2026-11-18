@@ -1,0 +1,215 @@
+diff --git a/crates/lekalo-core/src/adapter_conformance/check.rs b/crates/lekalo-core/src/adapter_conformance/check.rs
+index c48c698..35bd414 100644
+--- a/crates/lekalo-core/src/adapter_conformance/check.rs
++++ b/crates/lekalo-core/src/adapter_conformance/check.rs
+@@ -103,6 +103,9 @@ pub enum CheckId {
+     /// kind tokens, and an honest unsupported refusal never counts as
+     /// a silent lowering.
+     ClassificationPreservation,
++    /// A declared scan answers, and every entry names a path the granted
++    /// view contains (the wire allows an honest unsupported refusal).
++    ScanEntries,
+ }
+ 
+ impl CheckId {
+@@ -138,6 +141,7 @@ impl CheckId {
+             Self::StorageMigrationGate => "storage.migration-gate",
+             Self::StorageCollationUniqueness => "storage.collation-uniqueness",
+             Self::ClassificationPreservation => "classification.preservation",
++            Self::ScanEntries => "scan.entries",
+         }
+     }
+ 
+@@ -173,12 +177,14 @@ impl CheckId {
+             | Self::StorageCollationUniqueness => "lekalo.adapter.storage",
+             Self::StorageIntrospectionChecked => "lekalo.adapter.storage-security",
+             Self::ClassificationPreservation => "lekalo.adapter.classification",
++            Self::ScanEntries => "lekalo.adapter.scan",
+         }
+     }
+ 
+     /// The failure class a failed outcome of this check carries.
+     pub const fn class(self) -> CheckClass {
+         match self {
++            Self::ScanEntries => CheckClass::Feature,
+             Self::ConfinementCanonical
+             | Self::ConfinementPlanScopes
+             | Self::RedactionEvidence
+@@ -302,7 +308,7 @@ impl CheckOutcome {
+ }
+ 
+ /// The full catalog in its fixed order.
+-pub const CATALOG: [CheckId; 29] = [
++pub const CATALOG: [CheckId; 30] = [
+     CheckId::DescribeHandshake,
+     CheckId::DescribeNegotiation,
+     CheckId::CapabilityDeclaration,
+@@ -332,6 +338,7 @@ pub const CATALOG: [CheckId; 29] = [
+     CheckId::StorageMigrationGate,
+     CheckId::StorageCollationUniqueness,
+     CheckId::ClassificationPreservation,
++    CheckId::ScanEntries,
+ ];
+ 
+ /// The aggregate verdict of one run, derived from the check outcomes.
+diff --git a/crates/lekalo-core/src/adapter_conformance/mod.rs b/crates/lekalo-core/src/adapter_conformance/mod.rs
+index 55783c8..d563231 100644
+--- a/crates/lekalo-core/src/adapter_conformance/mod.rs
++++ b/crates/lekalo-core/src/adapter_conformance/mod.rs
+@@ -270,6 +270,7 @@ impl Runner {
+         self.confinement_baseline();
+         self.input_phase();
+         self.read_determinism_phase();
++        self.scan_phase();
+         self.generate_phase();
+         self.clean_phase();
+         self.scenario_phase();
+@@ -768,6 +769,118 @@ impl Runner {
+         self.settle_determinism();
+     }
+ 
++    /// The scan surface: a declared scan must answer with a well-formed,
++    /// duplicate-free and reproducible entry set. The wire permits an honest
++    /// typed refusal — a lossy scan must refuse rather than truncate — so
++    /// `unsupported` is accepted as that refusal. Entry paths are deliberately
++    /// not checked against the fixture view: the suite's view is the IR
++    /// fixture, not an enumerable source tree, so a path-existence rule would
++    /// impose a contract the wire does not state.
++    fn scan_phase(&mut self) {
++        use crate::target_protocol::wire::ErrorClass;
++
++        if !self.declared(Operation::Scan) {
++            self.record(CheckOutcome::skipped(
++                CheckId::ScanEntries,
++                "operation-undeclared",
++            ));
++            return;
++        }
++
++        let shape = CallShape {
++            operation: Operation::Scan,
++            profile: self.selected_profile(None),
++            ..CallShape::default()
++        };
++        let response = match self.exchange(&shape) {
++            Exchange::Ok { response, .. } => response,
++            Exchange::Failed(failure) => {
++                let terminal = failure_is_terminal(&failure);
++                self.record_failure(CheckId::ScanEntries, &failure);
++                if terminal {
++                    self.skip_remaining();
++                }
++                return;
++            }
++        };
++
++        if let Some(error) = &response.error {
++            let honest = error.class == ErrorClass::Unsupported;
++            self.record(if honest {
++                CheckOutcome::pass(CheckId::ScanEntries)
++            } else {
++                CheckOutcome::fail(
++                    CheckId::ScanEntries,
++                    CheckId::ScanEntries.class(),
++                    "refusal-class",
++                )
++            });
++            return;
++        }
++
++        let Some(result) = &response.result else {
++            self.record(CheckOutcome::fail(
++                CheckId::ScanEntries,
++                CheckId::ScanEntries.class(),
++                "no-result",
++            ));
++            return;
++        };
++        let Some(entries) = &result.entries else {
++            self.record(CheckOutcome::fail(
++                CheckId::ScanEntries,
++                CheckId::ScanEntries.class(),
++                "no-entries",
++            ));
++            return;
++        };
++        if result.truncated.is_none() {
++            self.record(CheckOutcome::fail(
++                CheckId::ScanEntries,
++                CheckId::ScanEntries.class(),
++                "no-truncated",
++            ));
++            return;
++        }
++        let unique = {
++            let mut seen = std::collections::BTreeSet::new();
++            entries.iter().all(|entry| {
++                seen.insert((
++                    entry.path.as_str(),
++                    entry.kind.as_str(),
++                    entry.detail.as_deref(),
++                ))
++            })
++        };
++        let first = serde_json::to_string(&*response).unwrap_or_default();
++
++        // A second identical scan: an entry set assembled from an unordered
++        // directory walk is the classic source of drift the row exists for.
++        let second = match self.exchange(&shape) {
++            Exchange::Ok { response, .. } => serde_json::to_string(&*response).unwrap_or_default(),
++            Exchange::Failed(failure) => {
++                self.record_failure(CheckId::ScanEntries, &failure);
++                return;
++            }
++        };
++
++        self.record(if !unique {
++            CheckOutcome::fail(
++                CheckId::ScanEntries,
++                CheckId::ScanEntries.class(),
++                "duplicate-entry",
++            )
++        } else if first != second {
++            CheckOutcome::fail(
++                CheckId::ScanEntries,
++                CheckId::ScanEntries.class(),
++                "nondeterministic",
++            )
++        } else {
++            CheckOutcome::pass(CheckId::ScanEntries)
++        });
++    }
++
+     /// The generate dry-run repeats, the apply, and the retry
+     /// discipline. The last dry run leaves the binding the apply uses.
+     fn generate_phase(&mut self) {
+diff --git a/crates/lekalo-core/tests/adapter_conformance.rs b/crates/lekalo-core/tests/adapter_conformance.rs
+index c79e88d..5da3343 100644
+--- a/crates/lekalo-core/tests/adapter_conformance.rs
++++ b/crates/lekalo-core/tests/adapter_conformance.rs
+@@ -171,6 +171,25 @@ fn report_bytes_stay_deterministic_and_redacted() {
+     assert!(!junit.contains("<failure"), "a passing run has no failures");
+ }
+ 
++#[test]
++fn the_scan_row_runs_when_declared_and_skips_when_not() {
++    // The reference adapter declares `scan.symbols: full` and answers the
++    // exchange, so the row must pass rather than skip: a skip here would mean
++    // the new row measured nothing at all.
++    let declared = run_suite(&adapter_command(&[]), "default");
++    let (state, detail) = check(&declared, "scan.entries");
++    assert_eq!(state, "pass", "{detail:?}");
++
++    // An adapter that drops the operation is skipped, never optimistically
++    // passed: an absent declaration is not evidence of a scan.
++    let undeclared_command =
++        adapter_command(&["--lekalo-adapter-ops", "describe,validate,verify"]);
++    let undeclared = run_suite(&undeclared_command, "default");
++    let (state, detail) = check(&undeclared, "scan.entries");
++    assert_eq!(state, "skipped");
++    assert_eq!(detail, Some("operation-undeclared"));
++}
++
+ #[test]
+ fn a_foreign_implementation_passes_with_its_own_identity() {
+     let command = adapter_command(&["--lekalo-adapter-identity", "php-laravel"]);

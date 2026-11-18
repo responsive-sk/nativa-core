@@ -37,7 +37,7 @@
 #
 # Exit: 0 clean, 1 findings, 2 usage or environment.
 # Dependencies: bash, git, grep, sed, coreutils — the same set `bin/cms` and
-# `extract-kernel.sh` keep, so the gate runs where `vendor/` may not exist.
+# the build scripts keep, so the gate runs where `vendor/` may not exist.
 # =============================================================================
 
 set -euo pipefail

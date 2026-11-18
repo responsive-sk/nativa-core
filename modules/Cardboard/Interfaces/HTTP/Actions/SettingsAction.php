@@ -7,21 +7,21 @@ namespace Modules\Cardboard\Interfaces\HTTP\Actions;
 use Modules\Cardboard\Application\Services\IconRegistry;
 use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
 use Modules\Cardboard\Interfaces\HTTP\CardboardServices;
-use Modules\PageCache\Application\Services\CacheInvalidator;
-use View\ViewRenderer;
-use Themes\ThemePreference;
-use Themes\ThemeSetting;
-use Themes\ThemeSettingValues;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
-use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
+use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
+use Modules\PageCache\Application\Services\CacheInvalidator;
+use Modules\Settings\Application\DTOs\MenuItemDTO;
 use Themes\ThemeKernel;
+use Themes\ThemeModule;
+use Themes\ThemePreference;
 use Themes\ThemeRegistry;
 use Themes\ThemeResolver;
-use Modules\Settings\Application\DTOs\MenuItemDTO;
-use Themes\ThemeModule;
+use Themes\ThemeSetting;
 use Themes\ThemeSettings;
+use Themes\ThemeSettingValues;
+use View\ViewRenderer;
 
 /**
  * Settings forms — task 9.4.
@@ -49,6 +49,7 @@ use Themes\ThemeSettings;
 #[Route(path: '/mark/settings/panel-nav/{id}/delete', method: 'POST', name: 'mark.settings.panel-nav.delete', handlerMethod: 'deletePanelNav')]
 #[Route(path: '/mark/settings/panel-nav/reorder', method: 'POST', name: 'mark.settings.panel-nav.reorder', handlerMethod: 'reorderPanelNav')]
 #[Route(path: '/mark/settings/panel-nav/{id}/icon', method: 'POST', name: 'mark.settings.panel-nav.icon', handlerMethod: 'updatePanelNavIcon')]
+#[Route(path: '/mark/settings/panel-nav/{id}/parent', method: 'POST', name: 'mark.settings.panel-nav.parent', handlerMethod: 'movePanelNav')]
 final class SettingsAction
 {
     use ResolvesRouteUrls;
@@ -86,12 +87,15 @@ final class SettingsAction
         $navTable = $this->headerNavTable($csrf);
 
         $panelNavItems = CardboardServices::panelNav()->allItems();
+        $storedNavItems = CardboardServices::panelNav()->storedItems();
         $iconOptions = IconRegistry::optionsHtml();
         $parentOptions = $this->panelParentOptions($panelNavItems);
-        $panelNavTable = $this->panelNavTable($panelNavItems, $csrf);
+        $panelNavTable = $this->panelNavTable($panelNavItems, $storedNavItems, $csrf);
         $declaredNavTable = self::declaredNavTable(
             CardboardServices::panelNav()->declaredItems(),
-            CardboardServices::panelNav()->storedItems(),
+            $storedNavItems,
+            $csrf,
+            $this->url('mark.settings.panel-nav'),
         );
 
         $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'general'), 'adminEmail' => $adminEmail, 'panelNavTable' => $panelNavTable, 'declaredNavTable' => $declaredNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
@@ -100,7 +104,8 @@ final class SettingsAction
             'Settings',
             $content,
             'settings',
-        router: $this->router());
+            router: $this->router(),
+        );
     }
 
     /**
@@ -219,7 +224,7 @@ final class SettingsAction
      * second code path, and a test can prove what a stored `meatball` looks
      * like selected without migrating a tree.
      *
-     * @param array<string, string>                              $stored field => stored value
+     * @param array<string, string>                               $stored field => stored value
      * @param \Closure(string, array<string, string|int>): string $url    route-name resolver
      */
     public static function renderThemeSettingsCard(
@@ -345,12 +350,82 @@ final class SettingsAction
     }
 
     /**
+     * The parents a single row may be moved under — STORED ROWS only.
+     *
+     * `menu_items.parent_item_id` is a foreign key into `menu_items`, so an
+     * option naming a declaration (`_blog`) is a value SQLite refuses: the
+     * operator picks it and the panel answers 500. A declaration needs a row of
+     * its own before anything can be nested under it, which is the rule the add
+     * form already follows.
+     *
+     * Any depth is offered now that the sidebar draws a group inside a group,
+     * but never the row itself or anything beneath it: that is a cycle, and the
+     * tree it would build references itself.
+     *
+     * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}> $stored
+     */
+    private function moveParentOptions(array $stored, string $itemId, ?string $currentParent): string
+    {
+        $options = '<option value=""' . (null === $currentParent ? ' selected' : '') . '>Top level</option>';
+
+        $parentOf = [];
+        foreach ($stored as $row) {
+            $parentOf[$row['id']] = $row['parent_id'] ?? null;
+        }
+
+        foreach ($stored as $candidate) {
+            if ($candidate['id'] === $itemId || self::isInside($parentOf, $candidate['id'], $itemId)) {
+                continue;
+            }
+
+            $selected = $candidate['id'] === $currentParent ? ' selected' : '';
+            $options .= '<option value="' . CardboardLayout::e($candidate['id']) . '"' . $selected . '>'
+                . CardboardLayout::e($candidate['label']) . '</option>';
+        }
+
+        return $options;
+    }
+
+    /**
+     * Is `$id` somewhere under `$ancestor`? Walks the stored parent chain.
+     *
+     * The one shape no renderer survives is a cycle: moving an item under its
+     * own descendant makes the tree reference itself, and the sidebar either
+     * recurses until the request dies or loses the branch. The same walk keeps
+     * the row's own subtree out of its "Move under" select.
+     *
+     * @param array<string, ?string> $parentOf
+     */
+    private static function isInside(array $parentOf, string $id, string $ancestor): bool
+    {
+        $guard = [];
+
+        while (isset($parentOf[$id]) && !isset($guard[$id])) {
+            $guard[$id] = true;
+            $parent = $parentOf[$id];
+
+            if (null === $parent) {
+                return false;
+            }
+
+            if ($parent === $ancestor) {
+                return true;
+            }
+
+            $id = $parent;
+        }
+
+        return false;
+    }
+
+    /**
      * The panel-navigation table: one row per item, plus the drag toolbar and
      * the "Save order" button the shared widget binds to.
      *
      * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}> $items
+     * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string}> $stored
      */
-    private function panelNavTable(array $items, string $csrf): string
+    private function panelNavTable(array $items, array $stored, string $csrf): string
     {
         $rows = '';
 
@@ -370,6 +445,9 @@ final class SettingsAction
             $iconUrl = $this->url('mark.settings.panel-nav.icon', ['id' => $itemId]);
             $toggleUrl = $this->url('mark.settings.panel-nav.toggle', ['id' => $itemId]);
             $deleteUrl = $this->url('mark.settings.panel-nav.delete', ['id' => $itemId]);
+            $parentUrl = $this->url('mark.settings.panel-nav.parent', ['id' => $itemId]);
+            $parentSelect = '<select name="parent_item_id">'
+                . $this->moveParentOptions($stored, $item['id'], $item['parent_id'] ?? null) . '</select>';
             $indent = $isChild ? ' class="m-nav-row--child"' : '';
             $prefix = $isChild ? '<span class="m-nav-row__branch">└</span> ' : '';
             $rows .= "<tr data-nav-id=\"{$itemId}\" draggable=\"true\"{$indent}>
@@ -380,6 +458,13 @@ final class SettingsAction
                         {$csrf}
                         {$iconSelect}
                         <button class=\"m-btn m-btn-sm\" title=\"Save icon\">✓</button>
+                    </form>
+                </td>
+                <td>
+                    <form method=\"POST\" action=\"{$parentUrl}\" class=\"m-inline-form\">
+                        {$csrf}
+                        {$parentSelect}
+                        <button class=\"m-btn m-btn-sm\" title=\"Move under\">✓</button>
                     </form>
                 </td>
                 <td>
@@ -402,7 +487,38 @@ final class SettingsAction
             return '<p class="m-muted">No admin nav items — using defaults.</p>';
         }
 
-        return ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-nav-table.phtml', ['url' => $this->urlBuilder(), 'panelNavRows' => $rows]);
+        // The add form accepts two rows with one name, and the sidebar then
+        // resolves that name to neither of them. On the panel the row simply
+        // stops looking active — which is what a correct page looks like too —
+        // so the editor is the only place the mistake can be seen.
+        $conflicts = CardboardServices::panelNav()->conflictingLabels();
+        $warning = '';
+
+        if ([] !== $conflicts) {
+            $names = implode(', ', array_map(
+                static fn (string $label): string => '"' . CardboardLayout::e($label) . '"',
+                $conflicts,
+            ));
+
+            $warning .= '<div class="cba-msg cba-msg--err">Two or more nav items share a name: '
+                . $names
+                . '. A shared name marks neither item active — rename one of them.</div>';
+        }
+
+        // The sidebar drops a link no GET route serves — right, and silent: the
+        // row is saved, the panel is opened, and the link is not there. Naming
+        // it beside the table is the difference between a configured link and
+        // a broken one.
+        $unserved = CardboardServices::panelNav()->unservedStoredItems(
+            CardboardLayout::reachablePaths($this->router),
+        );
+
+        foreach ($unserved as $row) {
+            $warning .= '<div class="cba-msg cba-msg--err">No route serves this nav link, so the sidebar hides it: <code>'
+                . CardboardLayout::e($row['href']) . '</code> (' . CardboardLayout::e($row['label']) . ').</div>';
+        }
+
+        return ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-nav-table.phtml', ['url' => $this->urlBuilder(), 'panelNavRows' => $rows, 'panelNavWarning' => $warning]);
     }
 
     /**
@@ -421,7 +537,7 @@ final class SettingsAction
      * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string}> $declared
      * @param list<array{id: string, label: string, href: string, sort_order: int, is_active: bool, icon: string, parent_id: ?string, permission: ?string}> $stored
      */
-    public static function declaredNavTable(array $declared, array $stored): string
+    public static function declaredNavTable(array $declared, array $stored, string $csrf = '', string $addUrl = ''): string
     {
         if ([] === $declared) {
             return '';
@@ -447,6 +563,23 @@ final class SettingsAction
                 ? '<span class="m-muted">—</span>'
                 : CardboardLayout::e($labelsById[$item['parent_id']] ?? $item['parent_id']);
 
+            // A declaration cannot be a parent: `menu_items.parent_item_id`
+            // is a foreign key, so the clever form of this control is to write
+            // the row for the operator instead of asking them to retype the
+            // label, the href, the order and the icon by hand.
+            $addCell = '';
+
+            if (!$overridden && '' !== $csrf && '' !== $addUrl) {
+                $addCell = '<form method="POST" action="' . CardboardLayout::e($addUrl) . '" class="m-inline-form">'
+                    . $csrf
+                    . '<input type="hidden" name="label" value="' . CardboardLayout::e($item['label']) . '">'
+                    . '<input type="hidden" name="href" value="' . CardboardLayout::e($item['href']) . '">'
+                    . '<input type="hidden" name="sort_order" value="' . $item['sort_order'] . '">'
+                    . '<input type="hidden" name="icon" value="' . CardboardLayout::e($item['icon']) . '">'
+                    . '<button class="m-btn m-btn-sm">Add row</button>'
+                    . '</form>';
+            }
+
             $rows .= '<tr>'
                 . '<td>' . CardboardLayout::e($item['label']) . '</td>'
                 . '<td><code>' . CardboardLayout::e($item['href']) . '</code></td>'
@@ -455,13 +588,14 @@ final class SettingsAction
                 . '<td>' . $parent . '</td>'
                 . '<td>' . CardboardLayout::e($item['permission'] ?? '—') . '</td>'
                 . '<td>' . $source . '</td>'
+                . '<td>' . $addCell . '</td>'
                 . '</tr>';
         }
 
         return '<h3 class="m-heading">Declared in code</h3>'
             . '<p class="m-muted m-card-intro">Each installed module declares its own entry. A stored row with the same href overrides the declaration — that is what the table above edits; add one below to relabel a declared item or change its order.</p>'
             . '<div class="m-table-scroll"><table class="m-table m-table--wide"><thead><tr>'
-            . '<th>Label</th><th>Href</th><th>Order</th><th>Icon</th><th>Parent</th><th>Permission</th><th>Source</th>'
+            . '<th>Label</th><th>Href</th><th>Order</th><th>Icon</th><th>Parent</th><th>Permission</th><th>Source</th><th>Row</th>'
             . '</tr></thead><tbody>' . $rows . '</tbody></table></div>';
     }
 
@@ -612,7 +746,7 @@ final class SettingsAction
             }
 
             $settings->set(ThemeSettingValues::storageKey($theme, $key), $sanitized, 'design', false);
-            ++$saved;
+            $saved++;
         }
 
         if (0 !== $saved) {
@@ -740,6 +874,81 @@ final class SettingsAction
             CacheInvalidator::flush();
             \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.panel-nav.sort', 'settings', 'Reordered nav item ' . $id . ' to ' . $sort, $request->getClientIp());
         }
+
+        return Response::redirect($this->url('mark.settings'));
+    }
+
+    /**
+     * Move a stored nav row under a top-level item, or back to the top level.
+     *
+     * The add form can create a child and nothing could MOVE one, so fixing a
+     * wrong parent meant delete and re-add — losing the row's icon, order and
+     * audit trail. The three refusals are the shapes the sidebar cannot draw:
+     * itself, a parent that does not exist, a parent that is itself a child
+     * (the renderer emits a group's children as links, so a nested group would
+     * silently drop its own), and a group with children, which would push its
+     * children a level below what the sidebar renders.
+     */
+    public function movePanelNav(Request $request): Response
+    {
+        $id = $request->routeParam('id');
+        $parentId = trim($request->bodyString('parent_item_id'));
+
+        if (null === $id) {
+            return Response::redirect($this->url('mark.settings'));
+        }
+
+        $items = CardboardServices::panelNav()->allItems();
+
+        /** @var array<string, array{parent_id: ?string}> $byId */
+        $byId = [];
+
+        foreach ($items as $item) {
+            $byId[$item['id']] = $item;
+        }
+
+        /** @var array<string, ?string> $parentOf */
+        $parentOf = [];
+        foreach ($items as $item) {
+            $parentOf[$item['id']] = $item['parent_id'] ?? null;
+        }
+
+        if (!isset($byId[$id])) {
+            return Response::html($this->settingsPage(['That nav item no longer exists.']));
+        }
+
+        if ('' !== $parentId) {
+            if ($parentId === $id) {
+                return Response::html($this->settingsPage(['A nav item cannot be moved under itself.']));
+            }
+
+            $storedIds = array_column(CardboardServices::panelNav()->storedItems(), 'id');
+
+            if (!in_array($parentId, $storedIds, true)) {
+                return Response::html($this->settingsPage(isset($byId[$parentId])
+                    ? ['That parent is a declaration, not a stored row — add a row for it first.']
+                    : ['The chosen parent no longer exists.']));
+            }
+
+            // A cycle is the one shape no renderer survives: walking down from
+            // the item must never reach the parent it is being moved under.
+            // Everything else nests now — the sidebar draws a group inside a
+            // group, so a group with children is a legal passenger.
+            if (self::isInside($parentOf, $parentId, $id)) {
+                return Response::html($this->settingsPage(
+                    ['A nav item cannot be moved under its own child.'],
+                ));
+            }
+        }
+
+        CardboardServices::menu()->updateParent($id, '' !== $parentId ? $parentId : null);
+        CacheInvalidator::flush();
+        \Modules\Audit\Interfaces\HTTP\AuditServices::log(
+            'settings.panel-nav.parent',
+            'settings',
+            'Moved nav item ' . $id . ' under ' . ('' !== $parentId ? $parentId : 'top level'),
+            $request->getClientIp(),
+        );
 
         return Response::redirect($this->url('mark.settings'));
     }

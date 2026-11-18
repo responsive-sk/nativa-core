@@ -94,3 +94,10 @@ installed="$(php bin/cms module:list | sed -n 's/^Installed (\([0-9]*\)).*/\1/p'
 }
 
 echo "ok  $installed modules installed (catalogue ${catalogue} + KernelTheme)"
+
+# A page a module serves and nothing links to is a catalogue defect, not a
+# runtime one, so it fails HERE — this script is what CI's module job runs, and
+# it runs before any suite boots. The smoke asks the same question over HTTP
+# later; one is the route table, the other a rendered sidebar, and neither
+# substitutes for the other.
+php bin/build/check-panel-links.php

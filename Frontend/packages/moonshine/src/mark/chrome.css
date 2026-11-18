@@ -14,6 +14,10 @@
 .layout-sidebar__brand svg { flex-shrink: 0; width: 22px; height: 22px; }
 .layout-sidebar__nav { flex: 1; padding: 4px 8px; overflow-y: auto; }
 .layout-sidebar__link {
+    /* A flex item's automatic minimum width is its longest word; without this
+       a nested link grows past the 220px rail and its label never shrinks, so
+       the ellipsis below has nothing to act on. */
+    min-width: 0;
     display: flex; align-items: center; gap: 10px; padding: 9px 10px;
     color: #cbd5e1; text-decoration: none; font-size: 13px; font-weight: 500;
     border-radius: var(--m-r-md); white-space: nowrap; transition: all 150ms ease;
@@ -21,7 +25,13 @@
 .layout-sidebar__link:hover { color: #fff; background: rgba(255,255,255,.08); }
 .layout-sidebar__link--active { color: #fff; background: var(--m-primary); }
 .layout-sidebar__link svg { flex-shrink: 0; width: 18px; height: 18px; }
-.layout-sidebar__link-label { transition: opacity 150ms ease; }
+/* A label longer than the 220px rail ends in an ellipsis rather than being cut
+   mid-glyph. The third level has about 110px of that rail, so `white-space:
+   nowrap` alone leaves a fragment of a word as the last thing the reader sees. */
+.layout-sidebar__link-label {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis;
+    transition: opacity 150ms ease;
+}
 
 /* ── Sidebar count badge ──
    `--m-primary` + white is the pair the accent contract already grades for
@@ -52,7 +62,12 @@
     transform: rotate(90deg);
 }
 .layout-sidebar__children {
-    display: grid; grid-template-rows: 0fr; transition: grid-template-rows 200ms ease;
+    /* The 0fr -> 1fr row is the open/close animation; the COLUMN has to be
+       minmax(0, 1fr) or it sizes to the widest label's max-content, tells every
+       nested link it fits, and the rail clips the text instead of the label
+       ellipsising it. */
+    display: grid; grid-template-rows: 0fr; grid-template-columns: minmax(0, 1fr);
+    transition: grid-template-rows 200ms ease;
     padding-left: 18px;
 }
 .layout-sidebar__group.is-expanded .layout-sidebar__children {
@@ -71,6 +86,24 @@
 }
 .layout-sidebar__link--child:hover { border-left-color: var(--m-primary); }
 .layout-sidebar__link--child.layout-sidebar__link--active { border-left-color: var(--m-primary); }
+/* A group nested in a group. The children container already indents, so the
+   nested toggle keeps the child type size instead of the top-level one. */
+.layout-sidebar__children .layout-sidebar__link--group {
+    font-size: 12px; padding: 6px 10px;
+}
+/* Depth beyond two. The renderer recurses, so the markup does too: every
+   nested group's children sit inside its parent's, which means the indent
+   compounds without a depth counter — the step below is the third level and
+   every one after it. Type steps down once as well, because 220px of sidebar
+   shows about a dozen characters per level and a third level set at the
+   second's size reads as an ambiguity rather than as a branch. */
+.layout-sidebar__children .layout-sidebar__children { padding-left: 12px; }
+.layout-sidebar__children-inner .layout-sidebar__children-inner .layout-sidebar__link {
+    font-size: 11.5px; padding-top: 5px; padding-bottom: 5px;
+}
+.layout-sidebar__children-inner .layout-sidebar__children-inner .layout-sidebar__link svg {
+    width: 15px; height: 15px;
+}
 
 .layout-sidebar__footer { padding: 8px; border-top: 1px solid rgba(255,255,255,.08); }
 .layout-sidebar__user {

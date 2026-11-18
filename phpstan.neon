@@ -1,4 +1,6 @@
 parameters:
+    scanFiles:
+        - adapters/php-nativa/adapter.php
     level: 9
     # The kernel scope only. Installed module slices (src/Modules/<Name> outside
     # Core/Database) are operator state — gitignored, never committed — so

@@ -4,9 +4,9 @@
     "tools": [
         {
             "name": "mago",
-            "version": "1.58.2",
+            "version": "1.60.2",
             "target": "x86_64-unknown-linux-gnu",
-            "sha256": "80b6e6ed3cd2fe2da348f9cd83d23e638f2ccd44988d48bebd766c20ccd30dc2",
+            "sha256": "9e764665f66bf0a190070dd0de3b67a5e989049d63979ef008a15c57723d3acc",
             "why": "lint and guard are gates, analyze is a reading, format is excluded; see docs/mago-evaluation.md",
             "needles": {
                 "files": [

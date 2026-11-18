@@ -14,6 +14,7 @@ use Modules\Core\Domain\Permissions;
  * the file must load whether or not the reader has the attribute class in hand.
  */
 #[\Modules\Cardboard\Infrastructure\Attributes\AsCardboardNavItem(label: 'Dashboard', href: '/mark', permission: Permissions::MARK_ACCESS, order: 10, icon: 'dashboard')]
+#[\Modules\Cardboard\Infrastructure\Attributes\AsCardboardNavItem(label: 'Permissions', href: '/mark/permissions', permission: Permissions::ROLES, order: 35, icon: 'key')]
 final class CardboardNavItems
 {
 }

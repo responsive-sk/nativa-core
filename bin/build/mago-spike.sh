@@ -57,10 +57,10 @@ OUT="$CACHE"
 BIN="$CACHE/bin/mago"
 CONFIG="$ROOT/mago.toml"
 
-MAGO_VERSION="1.58.2"
+MAGO_VERSION="1.60.2"
 MAGO_TARGET="x86_64-unknown-linux-gnu"
-# sha256 of mago-1.58.2-x86_64-unknown-linux-gnu.tar.gz, recorded 2026-10-22.
-MAGO_ARCHIVE_SHA256="80b6e6ed3cd2fe2da348f9cd83d23e638f2ccd44988d48bebd766c20ccd30dc2"
+# sha256 of mago-1.60.2-x86_64-unknown-linux-gnu.tar.gz, recorded 2026-11-18.
+MAGO_ARCHIVE_SHA256="9e764665f66bf0a190070dd0de3b67a5e989049d63979ef008a15c57723d3acc"
 
 STRICT=0
 ONLY=""

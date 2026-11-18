@@ -11,8 +11,8 @@ if (!isset($viewRendererGuard)) {
     throw new \RuntimeException('Template must be rendered via ViewRenderer.');
 }
 
-?>            <div class="m-table-toolbar">
+?><?php echo $panelNavWarning . "\n"; ?>            <div class="m-table-toolbar">
                 <p class="m-muted">Drag rows to reorder. Click "Save order" when done.</p>
                 <button type="button" class="m-btn m-btn-primary m-btn-sm" id="panel-nav-save-order" data-nav-save-order>Save order</button>
             </div>
-            <div class="m-table-scroll"><table class="m-table m-table--wide" id="panel-nav-table" data-nav-table data-reorder-url="<?php echo $url('mark.settings.panel-nav.reorder'); ?>"><thead><tr><th class="m-table__cell--drag"></th><th>Label</th><th>Href</th><th>Icon</th><th>Vis</th><th></th></tr></thead><tbody><?php echo $panelNavRows; ?></tbody></table></div>
+            <div class="m-table-scroll"><table class="m-table m-table--wide" id="panel-nav-table" data-nav-table data-reorder-url="<?php echo $url('mark.settings.panel-nav.reorder'); ?>"><thead><tr><th class="m-table__cell--drag"></th><th>Label</th><th>Href</th><th>Icon</th><th>Parent</th><th>Vis</th><th></th></tr></thead><tbody><?php echo $panelNavRows; ?></tbody></table></div>
