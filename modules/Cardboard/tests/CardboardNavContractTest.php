@@ -101,12 +101,18 @@ final class CardboardNavContractTest extends TestCase
         self::assertContains('Dashboard', array_column($items, 'label'));
         self::assertContains('/mark/articles', array_column($items, 'href'));
 
-        // Pages carries a catalogue slice again, so its entry is the module's.
-        // The reverse direction — a served page nothing links to — is asserted
-        // against a booted server in `bin/build/mark-smoke.sh`, where the route
-        // table and the rendered sidebar are the same tree; `allItems()` here
-        // cannot see whether a page renders at all.
-        self::assertContains('/mark/pages', array_column($items, 'href'));
+        // Pages carries a catalogue slice again, so its entry is the module's
+        // and follows it: the export prunes Pages, and that tree must not offer
+        // the link either. The reverse direction, a served page nothing links
+        // to, is asserted against a booted server in `bin/build/mark-smoke.sh`,
+        // where the route table and the rendered sidebar are the same tree;
+        // `allItems()` here cannot see whether a page renders at all.
+        $hrefs = array_column($items, 'href');
+        self::assertSame(
+            is_dir(APP_BASE_PATH . '/src/Modules/Pages'),
+            in_array('/mark/pages', $hrefs, true),
+            'the Pages entry follows the installed module, not a stored list',
+        );
     }
 
     /**
