@@ -111,8 +111,8 @@ make dist-modules-check  # clean clone + modules-install + module-set artifact
 ```
 
 `make core-export` and `make lekalo-check` do not exist
-here. They guard the source repository's relationship with a sibling checkout
-and its own model; the export carries neither.
+here. They guard the export itself and the source repository's own
+architectural model; the export carries neither.
 
 The suite carries no test whose subject is absent. Tests of the source
 repository's approval records, its Lekalo model, its article corpus or a module
