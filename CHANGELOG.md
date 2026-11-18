@@ -5,6 +5,16 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### Constraint failures have names
+
+Step 4 of the driver plan. A unique violation and a foreign key violation now
+arrive as `UniqueViolationException` and `ForeignKeyViolationException`
+instead of an anonymous `\PDOException`, translated in both the direct execute
+path and every prepared statement. SQLite reports both as `23000` with driver
+code `19`, so the message decides there; PostgreSQL uses `23505` and `23503`.
+The exceptions extend `\PDOException`, so existing catches and `errorInfo`
+readers keep working; `40001` remains a transaction conflict.
+
 ### The database seam knows its driver
 
 Steps 1 and 2 of the plan in `docs/kernel-status/27-postgres-driver-plan.md`:

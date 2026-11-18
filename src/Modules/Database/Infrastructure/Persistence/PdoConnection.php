@@ -6,6 +6,7 @@ namespace Modules\Database\Infrastructure\Persistence;
 
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Contracts\StatementInterface;
+use Modules\Database\Exceptions\ConstraintFailure;
 
 /**
  * PdoConnection — one SQLite handle behind the connection contract.
@@ -62,18 +63,22 @@ final readonly class PdoConnection implements ConnectionInterface
 
     public function query(string $sql): StatementInterface
     {
-        return new PdoStatement($this->statement($this->pdo->query($sql), $sql));
+        return new PdoStatement($this->statement($this->pdo->query($sql), $sql), $this->name);
     }
 
     public function prepare(string $sql): StatementInterface
     {
-        return new PdoStatement($this->statement($this->pdo->prepare($sql), $sql));
+        return new PdoStatement($this->statement($this->pdo->prepare($sql), $sql), $this->name);
     }
 
     public function execute(string $sql, array $bindings = []): int
     {
         if ($bindings === []) {
-            $affected = $this->pdo->exec($sql);
+            try {
+                $affected = $this->pdo->exec($sql);
+            } catch (\PDOException $failure) {
+                throw ConstraintFailure::translate($this->name, $failure);
+            }
 
             if (false === $affected) {
                 throw new \RuntimeException('Failed to execute statement on ' . $this->name . ': ' . $sql);

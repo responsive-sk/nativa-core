@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Database\Infrastructure\Persistence;
 
 use Modules\Database\Contracts\StatementInterface;
+use Modules\Database\Exceptions\ConstraintFailure;
 
 /**
  * PdoStatement — the `\PDOStatement` a PdoConnection prepares, behind the
@@ -20,6 +21,7 @@ final readonly class PdoStatement implements StatementInterface
 {
     public function __construct(
         private \PDOStatement $statement,
+        private string $database = 'default',
     ) {
     }
 
@@ -29,7 +31,11 @@ final readonly class PdoStatement implements StatementInterface
         // argument as "bind exactly these", so an empty array would drop the
         // values a caller set with bindValue(). The contract's default means
         // "use what is already bound", which is PDO's null.
-        return $this->statement->execute([] === $bindings ? null : $bindings);
+        try {
+            return $this->statement->execute([] === $bindings ? null : $bindings);
+        } catch (\PDOException $failure) {
+            throw ConstraintFailure::translate($this->database, $failure);
+        }
     }
 
     public function fetch(int $mode = \PDO::FETCH_ASSOC): array|false
