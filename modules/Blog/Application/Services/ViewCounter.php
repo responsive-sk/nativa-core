@@ -7,6 +7,8 @@ namespace Modules\Blog\Application\Services;
 use Modules\Blog\Infrastructure\Persistence\Statement;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * ViewCounter — tracks article page views in blog.db.
@@ -23,9 +25,12 @@ final class ViewCounter
 
     private readonly ConnectionInterface $connection;
 
+    private readonly SqlDialect $dialect;
+
     private function __construct()
     {
         $this->connection = DatabaseConnectionManager::instance()->connect('blog');
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($this->connection->driverName()));
         $this->ensureTable();
     }
 
@@ -113,11 +118,14 @@ final class ViewCounter
      */
     private function ensureTable(): void
     {
-        $this->connection->execute(<<<'SQL'
+        $autoIncrement = $this->dialect->autoIncrementColumn();
+        $timestamp = $this->dialect->timestampType();
+
+        $this->connection->execute(<<<SQL
                 CREATE TABLE IF NOT EXISTS article_views (
-                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {$autoIncrement},
                     article_slug VARCHAR(200) NOT NULL,
-                    viewed_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+                    viewed_at   {$timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
         $this->connection->execute('CREATE INDEX IF NOT EXISTS idx_article_views_slug ON article_views(article_slug)');

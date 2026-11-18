@@ -192,13 +192,13 @@ final class DatabaseQueue
         if (null === $queue) {
             $statement = Statement::prepare($this->connection,
                 'SELECT id, queue, handler, attempts, max_attempts, reserved_at, available_at, created_at'
-                . ' FROM jobs ORDER BY created_at DESC, rowid DESC LIMIT :limit',
+                . ' FROM jobs ORDER BY created_at DESC, ' . $this->dialect->insertionOrder() . ' DESC LIMIT :limit',
             );
             $statement->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
         } else {
             $statement = Statement::prepare($this->connection,
                 'SELECT id, queue, handler, attempts, max_attempts, reserved_at, available_at, created_at'
-                . ' FROM jobs WHERE queue = :queue ORDER BY created_at DESC, rowid DESC LIMIT :limit',
+                . ' FROM jobs WHERE queue = :queue ORDER BY created_at DESC, ' . $this->dialect->insertionOrder() . ' DESC LIMIT :limit',
             );
             $statement->bindValue(':queue', $queue);
             $statement->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
@@ -245,7 +245,7 @@ final class DatabaseQueue
     public function countFailedOlderThan(string $interval = '30 days'): int
     {
         $statement = Statement::prepare($this->connection,
-            "SELECT COUNT(*) FROM failed_jobs WHERE failed_at < datetime('now', '-' || ?)",
+            'SELECT COUNT(*) FROM failed_jobs WHERE failed_at < ' . $this->dialect->shiftedTimestamp("'-' || ?"),
         );
         $statement->execute([$interval]);
 
@@ -277,7 +277,7 @@ final class DatabaseQueue
     public function pruneFailed(string $interval = '30 days'): int
     {
         $statement = Statement::prepare($this->connection,
-            "DELETE FROM failed_jobs WHERE failed_at < datetime('now', '-' || ?)",
+            'DELETE FROM failed_jobs WHERE failed_at < ' . $this->dialect->shiftedTimestamp("'-' || ?"),
         );
         $statement->execute([$interval]);
 
@@ -291,9 +291,8 @@ final class DatabaseQueue
      */
     public function listFailed(int $limit = 100): array
     {
-        $statement = Statement::prepare($this->connection,
-            'SELECT id, queue, handler, attempts, error, failed_at, payload'
-            . ' FROM failed_jobs ORDER BY failed_at DESC, rowid DESC LIMIT :limit',
+        $statement = Statement::prepare($this->connection,                'SELECT id, queue, handler, attempts, error, failed_at, payload FROM failed_jobs'
+                . ' ORDER BY failed_at DESC, ' . $this->dialect->insertionOrder() . ' DESC LIMIT :limit',
         );
         $statement->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
         $statement->execute();

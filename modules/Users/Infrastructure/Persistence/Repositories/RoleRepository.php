@@ -5,6 +5,8 @@ declare(strict_types = 1);
 namespace Modules\Users\Infrastructure\Persistence\Repositories;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Database\Infrastructure\Persistence\UnitOfWork;
 use Modules\Users\Infrastructure\Persistence\Statement;
 
@@ -13,8 +15,11 @@ use Modules\Users\Infrastructure\Persistence\Statement;
  */
 final readonly class RoleRepository
 {
+    private SqlDialect $dialect;
+
     public function __construct(private ConnectionInterface $db)
     {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
     }
 
     /**
@@ -229,8 +234,10 @@ final readonly class RoleRepository
     {
         $stmt = Statement::prepare(
             $this->db,
-            'INSERT OR IGNORE INTO role_permissions (role_id, permission_id, created_at)
-             VALUES (:rid, :pid, CURRENT_TIMESTAMP)',
+            $this->dialect->insertOrIgnore(
+                'INSERT INTO role_permissions (role_id, permission_id, created_at)
+                 VALUES (:rid, :pid, CURRENT_TIMESTAMP)',
+            ),
         );
         $stmt->execute([':rid' => $roleId, ':pid' => $permissionId]);
     }
@@ -266,8 +273,10 @@ final readonly class RoleRepository
                 // permission exists, and the rest of the save still lands.
                 Statement::prepare(
                     $db,
-                    'INSERT OR IGNORE INTO role_permissions (role_id, permission_id, created_at)
-                     SELECT :rid, id, CURRENT_TIMESTAMP FROM permissions WHERE id = :pid',
+                    SqlDialect::forDriver(Driver::fromName($db->driverName()))->insertOrIgnore(
+                        'INSERT INTO role_permissions (role_id, permission_id, created_at)
+                         SELECT :rid, id, CURRENT_TIMESTAMP FROM permissions WHERE id = :pid',
+                    ),
                 )->execute([':rid' => $roleId, ':pid' => $pid]);
             }
         });

@@ -5,6 +5,18 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### The runtime SQL follows the dialect too
+
+The DDL that `ViewCounter` and `RateLimiter` create on first use, the Scheduler
+table probe, the conflict clauses in `MediaFolderRepository`, `UserRepository`
+and `RoleRepository`, and the queue and outbox ordering and interval arithmetic
+now go through `SqlDialect`. SQLite output and ordering are unchanged.
+
+A Scheduler check briefly called `driverName()` on a raw `\PDO`, which has no
+such method; the timetable lost `queue:work` and its test caught it. Boolean
+predicates and the metric datetime windows are still SQLite-only and are listed
+in `docs/kernel-status/34-runtime-sql.md`.
+
 ### The claim and the drain know their engine
 
 Step 5 of the driver plan. The queue opens its reservation through the dialect

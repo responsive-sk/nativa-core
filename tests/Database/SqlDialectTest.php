@@ -87,6 +87,10 @@ final class SqlDialectTest extends TestCase
         self::assertSame('BEGIN ISOLATION LEVEL SERIALIZABLE', $pgsql->beginSerializable());
         self::assertSame('', $sqlite->skipLocked());
         self::assertSame(' FOR UPDATE SKIP LOCKED', $pgsql->skipLocked());
+        self::assertSame('rowid', $sqlite->insertionOrder());
+        self::assertSame('id', $pgsql->insertionOrder());
+        self::assertSame("datetime('now', '-7 days')", $sqlite->shiftedTimestamp("'-7 days'"));
+        self::assertSame("now() + ('-7 days')::interval", $pgsql->shiftedTimestamp("'-7 days'"));
     }
 
     #[Test]

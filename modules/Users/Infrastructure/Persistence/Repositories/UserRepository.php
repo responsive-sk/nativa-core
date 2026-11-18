@@ -5,6 +5,8 @@ declare(strict_types = 1);
 namespace Modules\Users\Infrastructure\Persistence\Repositories;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Database\Infrastructure\Persistence\UnitOfWork;
 use Modules\Users\Domain\Entities\User;
 use Modules\Users\Infrastructure\Persistence\Statement;
@@ -14,8 +16,11 @@ use Modules\Users\Infrastructure\Persistence\Statement;
  */
 final readonly class UserRepository
 {
+    private SqlDialect $dialect;
+
     public function __construct(private ConnectionInterface $db)
     {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
     }
 
     public function findByEmail(string $email): ?User
@@ -159,9 +164,9 @@ final readonly class UserRepository
      */
     public function assignRole(string $userId, string $roleId): void
     {
-        $stmt = Statement::prepare($this->db,
-            'INSERT OR IGNORE INTO user_roles (user_id, role_id, created_at) VALUES (:uid, :rid, CURRENT_TIMESTAMP)',
-        );
+        $stmt = Statement::prepare($this->db, $this->dialect->insertOrIgnore(
+            'INSERT INTO user_roles (user_id, role_id, created_at) VALUES (:uid, :rid, CURRENT_TIMESTAMP)',
+        ));
         $stmt->execute([':uid' => $userId, ':rid' => $roleId]);
     }
 

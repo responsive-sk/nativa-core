@@ -21,6 +21,11 @@ final readonly class SqliteOutboxRepository
     ) {
     }
 
+    private function dialect(): SqlDialect
+    {
+        return SqlDialect::forDriver(Driver::fromName($this->connection->driverName()));
+    }
+
     /**
      * Run a drain as one serialisable transaction, retrying a conflict.
      *
@@ -171,12 +176,12 @@ final readonly class SqliteOutboxRepository
     {
         if (null === $status) {
             $stmt = Statement::prepare($this->connection,
-                'SELECT * FROM outbox_messages ORDER BY created_at DESC, rowid DESC LIMIT ?',
+                'SELECT * FROM outbox_messages ORDER BY created_at DESC, ' . $this->dialect()->insertionOrder() . ' DESC LIMIT ?',
             );
             $stmt->execute([max(1, $limit)]);
         } else {
             $stmt = Statement::prepare($this->connection,
-                'SELECT * FROM outbox_messages WHERE status = ? ORDER BY created_at DESC, rowid DESC LIMIT ?',
+                'SELECT * FROM outbox_messages WHERE status = ? ORDER BY created_at DESC, ' . $this->dialect()->insertionOrder() . ' DESC LIMIT ?',
             );
             $stmt->execute([$status, max(1, $limit)]);
         }
@@ -209,7 +214,7 @@ final readonly class SqliteOutboxRepository
     {
         $stmt = Statement::prepare($this->connection, '
             DELETE FROM outbox_messages
-            WHERE status = ? AND processed_at < datetime(\'now\', \'-\' || ?)
+            WHERE status = ? AND processed_at < ' . $this->dialect()->shiftedTimestamp("'-' || ?") . '
         ');
         $stmt->execute(['processed', $interval]);
 

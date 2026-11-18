@@ -132,6 +132,32 @@ final readonly class SqlDialect
     }
 
     /**
+     * The column that breaks a tie between rows written in the same second.
+     *
+     * SQLite's `rowid` is monotonic insert order and is what the admin lists
+     * already sort on. PostgreSQL has no such column, so the primary key is
+     * the portable tiebreak (deterministic, if not insertion-ordered).
+     */
+    public function insertionOrder(): string
+    {
+        return $this->isSqlite() ? 'rowid' : 'id';
+    }
+
+    /**
+     * A timestamp shifted by an interval bound as a parameter, such as
+     * `'-7 days'` or `'-1 hour'`.
+     *
+     * SQLite takes the interval as a second argument to `datetime()`;
+     * PostgreSQL adds a cast interval to `now()`.
+     */
+    public function shiftedTimestamp(string $parameter): string
+    {
+        return $this->isSqlite()
+            ? "datetime('now', {$parameter})"
+            : "now() + ({$parameter})::interval";
+    }
+
+    /**
      * The column type for a timestamp the application reads and writes as text.
      *
      * PostgreSQL's `TIMESTAMPTZ` is the closest match to SQLite's `DATETIME`

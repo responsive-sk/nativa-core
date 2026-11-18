@@ -5,6 +5,8 @@ declare(strict_types = 1);
 namespace Modules\Security\Application\Services;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Security\Infrastructure\Persistence\Statement;
 
 /**
@@ -32,8 +34,11 @@ final readonly class RateLimiter
 
     private const int DEFAULT_LOGIN_WINDOW = 60;
 
+    private SqlDialect $dialect;
+
     public function __construct(private ConnectionInterface $db)
     {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
         $this->ensureSchema();
     }
 
@@ -156,12 +161,14 @@ final readonly class RateLimiter
         }
 
         if (!$this->tableExists('login_attempts')) {
-            $this->db->execute(<<<'SQL'
+            $timestamp = $this->dialect->timestampType();
+
+            $this->db->execute(<<<SQL
                     CREATE TABLE IF NOT EXISTS login_attempts (
                         id VARCHAR(32) PRIMARY KEY,
                         email VARCHAR(255) NOT NULL,
                         ip_address VARCHAR(45),
-                        attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                        attempted_at {$timestamp} DEFAULT CURRENT_TIMESTAMP
                     )
                 SQL);
             $this->db->execute('CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(email)');
@@ -171,8 +178,8 @@ final readonly class RateLimiter
 
     private function tableExists(string $name): bool
     {
-        $stmt = Statement::prepare($this->db, "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = :name");
-        $stmt->execute(['name' => $name]);
+        $stmt = Statement::prepare($this->db, $this->dialect->tableExists());
+        $stmt->execute([$name]);
 
         return false !== $stmt->fetchColumn();
     }

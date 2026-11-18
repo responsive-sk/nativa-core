@@ -5,6 +5,8 @@ declare(strict_types = 1);
 namespace Modules\Media\Infrastructure\Persistence;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * MediaFolderRepository — the folder registry (`media_folders`) and the
@@ -37,8 +39,11 @@ use Modules\Database\Contracts\ConnectionInterface;
  */
 final readonly class MediaFolderRepository
 {
+    private SqlDialect $dialect;
+
     public function __construct(private ConnectionInterface $connection)
     {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
     }
 
     /**
@@ -70,7 +75,9 @@ final readonly class MediaFolderRepository
      */
     public function insert(string $path): bool
     {
-        $stmt = Statement::prepare($this->connection, 'INSERT OR IGNORE INTO media_folders (path) VALUES (:path)');
+        $stmt = Statement::prepare($this->connection, $this->dialect->insertOrIgnore(
+            'INSERT INTO media_folders (path) VALUES (:path)',
+        ));
         $stmt->execute([':path' => $path]);
 
         return $stmt->rowCount() > 0;
