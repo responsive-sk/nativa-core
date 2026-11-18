@@ -9,6 +9,7 @@ use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\PdoConnection;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Locales\Infrastructure\Persistence\SeedData;
 use Modules\Locales\Infrastructure\Persistence\Statement;
 
@@ -17,12 +18,16 @@ use Modules\Locales\Infrastructure\Persistence\Statement;
  *
  * Table: translations (group-prefixed key + locale + value + group).
  * Every statement is idempotent (CREATE TABLE IF NOT EXISTS); the seed
- * uses INSERT OR IGNORE so re-running never duplicates rows.
+ * uses the dialect's conflict clause so re-running never duplicates rows.
  */
 #[AsMigrator(module: 'locales', table: 'translations')]
 final readonly class LocalesDatabaseMigrator implements MigratorInterface
 {
     private ConnectionInterface $connection;
+
+    private SqlDialect $dialect;
+
+    private string $timestamp;
 
     public function __construct(private \PDO $pdo)
     {
@@ -30,6 +35,8 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
         // The seed binds values, so it goes through the contract the
         // repository uses, on the one connection this migrator owns.
         $this->connection = new PdoConnection($pdo, 'locales');
+        $this->dialect = SqlDialect::forPdo($pdo);
+        $this->timestamp = $this->dialect->timestampType();
     }
 
     public function run(CliOutput $output): void
@@ -64,15 +71,15 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
      */
     private function createTranslationsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS translations (
                     id VARCHAR(26) PRIMARY KEY,
                     translation_key VARCHAR(200) NOT NULL,
                     locale VARCHAR(10) NOT NULL,
                     value TEXT NOT NULL DEFAULT '',
                     group_name VARCHAR(50) DEFAULT 'general',
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
+                    updated_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(translation_key, locale)
                 )
             SQL);
@@ -158,14 +165,14 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
     }
 
     /**
-     * Seed default translations via INSERT OR IGNORE (idempotent).
+     * Seed default translations through the dialect's conflict clause (idempotent).
      */
     private function seedDefaultTranslations(): int
     {
-        $stmt = Statement::prepare($this->connection,
-            'INSERT OR IGNORE INTO translations (id, translation_key, locale, value, group_name, created_at, updated_at)
+        $stmt = Statement::prepare($this->connection, $this->dialect->insertOrIgnore(
+            'INSERT INTO translations (id, translation_key, locale, value, group_name, created_at, updated_at)
              VALUES (:id, :key, :locale, :value, :group, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-        );
+        ));
 
         $inserted = 0;
 

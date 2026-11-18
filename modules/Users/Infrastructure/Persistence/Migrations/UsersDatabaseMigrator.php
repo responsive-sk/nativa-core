@@ -7,6 +7,7 @@ namespace Modules\Users\Infrastructure\Persistence\Migrations;
 use Modules\Core\Infrastructure\Attributes\AsMigrator;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * Users Database Migrator — creates the complete users.db schema.
@@ -24,8 +25,14 @@ use Modules\Core\Interfaces\CLI\MigratorInterface;
 #[AsMigrator(module: 'users', table: 'users')]
 final readonly class UsersDatabaseMigrator implements MigratorInterface
 {
+    private SqlDialect $dialect;
+
+    private string $timestamp;
+
     public function __construct(private \PDO $pdo)
     {
+        $this->dialect = SqlDialect::forPdo($pdo);
+        $this->timestamp = $this->dialect->timestampType();
     }
 
     public function run(CliOutput $output): void
@@ -78,15 +85,15 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
             return;
         }
 
-        $this->pdo->prepare(
-            'INSERT OR IGNORE INTO user_roles (user_id, role_id, created_at)
+        $this->pdo->prepare($this->dialect->insertOrIgnore(
+            'INSERT INTO user_roles (user_id, role_id, created_at)
              SELECT user_id, :new, created_at FROM user_roles WHERE role_id = :old',
-        )->execute([':new' => $operator, ':old' => $legacy]);
+        ))->execute([':new' => $operator, ':old' => $legacy]);
         $this->pdo->prepare('DELETE FROM user_roles WHERE role_id = :old')->execute([':old' => $legacy]);
-        $this->pdo->prepare(
-            'INSERT OR IGNORE INTO role_permissions (role_id, permission_id, created_at)
+        $this->pdo->prepare($this->dialect->insertOrIgnore(
+            'INSERT INTO role_permissions (role_id, permission_id, created_at)
              SELECT :new, permission_id, created_at FROM role_permissions WHERE role_id = :old',
-        )->execute([':new' => $operator, ':old' => $legacy]);
+        ))->execute([':new' => $operator, ':old' => $legacy]);
         $this->pdo->prepare('DELETE FROM role_permissions WHERE role_id = :old')->execute([':old' => $legacy]);
         $this->pdo->prepare('DELETE FROM roles WHERE id = :old')->execute([':old' => $legacy]);
 
@@ -104,54 +111,54 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
 
     private function createUsersTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS users (
                     id VARCHAR(32) PRIMARY KEY,
                     name VARCHAR(255) NOT NULL,
                     email VARCHAR(255) UNIQUE NOT NULL,
                     password VARCHAR(255) NOT NULL,
                     avatar VARCHAR(255),
-                    is_active BOOLEAN DEFAULT 1,
-                    last_login_at DATETIME,
+                    is_active BOOLEAN DEFAULT {$this->dialect->booleanDefault(true)},
+                    last_login_at {$this->timestamp},
                     last_login_ip VARCHAR(45),
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
+                    updated_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }
 
     private function createRolesTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS roles (
                     id VARCHAR(32) PRIMARY KEY,
                     name VARCHAR(50) UNIQUE NOT NULL,
                     description TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }
 
     private function createPermissionsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS permissions (
                     id VARCHAR(32) PRIMARY KEY,
                     name VARCHAR(100) UNIQUE NOT NULL,
                     description TEXT,
                     group_name VARCHAR(50) DEFAULT 'default',
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }
 
     private function createRolePermissionsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS role_permissions (
                     role_id VARCHAR(32) NOT NULL,
                     permission_id VARCHAR(32) NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (role_id, permission_id),
                     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
                     FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
@@ -161,11 +168,11 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
 
     private function createUserRolesTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS user_roles (
                     user_id VARCHAR(32) NOT NULL,
                     role_id VARCHAR(32) NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (user_id, role_id),
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
@@ -175,27 +182,27 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
 
     private function createPasswordResetTokensTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS password_reset_tokens (
                     id VARCHAR(32) PRIMARY KEY,
                     email VARCHAR(255) NOT NULL,
                     token VARCHAR(64) UNIQUE NOT NULL,
-                    expires_at DATETIME NOT NULL,
-                    used_at DATETIME,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    expires_at {$this->timestamp} NOT NULL,
+                    used_at {$this->timestamp},
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }
 
     private function createRememberTokensTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS remember_tokens (
                     id VARCHAR(32) PRIMARY KEY,
                     user_id VARCHAR(32) NOT NULL,
                     token_hash VARCHAR(64) UNIQUE NOT NULL,
-                    expires_at DATETIME NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    expires_at {$this->timestamp} NOT NULL,
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             SQL);
@@ -203,15 +210,15 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
 
     private function createSessionsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS sessions (
                     id VARCHAR(32) PRIMARY KEY,
                     user_id VARCHAR(32) NOT NULL,
                     ip_address VARCHAR(45),
                     user_agent TEXT,
                     payload TEXT,
-                    last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    last_activity {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             SQL);
@@ -219,7 +226,7 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
 
     private function createRateLimitsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS rate_limits (
                     "key" VARCHAR(255) PRIMARY KEY,
                     count INTEGER NOT NULL DEFAULT 0,
@@ -230,12 +237,12 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
 
     private function createLoginAttemptsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS login_attempts (
                     id VARCHAR(32) PRIMARY KEY,
                     email VARCHAR(255) NOT NULL,
                     ip_address VARCHAR(45),
-                    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    attempted_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }

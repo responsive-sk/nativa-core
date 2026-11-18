@@ -7,6 +7,7 @@ namespace Modules\Media\Infrastructure\Persistence\Migrations;
 use Modules\Core\Infrastructure\Attributes\AsMigrator;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * Media Database Migrator — creates the media.db schema.
@@ -19,8 +20,14 @@ use Modules\Core\Interfaces\CLI\MigratorInterface;
 #[AsMigrator(module: 'media', table: 'assets')]
 final readonly class MediaDatabaseMigrator implements MigratorInterface
 {
+    private SqlDialect $dialect;
+
+    private string $timestamp;
+
     public function __construct(private \PDO $pdo)
     {
+        $this->dialect = SqlDialect::forPdo($pdo);
+        $this->timestamp = $this->dialect->timestampType();
     }
 
     public function run(CliOutput $output): void
@@ -42,7 +49,7 @@ final readonly class MediaDatabaseMigrator implements MigratorInterface
 
     private function createAssetsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS assets (
                     id            VARCHAR(32) PRIMARY KEY,
                     filename      VARCHAR(255) NOT NULL,
@@ -51,7 +58,7 @@ final readonly class MediaDatabaseMigrator implements MigratorInterface
                     size          INTEGER NOT NULL DEFAULT 0,
                     mime_type     VARCHAR(128) NOT NULL,
                     uploaded_by   VARCHAR(64) NOT NULL DEFAULT '',
-                    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at    {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }
@@ -118,7 +125,7 @@ final readonly class MediaDatabaseMigrator implements MigratorInterface
 
     private function createMediaTagsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS media_tags (
                     asset_id VARCHAR(32) NOT NULL,
                     tag      VARCHAR(128) NOT NULL,
@@ -145,17 +152,17 @@ final readonly class MediaDatabaseMigrator implements MigratorInterface
      * here would make it a folder this installation can create, rename and
      * delete, while the files in it stay under the provider's control.
      *
-     * Both statements are idempotent — INSERT OR IGNORE plus a SELECT that
+     * Both statements are idempotent — the dialect's conflict clause plus a SELECT that
      * cannot produce a duplicate — so the migrator stays safe to re-run on a
      * live database, which is when it is actually called.
      */
     private function createFolderRegistryTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS media_folders (
                     path       VARCHAR(255) PRIMARY KEY,
                     source     VARCHAR(32) NOT NULL DEFAULT 'local',
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
 
@@ -163,11 +170,11 @@ final readonly class MediaDatabaseMigrator implements MigratorInterface
             return;
         }
 
-        $this->pdo->exec(<<<'SQL'
-                INSERT OR IGNORE INTO media_folders (path)
+        $this->pdo->exec($this->dialect->insertOrIgnore(<<<'SQL'
+                INSERT INTO media_folders (path)
                 SELECT DISTINCT folder FROM assets
                 WHERE folder != '' AND provider != 'cloudinary'
-            SQL);
+            SQL));
     }
 
     /**
@@ -201,14 +208,6 @@ final readonly class MediaDatabaseMigrator implements MigratorInterface
      */
     private function fetchColumnNames(): array
     {
-        $stmt = $this->pdo->query('PRAGMA table_info(assets)');
-        if (false === $stmt) {
-            return [];
-        }
-
-        /** @var list<array{name: string, type: string}> $rows */
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-        return array_column($rows, 'name');
+        return $this->dialect->columnNames($this->pdo, 'assets');
     }
 }

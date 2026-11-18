@@ -7,6 +7,7 @@ namespace Modules\Queue\Infrastructure\Persistence\Migrations;
 use Modules\Core\Infrastructure\Attributes\AsMigrator;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * Queue Database Migrator — creates the queue.db schema.
@@ -23,8 +24,14 @@ use Modules\Core\Interfaces\CLI\MigratorInterface;
 #[AsMigrator(module: 'queue', table: 'jobs')]
 final readonly class QueueDatabaseMigrator implements MigratorInterface
 {
+    private SqlDialect $dialect;
+
+    private string $timestamp;
+
     public function __construct(private \PDO $pdo)
     {
+        $this->dialect = SqlDialect::forPdo($pdo);
+        $this->timestamp = $this->dialect->timestampType();
     }
 
     public function run(CliOutput $output): void
@@ -40,7 +47,7 @@ final readonly class QueueDatabaseMigrator implements MigratorInterface
 
     private function createJobsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS jobs (
                     id VARCHAR(32) PRIMARY KEY,
                     queue VARCHAR(64) NOT NULL DEFAULT 'default',
@@ -48,23 +55,23 @@ final readonly class QueueDatabaseMigrator implements MigratorInterface
                     payload TEXT NOT NULL,
                     attempts INTEGER NOT NULL DEFAULT 0,
                     max_attempts INTEGER NOT NULL DEFAULT 3,
-                    reserved_at DATETIME,
-                    available_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    reserved_at {$this->timestamp},
+                    available_at {$this->timestamp} NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    created_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }
 
     private function createFailedJobsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS failed_jobs (
                     id VARCHAR(32) PRIMARY KEY,
                     queue VARCHAR(64) NOT NULL DEFAULT 'default',
                     handler VARCHAR(255) NOT NULL,
                     payload TEXT NOT NULL,
                     attempts INTEGER NOT NULL DEFAULT 0,
-                    failed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    failed_at {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
                     error TEXT
                 )
             SQL);

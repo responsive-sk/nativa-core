@@ -8,6 +8,7 @@ use Modules\Core\Infrastructure\Attributes\AsMigrator;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * RestPanel Database Migrator — the spec store's schema.
@@ -34,8 +35,14 @@ use Modules\Core\Interfaces\CLI\MigratorInterface;
 #[AsMigrator(module: 'restpanel', table: 'services')]
 final readonly class RestPanelDatabaseMigrator implements MigratorInterface
 {
+    private SqlDialect $dialect;
+
+    private string $timestamp;
+
     public function __construct(private \PDO $pdo)
     {
+        $this->dialect = SqlDialect::forPdo($pdo);
+        $this->timestamp = $this->dialect->timestampType();
     }
 
     public function run(CliOutput $output): void
@@ -57,8 +64,8 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
      * Adopt the rows of the pre-rename database, once.
      *
      * The rows are copied rather than the file renamed: the PDO already holds
-     * an open handle on the new database, and `ATTACH` + `INSERT OR IGNORE` in
-     * foreign-key order moves them without a second connection. The copy runs
+     * an open handle on the new database, and `ATTACH` + the dialect's conflict
+     * clause in foreign-key order moves them without a second connection. The copy runs
      * only while the new `services` table is empty, and the old file is retired
      * as `restpanel-legacy.db` afterwards, so a second migrate is a no-op.
      *
@@ -67,6 +74,12 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
      */
     private function adoptLegacyDatabase(CliOutput $output): void
     {
+        if (!$this->dialect->isSqlite()) {
+            // The pre-rename file is a SQLite database and the copy is ATTACH;
+            // a PostgreSQL install has no such file to adopt.
+            return;
+        }
+
         $legacy = AppPaths::instance()->database('restadmin');
 
         if (!is_file($legacy) || $this->hasRows() || $this->sameFile($legacy, $this->mainDatabasePath())) {
@@ -82,7 +95,9 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
                         continue;
                     }
 
-                    $this->pdo->exec(sprintf('INSERT OR IGNORE INTO main.%1$s SELECT * FROM legacy.%1$s', $table));
+                    $this->pdo->exec($this->dialect->insertOrIgnore(
+                        sprintf('INSERT INTO main.%1$s SELECT * FROM legacy.%1$s', $table),
+                    ));
                 }
             } finally {
                 $this->pdo->exec('DETACH DATABASE legacy');
@@ -173,7 +188,7 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
 
     private function createServicesTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS services (
                     id              VARCHAR(32) PRIMARY KEY,
                     name            VARCHAR(100) UNIQUE NOT NULL,
@@ -182,15 +197,15 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
                     token_env       VARCHAR(100) DEFAULT NULL,
                     timeout_seconds INTEGER NOT NULL DEFAULT 10,
                     headers         TEXT NOT NULL DEFAULT '{}',
-                    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at      {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
+                    updated_at      {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }
 
     private function createResourcesTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS resources (
                     id              VARCHAR(32) PRIMARY KEY,
                     service_id      VARCHAR(32) NOT NULL,
@@ -200,8 +215,8 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
                     id_field        VARCHAR(100) NOT NULL DEFAULT 'id',
                     actions         TEXT NOT NULL DEFAULT '["list","read"]',
                     pagination      VARCHAR(30) NOT NULL DEFAULT 'page',
-                    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    created_at      {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
+                    updated_at      {$this->timestamp} DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE (service_id, name),
                     FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
                 )
@@ -210,7 +225,7 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
 
     private function createFieldsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS fields (
                     id              VARCHAR(32) PRIMARY KEY,
                     resource_id     VARCHAR(32) NOT NULL,
@@ -239,15 +254,7 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
      */
     private function ensureFieldContextColumns(): void
     {
-        $present = [];
-
-        $statement = $this->pdo->query('PRAGMA table_info(fields)');
-
-        if (false !== $statement) {
-            /** @var list<array{name: string}> $columns */
-            $columns = $statement->fetchAll(\PDO::FETCH_ASSOC);
-            $present = array_column($columns, 'name');
-        }
+        $present = $this->dialect->columnNames($this->pdo, 'fields');
 
         foreach ([
             'hidden_in'    => "TEXT NOT NULL DEFAULT '[]'",
@@ -261,7 +268,7 @@ final readonly class RestPanelDatabaseMigrator implements MigratorInterface
 
     private function createRelationsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS relations (
                     id              VARCHAR(32) PRIMARY KEY,
                     resource_id     VARCHAR(32) NOT NULL,

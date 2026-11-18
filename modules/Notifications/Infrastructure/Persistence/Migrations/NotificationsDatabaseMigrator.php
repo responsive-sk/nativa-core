@@ -7,6 +7,7 @@ namespace Modules\Notifications\Infrastructure\Persistence\Migrations;
 use Modules\Core\Infrastructure\Attributes\AsMigrator;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * Notifications Database Migrator — the per-user inbox schema in
@@ -24,8 +25,14 @@ use Modules\Core\Interfaces\CLI\MigratorInterface;
 #[AsMigrator(module: 'notifications', table: 'notifications')]
 final readonly class NotificationsDatabaseMigrator implements MigratorInterface
 {
+    private SqlDialect $dialect;
+
+    private string $timestamp;
+
     public function __construct(private \PDO $pdo)
     {
+        $this->dialect = SqlDialect::forPdo($pdo);
+        $this->timestamp = $this->dialect->timestampType();
     }
 
     public function run(CliOutput $output): void
@@ -40,7 +47,7 @@ final readonly class NotificationsDatabaseMigrator implements MigratorInterface
 
     private function createNotificationsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS notifications (
                     id            VARCHAR(26) PRIMARY KEY,
                     notifiable_id VARCHAR(26) NOT NULL,
@@ -48,8 +55,8 @@ final readonly class NotificationsDatabaseMigrator implements MigratorInterface
                     title         VARCHAR(200) NOT NULL DEFAULT '',
                     body          TEXT NOT NULL DEFAULT '',
                     href          VARCHAR(200) NOT NULL DEFAULT '',
-                    read_at       DATETIME DEFAULT NULL,
-                    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+                    read_at       {$this->timestamp} DEFAULT NULL,
+                    created_at    {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }

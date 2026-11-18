@@ -7,6 +7,7 @@ namespace Modules\Outbox\Infrastructure\Persistence\Migrations;
 use Modules\Core\Infrastructure\Attributes\AsMigrator;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * Outbox Database Migrator — creates the outbox.db schema.
@@ -18,8 +19,14 @@ use Modules\Core\Interfaces\CLI\MigratorInterface;
 #[AsMigrator(module: 'outbox', table: 'outbox_messages')]
 final readonly class OutboxDatabaseMigrator implements MigratorInterface
 {
+    private SqlDialect $dialect;
+
+    private string $timestamp;
+
     public function __construct(private \PDO $pdo)
     {
+        $this->dialect = SqlDialect::forPdo($pdo);
+        $this->timestamp = $this->dialect->timestampType();
     }
 
     public function run(CliOutput $output): void
@@ -34,7 +41,7 @@ final readonly class OutboxDatabaseMigrator implements MigratorInterface
 
     private function createOutboxMessagesTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS outbox_messages (
                     id              VARCHAR(32) PRIMARY KEY,
                     event_type      VARCHAR(255) NOT NULL,
@@ -43,10 +50,10 @@ final readonly class OutboxDatabaseMigrator implements MigratorInterface
                     status          VARCHAR(20) NOT NULL DEFAULT 'pending',
                     attempts        INTEGER NOT NULL DEFAULT 0,
                     max_attempts    INTEGER NOT NULL DEFAULT 5,
-                    last_attempt_at DATETIME DEFAULT NULL,
-                    processed_at    DATETIME DEFAULT NULL,
+                    last_attempt_at {$this->timestamp} DEFAULT NULL,
+                    processed_at    {$this->timestamp} DEFAULT NULL,
                     error_message   TEXT DEFAULT NULL,
-                    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at      {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }

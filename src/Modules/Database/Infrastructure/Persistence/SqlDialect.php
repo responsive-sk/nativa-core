@@ -5,16 +5,23 @@ declare(strict_types = 1);
 namespace Modules\Database\Infrastructure\Persistence;
 
 /**
- * SqlDialect — the seven SQL forms where SQLite and PostgreSQL differ.
+ * SqlDialect — the SQL forms where SQLite and PostgreSQL differ.
  *
  * Measured before this class existed: 43 lines in 43 SQL-bearing files, and
  * the rest of the SQL (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, parameters,
  * `LIMIT`) is portable. Each method returns the fragment for the driver it was
  * built with, so a call site asks the dialect instead of guessing.
  *
- * `insertOrIgnore` is the one pair that collapsed: SQLite has understood
- * `ON CONFLICT DO NOTHING` since 3.24, so the portable form is also the
- * PostgreSQL form.
+ * `insertOrIgnore` does not collapse: SQLite rejects `ON CONFLICT DO NOTHING`
+ * after an `INSERT ... SELECT` (measured on 3.54, syntax error at `DO`), and
+ * three of the call sites are backfills of exactly that shape. So SQLite keeps
+ * its own `INSERT OR IGNORE` prefix and PostgreSQL gets the clause.
+ *
+ * The DDL vocabulary (`timestampType`, `booleanDefault`, `autoIncrementColumn`,
+ * `immutableTable`, `columnNames`) is what the module migrators ask for, because
+ * a schema is where the two engines differ most: PostgreSQL has no `DATETIME`,
+ * refuses an integer default on a boolean, and enforces append-only with a
+ * trigger function rather than a trigger body.
  */
 final readonly class SqlDialect
 {
@@ -27,9 +34,31 @@ final readonly class SqlDialect
         return new self($driver);
     }
 
+    /**
+     * The dialect of an open handle, read from the driver PHP connected with.
+     *
+     * A migrator is handed a `\PDO` and nothing else, so the handle has to name
+     * its own driver; guessing from the DSN would be a second source of truth.
+     */
+    public static function forPdo(\PDO $pdo): self
+    {
+        $name = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        if (!is_string($name)) {
+            throw new \InvalidArgumentException('The connection does not name its driver.');
+        }
+
+        return self::forDriver(Driver::fromName($name));
+    }
+
     public function driver(): string
     {
         return $this->driver->value;
+    }
+
+    public function isSqlite(): bool
+    {
+        return Driver::Sqlite === $this->driver;
     }
 
     public function quoteIdentifier(string $identifier): string
@@ -38,10 +67,18 @@ final readonly class SqlDialect
     }
 
     /**
-     * Append the conflict clause that makes a duplicate a no-op.
+     * Make a duplicate a no-op, in the syntax the driver accepts.
+     *
+     * SQLite's `ON CONFLICT` clause is rejected when the insert selects its
+     * rows ("near DO: syntax error"), so its prefix form is used and the
+     * indentation in front of `INSERT` is preserved.
      */
     public function insertOrIgnore(string $insert): string
     {
+        if ($this->isSqlite()) {
+            return (string) preg_replace('/^(\s*)INSERT\s+/i', '$1INSERT OR IGNORE ', $insert, 1);
+        }
+
         return $insert . ' ON CONFLICT DO NOTHING';
     }
 
@@ -51,14 +88,40 @@ final readonly class SqlDialect
      */
     public function autoIncrementColumn(string $name = 'id'): string
     {
-        return Driver::Sqlite === $this->driver
+        return $this->isSqlite()
             ? $name . ' INTEGER PRIMARY KEY AUTOINCREMENT'
             : $name . ' BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY';
     }
 
     public function currentTimestamp(): string
     {
-        return Driver::Sqlite === $this->driver ? "datetime('now')" : 'now()';
+        return $this->isSqlite() ? "datetime('now')" : 'now()';
+    }
+
+    /**
+     * The column type for a timestamp the application reads and writes as text.
+     *
+     * PostgreSQL's `TIMESTAMPTZ` is the closest match to SQLite's `DATETIME`
+     * and, like it, compares as text with `CURRENT_TIMESTAMP` defaults.
+     */
+    public function timestampType(): string
+    {
+        return $this->isSqlite() ? 'DATETIME' : 'TIMESTAMPTZ';
+    }
+
+    /**
+     * The default literal for a boolean column.
+     *
+     * SQLite stores `1`/`0`; PostgreSQL refuses an integer default on a
+     * `BOOLEAN` column and needs the keyword.
+     */
+    public function booleanDefault(bool $value): string
+    {
+        if ($this->isSqlite()) {
+            return $value ? '1' : '0';
+        }
+
+        return $value ? 'TRUE' : 'FALSE';
     }
 
     /**
@@ -67,7 +130,7 @@ final readonly class SqlDialect
      */
     public function noCase(string $expression): string
     {
-        return Driver::Sqlite === $this->driver
+        return $this->isSqlite()
             ? $expression . ' COLLATE NOCASE'
             : 'LOWER(' . $expression . ')';
     }
@@ -77,9 +140,78 @@ final readonly class SqlDialect
      */
     public function tableExists(): string
     {
-        return Driver::Sqlite === $this->driver
+        return $this->isSqlite()
             ? "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?"
             : 'SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = ?';
+    }
+
+    /**
+     * The columns of a table, in declaration order.
+     *
+     * The migrators ask before they `ALTER TABLE`, because `CREATE TABLE IF NOT
+     * EXISTS` does not add a column to a table that already exists.
+     *
+     * @return list<string>
+     */
+    public function columnNames(\PDO $pdo, string $table): array
+    {
+        if ($this->isSqlite()) {
+            $statement = $pdo->query('PRAGMA table_info(' . $this->quoteIdentifier($table) . ')');
+        } else {
+            $statement = $pdo->prepare(
+                'SELECT column_name AS name FROM information_schema.columns
+                 WHERE table_schema = current_schema() AND table_name = ?',
+            );
+
+            if (false !== $statement) {
+                $statement->execute([$table]);
+            }
+        }
+
+        if (false === $statement) {
+            return [];
+        }
+
+        $names = [];
+
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            if (is_array($row) && is_string($row['name'] ?? null)) {
+                $names[] = $row['name'];
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * The statements that make a table append-only.
+     *
+     * SQLite refuses the write inside a trigger body; PostgreSQL has no body,
+     * so it raises from a plpgsql function that the two triggers call.
+     *
+     * @return list<string>
+     */
+    public function immutableTable(string $table, string $message): array
+    {
+        $quoted = $this->quoteIdentifier($table);
+        $message = str_replace("'", "''", $message);
+
+        if ($this->isSqlite()) {
+            return [
+                "CREATE TRIGGER IF NOT EXISTS {$table}_no_update BEFORE UPDATE ON {$quoted} BEGIN SELECT RAISE(ABORT, '{$message}'); END",
+                "CREATE TRIGGER IF NOT EXISTS {$table}_no_delete BEFORE DELETE ON {$quoted} BEGIN SELECT RAISE(ABORT, '{$message}'); END",
+            ];
+        }
+
+        $function = 'nativa_refuse_' . $table . '_write';
+
+        return [
+            "CREATE OR REPLACE FUNCTION {$function}() RETURNS trigger LANGUAGE plpgsql AS \$body\$ BEGIN RAISE EXCEPTION '%', '{$message}'; END; \$body\$",
+            "DROP TRIGGER IF EXISTS {$table}_no_update ON {$quoted}",
+            "CREATE TRIGGER {$table}_no_update BEFORE UPDATE ON {$quoted} FOR EACH ROW EXECUTE FUNCTION {$function}()",
+            "DROP TRIGGER IF EXISTS {$table}_no_delete ON {$quoted}",
+            "CREATE TRIGGER {$table}_no_delete BEFORE DELETE ON {$quoted} FOR EACH ROW EXECUTE FUNCTION {$function}()",
+        ];
     }
 
     /**
@@ -93,7 +225,7 @@ final readonly class SqlDialect
 
     public function supportsReturning(\PDO $pdo): bool
     {
-        if (Driver::Sqlite !== $this->driver) {
+        if (!$this->isSqlite()) {
             return true;
         }
 

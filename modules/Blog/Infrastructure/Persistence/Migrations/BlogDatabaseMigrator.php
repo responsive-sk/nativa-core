@@ -7,6 +7,7 @@ namespace Modules\Blog\Infrastructure\Persistence\Migrations;
 use Modules\Core\Infrastructure\Attributes\AsMigrator;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Core\Interfaces\CLI\MigratorInterface;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * Blog Database Migrator — creates the blog.db schema.
@@ -18,8 +19,17 @@ use Modules\Core\Interfaces\CLI\MigratorInterface;
 #[AsMigrator(module: 'blog', table: 'article_views')]
 final readonly class BlogDatabaseMigrator implements MigratorInterface
 {
+    private SqlDialect $dialect;
+
+    private string $autoIncrement;
+
+    private string $timestamp;
+
     public function __construct(private \PDO $pdo)
     {
+        $this->dialect = SqlDialect::forPdo($pdo);
+        $this->autoIncrement = $this->dialect->autoIncrementColumn();
+        $this->timestamp = $this->dialect->timestampType();
     }
 
     public function run(CliOutput $output): void
@@ -34,11 +44,11 @@ final readonly class BlogDatabaseMigrator implements MigratorInterface
 
     private function createArticleViewsTable(): void
     {
-        $this->pdo->exec(<<<'SQL'
+        $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS article_views (
-                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {$this->autoIncrement},
                     article_slug VARCHAR(200) NOT NULL,
-                    viewed_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+                    viewed_at   {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
     }

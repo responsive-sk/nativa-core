@@ -5,6 +5,21 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### The migrations speak their driver
+
+Step 3 of the driver plan. Thirteen migrators, not the eight the plan counted,
+now build their schema through `SqlDialect`: timestamp types, boolean defaults,
+column probes, conflict clauses and append-only statements. The SQLite output
+is unchanged; PostgreSQL gets `TIMESTAMPTZ`, `TRUE`/`FALSE`, an
+`information_schema` probe and a plpgsql trigger function.
+
+A measurement corrected one assumption: SQLite 3.54 rejects `ON CONFLICT DO
+NOTHING` after `INSERT ... SELECT` (syntax error at `DO`), and three backfills
+have that shape, so SQLite keeps its own `INSERT OR IGNORE` prefix. Runtime
+DDL outside the migrators, repository `INSERT OR IGNORE`, boolean predicates
+and timestamp text shapes are still open, and no PostgreSQL server was
+measured against.
+
 ### Constraint failures have names
 
 Step 4 of the driver plan. A unique violation and a foreign key violation now

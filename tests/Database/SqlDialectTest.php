@@ -33,8 +33,12 @@ final class SqlDialectTest extends TestCase
         $pgsql = SqlDialect::forDriver(Driver::Pgsql);
 
         self::assertSame(
-            'INSERT INTO t VALUES (1) ON CONFLICT DO NOTHING',
+            'INSERT OR IGNORE INTO t VALUES (1)',
             $sqlite->insertOrIgnore('INSERT INTO t VALUES (1)'),
+        );
+        self::assertSame(
+            'INSERT INTO t SELECT * FROM s ON CONFLICT DO NOTHING',
+            $pgsql->insertOrIgnore('INSERT INTO t SELECT * FROM s'),
         );
         self::assertSame('id INTEGER PRIMARY KEY AUTOINCREMENT', $sqlite->autoIncrementColumn());
         self::assertSame(
@@ -48,6 +52,65 @@ final class SqlDialectTest extends TestCase
         self::assertStringContainsString('sqlite_master', $sqlite->tableExists());
         self::assertStringContainsString('information_schema.tables', $pgsql->tableExists());
         self::assertSame(' RETURNING id', $sqlite->returning('id'));
+    }
+
+    #[Test]
+    public function theIgnoreClauseSurvivesAnInsertSelect(): void
+    {
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->exec('CREATE TABLE source (path TEXT PRIMARY KEY)');
+        $pdo->exec('CREATE TABLE target (path TEXT PRIMARY KEY)');
+        $pdo->exec("INSERT INTO source VALUES ('a'), ('b')");
+
+        $sql = SqlDialect::forPdo($pdo)->insertOrIgnore(<<<'SQL'
+                INSERT INTO target (path)
+                SELECT path FROM source
+            SQL);
+
+        $pdo->exec($sql);
+        $pdo->exec($sql);
+
+        $count = $pdo->query('SELECT COUNT(*) FROM target');
+        self::assertNotFalse($count);
+        self::assertSame('2', (string) $count->fetchColumn());
+    }
+
+    #[Test]
+    public function theDdlTypesFollowTheDriver(): void
+    {
+        $sqlite = SqlDialect::forDriver(Driver::Sqlite);
+        $pgsql = SqlDialect::forDriver(Driver::Pgsql);
+
+        self::assertSame('DATETIME', $sqlite->timestampType());
+        self::assertSame('TIMESTAMPTZ', $pgsql->timestampType());
+        self::assertSame('1', $sqlite->booleanDefault(true));
+        self::assertSame('FALSE', $pgsql->booleanDefault(false));
+    }
+
+    #[Test]
+    public function theDialectIsReadFromTheHandle(): void
+    {
+        self::assertTrue(SqlDialect::forPdo(new \PDO('sqlite::memory:'))->isSqlite());
+    }
+
+    #[Test]
+    public function columnsComeFromTheLiveSchema(): void
+    {
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->exec('CREATE TABLE probe (id INTEGER PRIMARY KEY, name TEXT)');
+
+        self::assertSame(['id', 'name'], SqlDialect::forPdo($pdo)->columnNames($pdo, 'probe'));
+        self::assertSame([], SqlDialect::forPdo($pdo)->columnNames($pdo, 'absent'));
+    }
+
+    #[Test]
+    public function theAppendOnlyStatementsAreDriverSyntax(): void
+    {
+        $sqlite = SqlDialect::forDriver(Driver::Sqlite)->immutableTable('audit_log', 'no writes');
+        $pgsql = SqlDialect::forDriver(Driver::Pgsql)->immutableTable('audit_log', 'no writes');
+
+        self::assertStringContainsString('RAISE(ABORT', $sqlite[0]);
+        self::assertStringContainsString('EXECUTE FUNCTION', implode("\n", $pgsql));
     }
 
     #[Test]
