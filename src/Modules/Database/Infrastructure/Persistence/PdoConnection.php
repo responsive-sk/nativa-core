@@ -34,6 +34,32 @@ final readonly class PdoConnection implements ConnectionInterface
         return $this->name;
     }
 
+    public function driverName(): string
+    {
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        if (!is_string($driver) || '' === $driver) {
+            throw new \RuntimeException('PDO did not report a driver name for ' . $this->name);
+        }
+
+        return $driver;
+    }
+
+    public function quoteIdentifier(string $identifier): string
+    {
+        return SqlDialect::forDriver($this->driver())->quoteIdentifier($identifier);
+    }
+
+    public function supportsReturning(): bool
+    {
+        return SqlDialect::forDriver($this->driver())->supportsReturning($this->pdo);
+    }
+
+    private function driver(): Driver
+    {
+        return Driver::fromName($this->driverName());
+    }
+
     public function query(string $sql): StatementInterface
     {
         return new PdoStatement($this->statement($this->pdo->query($sql), $sql));

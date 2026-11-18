@@ -8,11 +8,13 @@ use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Database\Contracts\ConnectionInterface;
 
 /**
- * DatabaseConnectionManager — per-module SQLite connection factory.
+ * DatabaseConnectionManager — per-module connection factory.
  *
- * Each module owns its own database file (users.db, config.db, ...),
- * mirroring the Nativa per-module isolation model. Connections are
- * created lazily and cached for the request/process lifetime.
+ * Each module owns its own database (users.db, config.db, ...), mirroring the
+ * Nativa per-module isolation model. `DB_DRIVER` picks the engine: `sqlite`
+ * (the default, one file per module) or `pgsql` (one DSN body per module in
+ * `DB_<NAME>`). Connections are created lazily and cached for the
+ * request/process lifetime.
  *
  * Two ways in:
  *
@@ -181,8 +183,12 @@ final class DatabaseConnectionManager
             }
 
             $key = $name . ':' . $index;
+            $target = Driver::Sqlite === $this->driver()
+                ? $this->resolvePath($path)
+                : $path;
+
             $this->readConnections[$key] ??= new PdoConnection(
-                $this->openPdo($this->resolvePath($path), readOnly: true),
+                $this->openPdo($target, readOnly: true),
                 $name . ':read' . ($index + 1),
             );
 
@@ -224,10 +230,25 @@ final class DatabaseConnectionManager
     }
 
     /**
-     * Create a hardened SQLite PDO connection for a module database.
+     * Create a hardened connection for a module database.
      */
     private function createConnection(string $name): \PDO
     {
+        if (Driver::Sqlite !== $this->driver()) {
+            $target = $this->env('DB_' . strtoupper($name));
+
+            if (null === $target) {
+                throw new \RuntimeException(sprintf(
+                    'DB_%s must hold the %s DSN when DB_DRIVER=%s',
+                    strtoupper($name),
+                    $this->driverName(),
+                    $this->driverName(),
+                ));
+            }
+
+            return $this->openPdo($target, readOnly: false);
+        }
+
         $path = $this->paths->database($name);
         $this->paths->ensureDir(dirname($path));
 
@@ -235,14 +256,32 @@ final class DatabaseConnectionManager
     }
 
     /**
-     * Open and harden one SQLite handle.
+     * The configured driver: `DB_DRIVER`, defaulting to SQLite.
      *
-     * A read-only handle still opens the file read-write at the OS level, then
-     * sets `query_only`: SQLite itself refuses every write from it. That is the
-     * loud failure a misrouted write needs, without the URI handling `mode=ro`
-     * would add.
+     * Read on every call so a test can reconfigure the process and a
+     * long-lived worker cannot outlive a changed environment.
      */
-    private function openPdo(string $path, bool $readOnly): \PDO
+    public function driverName(): string
+    {
+        return $this->driver()->value;
+    }
+
+    private function driver(): Driver
+    {
+        $configured = $this->env('DB_DRIVER');
+
+        return Driver::fromName($configured ?? Driver::Sqlite->value);
+    }
+
+    /**
+     * Open and harden one handle for the configured driver.
+     *
+     * The SQLite path keeps the exact statements it always ran, including the
+     * refused-WAL log line: every existing deployment is that path. PostgreSQL
+     * gets its session settings in `SessionSettings`, and a read-only handle
+     * refuses writes at the session level rather than at a file mode.
+     */
+    private function openPdo(string $target, bool $readOnly): \PDO
     {
         $options = [
             \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
@@ -254,28 +293,10 @@ final class DatabaseConnectionManager
             $options[\PDO::ATTR_STATEMENT_CLASS] = [$this->statementClass, []];
         }
 
-        $pdo = new \PDO('sqlite:' . $path, null, null, $options);
+        $driver = $this->driver();
+        $pdo = new \PDO(DsnBuilder::build($driver, $target), null, null, $options);
 
-        // Robustness + integrity pragmas for concurrent web requests.
-        $pdo->exec('PRAGMA busy_timeout = 5000');
-        $pdo->exec('PRAGMA foreign_keys = ON');
-
-        // WAL improves concurrent read/write behaviour under FPM workers. It is
-        // best-effort: a read-only or network filesystem refuses it and the
-        // connection still works, so the refusal is logged rather than raised.
-        try {
-            $pdo->exec('PRAGMA journal_mode = WAL');
-        } catch (\PDOException $refusal) {
-            error_log(sprintf(
-                '[db] %s: journal_mode WAL unavailable (%s), continuing without it',
-                $path,
-                $refusal->getMessage(),
-            ));
-        }
-
-        if ($readOnly) {
-            $pdo->exec('PRAGMA query_only = 1');
-        }
+        SessionSettings::apply($pdo, $driver, $readOnly, $target);
 
         return $pdo;
     }

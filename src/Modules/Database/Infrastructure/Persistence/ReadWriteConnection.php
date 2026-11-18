@@ -53,6 +53,21 @@ final class ReadWriteConnection implements ConnectionInterface, PrimaryReadInter
         return $this->write->name();
     }
 
+    public function driverName(): string
+    {
+        return $this->write->driverName();
+    }
+
+    public function quoteIdentifier(string $identifier): string
+    {
+        return $this->write->quoteIdentifier($identifier);
+    }
+
+    public function supportsReturning(): bool
+    {
+        return $this->write->supportsReturning();
+    }
+
     public function query(string $sql): StatementInterface
     {
         if ($this->goesToPrimary()) {

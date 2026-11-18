@@ -6,6 +6,7 @@ namespace Tests\Database\Support;
 
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Contracts\StatementInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
 use Modules\Database\Infrastructure\Persistence\TransactionRetry;
 
 /**
@@ -30,6 +31,21 @@ final class RecordingConnection implements ConnectionInterface
     public function name(): string
     {
         return 'recording';
+    }
+
+    public function driverName(): string
+    {
+        return Driver::Sqlite->value;
+    }
+
+    public function quoteIdentifier(string $identifier): string
+    {
+        return '"' . str_replace('"', '""', $identifier) . '"';
+    }
+
+    public function supportsReturning(): bool
+    {
+        return false;
     }
 
     public function query(string $sql): StatementInterface

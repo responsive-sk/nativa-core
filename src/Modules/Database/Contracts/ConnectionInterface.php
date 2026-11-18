@@ -35,6 +35,24 @@ interface ConnectionInterface
     public function name(): string;
 
     /**
+     * The driver this connection speaks: `sqlite`, `pgsql`.
+     *
+     * A dialect needs it, and asking the handle is the only answer that cannot
+     * disagree with the connection that was actually opened.
+     */
+    public function driverName(): string;
+
+    /**
+     * Quote an identifier for this driver.
+     */
+    public function quoteIdentifier(string $identifier): string;
+
+    /**
+     * Whether an `INSERT ... RETURNING` is available on this connection.
+     */
+    public function supportsReturning(): bool;
+
+    /**
      * Run a read and return its statement.
      */
     public function query(string $sql): StatementInterface;

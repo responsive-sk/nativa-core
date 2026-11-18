@@ -7,6 +7,7 @@ namespace Tests\Database;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Contracts\StatementInterface;
 use Modules\Database\Exceptions\ReadException;
+use Modules\Database\Infrastructure\Persistence\Driver;
 use Modules\Database\Infrastructure\Persistence\PdoConnection;
 use Modules\Database\Infrastructure\Persistence\ReadWriteConnection;
 use Modules\Database\Infrastructure\Persistence\ReplicaSelector;
@@ -239,6 +240,21 @@ final class ReadWriteConnectionTest extends TestCase
             public function name(): string
             {
                 return $this->connectionName;
+            }
+
+            public function driverName(): string
+            {
+                return Driver::Sqlite->value;
+            }
+
+            public function quoteIdentifier(string $identifier): string
+            {
+                return '"' . str_replace('"', '""', $identifier) . '"';
+            }
+
+            public function supportsReturning(): bool
+            {
+                return false;
             }
 
             public function query(string $sql): StatementInterface

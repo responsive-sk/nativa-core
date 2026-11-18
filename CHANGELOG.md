@@ -5,6 +5,48 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### The database seam knows its driver
+
+Steps 1 and 2 of the plan in `docs/kernel-status/27-postgres-driver-plan.md`:
+`DB_DRIVER` selects `sqlite` (default) or `pgsql`, `DB_<NAME>` holds a file
+path or a DSN body accordingly, and the connection contract now answers
+`driverName()`, `quoteIdentifier()` and `supportsReturning()`. The dialect
+object expresses the seven measured SQL differences; the SQLite session
+settings moved into one class without changing a statement. Migrations, error
+mapping and concurrency are still steps 3 to 5, and no PostgreSQL server was
+measured against.
+
+### One authored tree
+
+The four repositories became one. The six theme modules were imported from
+`evan70/nativa-themes` after a byte comparison (`identical=23 diverged=0`) and
+now live at `modules/Themes/<Name>/`; the static gallery moved to
+`themes/gallery/`. `bin/build/sync-themes.sh`, its `themes-sync` target and its
+CI job are gone, because with one checkout there is no second side to compare,
+and `evan70/nativa-themes` is archived read-only. The retired `extract-check`
+is recorded in `docs/kernel-status/28-retiring-the-extract-check.md`, the theme
+import in part 29.
+
+**Changed for an operator**
+
+- Theme modules are edited here, not in another repository; reinstall a slice
+  with `php bin/cms module:remove <Name> --force` and `module:add <Name>`.
+- `modules/Themes` is linted like every other module; the exclusion that hid 7
+  findings is gone.
+- The gallery deploys from this tree to
+  `https://responsive-sk.github.io/nativa-php-core/`; the archived repository's
+  Pages build remains as a frozen snapshot.
+
+### The theme gallery is published from this tree
+
+The gallery used to be deployed from `evan70/nativa-themes`, which is archived,
+so its Pages build stopped at the pre-import state. The deploy runs here now:
+`.github/workflows/gallery-pages.yml` publishes `themes/gallery/` to
+`https://responsive-sk.github.io/nativa-php-core/` on every push that touches
+it, with a post-deploy check of the served pages, and
+`gallery-pages-check.yml` re-checks them weekly. The archived URL keeps
+answering as a snapshot.
+
 ### The vocabulary reaches configuration and data
 
 The file names were one surface. Five more carried the word as a contract: the
