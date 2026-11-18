@@ -5,6 +5,18 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### The claim and the drain know their engine
+
+Step 5 of the driver plan. The queue opens its reservation through the dialect
+(`BEGIN IMMEDIATE` on SQLite, `BEGIN` plus `FOR UPDATE SKIP LOCKED` on
+PostgreSQL) and keeps the guarded update that refuses a held row. The outbox
+drain runs as one serialisable transaction and retries a conflict up to three
+times. SQLite behaviour is unchanged and its suites pass untouched.
+
+The `postgres:16` job is still not added: it cannot be green until the runtime
+DDL, repository `INSERT OR IGNORE`, boolean predicates and timestamp shape
+listed in `docs/kernel-status/32-migrations.md` are addressed.
+
 ### The migrations speak their driver
 
 Step 3 of the driver plan. Thirteen migrators, not the eight the plan counted,

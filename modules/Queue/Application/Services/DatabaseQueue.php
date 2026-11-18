@@ -6,6 +6,8 @@ namespace Modules\Queue\Application\Services;
 
 use Closure;
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Queue\Exceptions\PoisonJobException;
 use Modules\Queue\Infrastructure\Persistence\Statement;
 use PDO;
@@ -15,12 +17,12 @@ use Throwable;
  * DatabaseQueue — SQLite-backed job queue on the jobs / failed_jobs
  * tables (QueueDatabaseMigrator schema).
  *
- * Reservation runs under BEGIN IMMEDIATE with a guarded UPDATE
- * (`... WHERE id = ? AND reserved_at IS NULL`): SQLite has no
- * SELECT ... FOR UPDATE / SKIP LOCKED, so the second contender's UPDATE
- * matches zero rows and gets null instead of the same job. That deviation
- * from row-locking queues is load-bearing — do not "simplify" the guard
- * away.
+ * Reservation runs under the dialect's write transaction with a guarded UPDATE
+ * (`... WHERE id = ? AND reserved_at IS NULL`). SQLite takes the write lock
+ * with BEGIN IMMEDIATE; PostgreSQL locks the chosen row with
+ * SELECT ... FOR UPDATE SKIP LOCKED. The guard stays in both drivers, so a
+ * second contender gets zero rows and null instead of the same job — do not
+ * "simplify" it away.
  *
  * The `attempts` column is authoritative: reserve increments it, and the
  * worker parks the job in failed_jobs (with the error message) once
@@ -60,12 +62,15 @@ final class DatabaseQueue
 
     private readonly Closure $now;
 
+    private readonly SqlDialect $dialect;
+
     public function __construct(
         private readonly ConnectionInterface $connection,
         private readonly HandlerRegistry $handlers,
         ?callable $now = null,
     ) {
         $this->now = $now instanceof Closure ? $now : time(...);
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
     }
 
     /**
@@ -107,10 +112,9 @@ final class DatabaseQueue
      */
     public function reserve(?string $queue = null): ?QueuedJob
     {
-        // `BEGIN IMMEDIATE` stays spelled out: PDO's beginTransaction() issues a
-        // deferred BEGIN, and the whole reservation guard depends on the write
-        // lock being taken before the SELECT.
-        $this->connection->execute('BEGIN IMMEDIATE');
+        // The write transaction is spelled out rather than left to PDO: the
+        // reservation guard depends on the lock being taken before the SELECT.
+        $this->connection->execute($this->dialect->beginWrite());
 
         try {
             $row = $this->findAvailable($queue);
@@ -541,13 +545,13 @@ final class DatabaseQueue
         if (null === $queue) {
             $statement = Statement::prepare($this->connection,
                 'SELECT * FROM jobs WHERE reserved_at IS NULL AND available_at <= :now'
-                . ' ORDER BY available_at ASC LIMIT 1',
+                . ' ORDER BY available_at ASC LIMIT 1' . $this->dialect->skipLocked(),
             );
             $statement->execute([':now' => $this->stamp()]);
         } else {
             $statement = Statement::prepare($this->connection,
                 'SELECT * FROM jobs WHERE queue = :queue AND reserved_at IS NULL AND available_at <= :now'
-                . ' ORDER BY available_at ASC LIMIT 1',
+                . ' ORDER BY available_at ASC LIMIT 1' . $this->dialect->skipLocked(),
             );
             $statement->execute([':queue' => $queue, ':now' => $this->stamp()]);
         }

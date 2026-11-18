@@ -48,6 +48,16 @@ final class OutboxProcessor
      */
     public function process(int $limit = 100): array
     {
+        // One serialisable pass: two drains cannot both read the same pending
+        // rows and deliver them twice. A conflict is retried by the repository.
+        return $this->repository->serializable(fn (): array => $this->drain($limit));
+    }
+
+    /**
+     * @return array{processed: int, failed: int}
+     */
+    private function drain(int $limit): array
+    {
         $pending = $this->repository->findPending($limit);
         $processed = 0;
         $failed = 0;

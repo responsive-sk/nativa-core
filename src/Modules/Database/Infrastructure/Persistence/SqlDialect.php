@@ -99,6 +99,39 @@ final readonly class SqlDialect
     }
 
     /**
+     * Open a transaction that will write, before it reads what it writes.
+     *
+     * SQLite needs the write lock up front (`BEGIN IMMEDIATE`); PDO's deferred
+     * begin would let two claimants read the same row before either update.
+     * PostgreSQL takes row locks instead, which is what `skipLocked()` is for,
+     * so a plain `BEGIN` is the right shape there.
+     */
+    public function beginWrite(): string
+    {
+        return $this->isSqlite() ? 'BEGIN IMMEDIATE' : 'BEGIN';
+    }
+
+    /**
+     * The strongest transaction the engine offers, for a drain that must not
+     * run the same row twice.
+     *
+     * SQLite serialises writers by taking the write lock, so its usual begin
+     * already provides the guarantee; PostgreSQL has to be asked.
+     */
+    public function beginSerializable(): string
+    {
+        return $this->isSqlite() ? 'BEGIN IMMEDIATE' : 'BEGIN ISOLATION LEVEL SERIALIZABLE';
+    }
+
+    /**
+     * The clause that makes a locked row skip instead of waiting.
+     */
+    public function skipLocked(): string
+    {
+        return $this->isSqlite() ? '' : ' FOR UPDATE SKIP LOCKED';
+    }
+
+    /**
      * The column type for a timestamp the application reads and writes as text.
      *
      * PostgreSQL's `TIMESTAMPTZ` is the closest match to SQLite's `DATETIME`

@@ -5,6 +5,9 @@ declare(strict_types = 1);
 namespace Modules\Outbox\Infrastructure\Persistence\Repositories;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Exceptions\TransactionConflictException;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Outbox\Domain\Model\OutboxMessage;
 use Modules\Outbox\Infrastructure\Persistence\Statement;
 
@@ -16,6 +19,59 @@ final readonly class SqliteOutboxRepository
     public function __construct(
         private ConnectionInterface $connection,
     ) {
+    }
+
+    /**
+     * Run a drain as one serialisable transaction, retrying a conflict.
+     *
+     * Two drains that read the same pending rows must not both deliver them.
+     * The transaction is opened at the strongest isolation the driver offers
+     * (`BEGIN IMMEDIATE` on SQLite, `SERIALIZABLE` on PostgreSQL), so the
+     * second drain conflicts instead of duplicating the work; the retry is the
+     * policy `TransactionRetry` already uses for a transaction, restated here
+     * because the begin statement is driver-specific.
+     *
+     * A caller already inside a transaction owns the isolation and this method
+     * runs the callback inside it unchanged.
+     *
+     * @template T
+     *
+     * @param callable(): T $callback
+     *
+     * @return T
+     */
+    public function serializable(callable $callback, int $attempts = 3): mixed
+    {
+        if ($this->connection->inTransaction()) {
+            return $callback();
+        }
+
+        $dialect = SqlDialect::forDriver(Driver::fromName($this->connection->driverName()));
+
+        for ($attempt = 1; ; $attempt++) {
+            $this->connection->execute($dialect->beginSerializable());
+
+            try {
+                $result = $callback();
+                $this->connection->execute('COMMIT');
+
+                return $result;
+            } catch (\Throwable $failure) {
+                $this->connection->execute('ROLLBACK');
+
+                $conflict = TransactionConflictException::detect($this->connection->name(), $failure);
+
+                if (null === $conflict) {
+                    throw $failure;
+                }
+
+                if ($attempt >= $attempts) {
+                    throw $conflict;
+                }
+
+                usleep(random_int(0, min(500, 10 * 2 ** ($attempt - 1))) * 1000);
+            }
+        }
     }
 
     public function save(OutboxMessage $message): void

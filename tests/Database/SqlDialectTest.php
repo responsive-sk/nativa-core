@@ -76,6 +76,20 @@ final class SqlDialectTest extends TestCase
     }
 
     #[Test]
+    public function theClaimIsSpelledForTheEngine(): void
+    {
+        $sqlite = SqlDialect::forDriver(Driver::Sqlite);
+        $pgsql = SqlDialect::forDriver(Driver::Pgsql);
+
+        self::assertSame('BEGIN IMMEDIATE', $sqlite->beginWrite());
+        self::assertSame('BEGIN', $pgsql->beginWrite());
+        self::assertSame('BEGIN IMMEDIATE', $sqlite->beginSerializable());
+        self::assertSame('BEGIN ISOLATION LEVEL SERIALIZABLE', $pgsql->beginSerializable());
+        self::assertSame('', $sqlite->skipLocked());
+        self::assertSame(' FOR UPDATE SKIP LOCKED', $pgsql->skipLocked());
+    }
+
+    #[Test]
     public function theDdlTypesFollowTheDriver(): void
     {
         $sqlite = SqlDialect::forDriver(Driver::Sqlite);
