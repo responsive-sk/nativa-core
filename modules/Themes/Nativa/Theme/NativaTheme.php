@@ -434,7 +434,7 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
                 . ' type="' . self::e($type) . '" value="' . self::e($value) . '"'
                 . (($field['required'] ?? false) ? ' required' : '')
                 . (($field['autofocus'] ?? false) ? ' autofocus' : '')
-                . '>' . '</p>';
+                . '></p>';
         }
 
         $html .= '<button class="na-btn" type="submit">' . self::e($submitLabel) . '</button>'

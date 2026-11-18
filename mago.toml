@@ -74,13 +74,12 @@ excludes = ["modules"]
 
 [linter]
 minimum-fail-level = "error"
-# Everything under `modules/` is linted except the theme catalogue. That tree is
-# a byte-verified mirror of `nativa-themes` — `bin/build/sync-themes.sh --check`
-# fails on a changed byte — so a finding there cannot be fixed here without
-# turning the next sync into a conflict. Measured 2026-10-27, it holds 5 such
-# findings (readable-literal on 18_000/42_500-style budget constants); they are
-# upstream's to fix. Analyze still reads it: its count is informational.
-excludes = ["modules/Themes"]
+# Everything under `modules/` is linted, the theme catalogue included. It used to
+# hold 5 `readable-literal` findings on 18_000/42_500-style budget constants and
+# was excluded because a fix there became a conflict with the repository it was
+# mirrored from. Since 2026-11-18 those themes are authored here and that
+# repository is archived read-only, so the exclusion is gone and the findings
+# are this tree's to fix.
 
 # -----------------------------------------------------------------------------
 # Curated rule set — correctness kept, taste and convention switched off.

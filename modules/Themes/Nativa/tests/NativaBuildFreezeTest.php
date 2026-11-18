@@ -42,7 +42,7 @@ final class NativaBuildFreezeTest extends TestCase
     private const int JS_BUDGET = 6000;
 
     /** The stylesheet is the module's own file plus minification headroom. */
-    private const int CSS_BUDGET = 24000;
+    private const int CSS_BUDGET = 24_000;
 
     protected function setUp(): void
     {
