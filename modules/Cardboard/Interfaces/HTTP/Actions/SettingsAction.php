@@ -11,6 +11,7 @@ use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
 use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
+use Modules\Database\Infrastructure\Persistence\ConnectionSummary;
 use Modules\PageCache\Application\Services\CacheInvalidator;
 use Modules\Settings\Application\DTOs\MenuItemDTO;
 use Themes\ThemeKernel;
@@ -98,7 +99,7 @@ final class SettingsAction
             $this->url('mark.settings.panel-nav'),
         );
 
-        $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'general'), 'adminEmail' => $adminEmail, 'panelNavTable' => $panelNavTable, 'declaredNavTable' => $declaredNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
+        $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'general'), 'databaseCard' => self::renderDatabaseCard(ConnectionSummary::fromEnvironment()), 'adminEmail' => $adminEmail, 'panelNavTable' => $panelNavTable, 'declaredNavTable' => $declaredNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
 
         return CardboardLayout::render(
             'Settings',
@@ -106,6 +107,52 @@ final class SettingsAction
             'settings',
             router: $this->router(),
         );
+    }
+
+    /**
+     * The Database tab: which engine this process talks to, and the DSN it
+     * talks to it with.
+     *
+     * Read-only on purpose, and not a form with a disabled input: the engine is
+     * chosen by the environment (`DB_DRIVER`, `DB_DSN`, `DB_DATABASE_PREFIX`)
+     * and read on every connection, so a value saved here could never be the
+     * one the panel boots with — reading the setting would need the connection
+     * the setting picks. The card says so in words, because a screen that looks
+     * editable and silently is not is worse than no screen.
+     *
+     * The DSN arrives redacted (`ConnectionSummary::redact()`); this renderer
+     * never sees the password.
+     */
+    public static function renderDatabaseCard(ConnectionSummary $summary): string
+    {
+        $engine = CardboardLayout::e($summary->driver)
+            . ($summary->driverIsDefault ? ' <span class="m-muted">(default — DB_DRIVER is not set)</span>' : '');
+
+        $dsn = '' === $summary->dsn
+            ? '<span class="m-muted">Not set — SQLite reads a file per module from <code>storage/data/</code>.</span>'
+            : '<code>' . CardboardLayout::e($summary->dsn) . '</code>';
+
+        $moduleDatabases = match (true) {
+            $summary->usesPrefix() => 'One database per module: <code>'
+                . CardboardLayout::e($summary->prefix) . '&lt;module&gt;</code>',
+            'pgsql' === $summary->driver => 'One schema per module, inside the database the DSN names',
+            default                      => 'One file per module under <code>storage/data/</code> (<code>DB_&lt;MODULE&gt;</code> overrides one path)',
+        };
+
+        return '<div class="m-card">'
+            . '<h2 class="m-heading">Database</h2>'
+            . '<p class="m-muted m-card-intro">Where this panel keeps its data. Read-only: the engine is configured in'
+            . ' the environment and cannot be changed from here — the panel needs a database before it can read a setting.</p>'
+            . '<table class="m-table"><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody>'
+            . '<tr><td>Engine</td><td>' . $engine . '</td></tr>'
+            . '<tr><td><code>DB_DSN</code></td><td>' . $dsn . '</td></tr>'
+            . '<tr><td>Module databases</td><td>' . $moduleDatabases . '</td></tr>'
+            . '</tbody></table>'
+            . '<p class="m-muted m-hint m-hint--tight">Passwords are masked. To switch engines, set'
+            . ' <code>DB_DRIVER</code> and <code>DB_DSN</code> in the environment, run'
+            . ' <code>php bin/cms migrate</code>, and move the data with'
+            . ' <code>db:export</code> / <code>db:import</code>.</p>'
+            . '</div>';
     }
 
     /**

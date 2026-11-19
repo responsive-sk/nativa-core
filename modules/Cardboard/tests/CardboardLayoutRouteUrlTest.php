@@ -145,6 +145,7 @@ final class CardboardLayoutRouteUrlTest extends TestCase
             [
                 'url'          => $this->url(),
                 'settingsTabs' => CardboardLayout::settingsTabs($this->url(), $active),
+                'databaseCard' => '',
                 'errorHtml'    => '',
                 'declaredNavTable' => '',
                 'csrf'         => '',

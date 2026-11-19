@@ -346,6 +346,7 @@ final class CardboardLayout
             'general'   => 'General',
             'design'    => 'Design',
             'cache'     => 'Cache',
+            'database'  => 'Database',
             'nav'       => 'Navigation',
             'panel-nav' => 'Panel Nav',
             'modules'   => 'Modules',
