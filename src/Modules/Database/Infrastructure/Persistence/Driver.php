@@ -8,8 +8,8 @@ namespace Modules\Database\Infrastructure\Persistence;
  * Driver — the connection flavours this tree can speak.
  *
  * Two, and both are PHP extensions: `pdo_sqlite` (the default, one file per
- * module) and `pdo_pgsql` (one DSN body per module). An enum rather than a
- * pair of constants because the values are a closed set, and because the
+ * module) and `pdo_pgsql` (one shared database, one schema per module). An enum
+ * rather than a pair of constants because the values are a closed set, and because the
  * const ledger in `tests/Architecture/NameOwnershipContractTest` counts
  * declarations: a new name for a closed set belongs in a type, not in the
  * global const inventory.

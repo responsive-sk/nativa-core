@@ -18,7 +18,8 @@ use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
  * #[AsMigrator(module: 'users', table: 'users')] and implement
  * MigratorInterface. Each migrator receives its module PDO connection and
  * builds idempotent CREATE TABLE IF NOT EXISTS statements, so re-running
- * is safe.
+ * is safe. Under PostgreSQL those connections share one database and differ
+ * only by the module schema selected in their session.
  */
 final readonly class DatabaseMigrator
 {
@@ -43,7 +44,7 @@ final readonly class DatabaseMigrator
 
         foreach ($this->discoverMigrators() as $module => $class) {
             try {
-                $this->writeInfo($output, sprintf('Migrating %s.db (%s)...', $module, $class));
+                $this->writeInfo($output, sprintf('Migrating %s (%s)...', $module, $class));
 
                 $pdo = $this->dbManager->connection($module);
                 // $class is narrowed to class-string<MigratorInterface> in discoverMigrators().

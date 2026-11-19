@@ -40,6 +40,7 @@ final readonly class NotificationsDatabaseMigrator implements MigratorInterface
         $output->writeln('<info>Migrating notifications.db...</info>');
 
         $this->createNotificationsTable();
+        $this->widenNotifiableId();
         $this->createIndexes();
 
         $output->writeln('<info>  ✓ Created table: notifications</info>');
@@ -50,7 +51,7 @@ final readonly class NotificationsDatabaseMigrator implements MigratorInterface
         $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS notifications (
                     id            VARCHAR(26) PRIMARY KEY,
-                    notifiable_id VARCHAR(26) NOT NULL,
+                    notifiable_id VARCHAR(32) NOT NULL,
                     kind          VARCHAR(32) NOT NULL DEFAULT '',
                     title         VARCHAR(200) NOT NULL DEFAULT '',
                     body          TEXT NOT NULL DEFAULT '',
@@ -59,6 +60,36 @@ final readonly class NotificationsDatabaseMigrator implements MigratorInterface
                     created_at    {$this->timestamp} DEFAULT CURRENT_TIMESTAMP
                 )
             SQL);
+    }
+
+    /**
+     * A user id is 32 hex characters, not 26. SQLite accepted the longer value
+     * because it ignores VARCHAR lengths; PostgreSQL refused the import. New
+     * tables get 32 above, and this widens a table created by the old schema.
+     */
+    private function widenNotifiableId(): void
+    {
+        if ($this->dialect->isSqlite()) {
+            return;
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT character_maximum_length FROM information_schema.columns
+             WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?',
+        );
+
+        if (false === $statement) {
+            return;
+        }
+
+        $statement->execute(['notifications', 'notifiable_id']);
+        $length = $statement->fetchColumn();
+
+        if (false === $length || (int) $length >= 32) {
+            return;
+        }
+
+        $this->pdo->exec('ALTER TABLE notifications ALTER COLUMN notifiable_id TYPE VARCHAR(32)');
     }
 
     private function createIndexes(): void

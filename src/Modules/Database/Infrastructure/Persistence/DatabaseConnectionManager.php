@@ -10,11 +10,12 @@ use Modules\Database\Contracts\ConnectionInterface;
 /**
  * DatabaseConnectionManager — per-module connection factory.
  *
- * Each module owns its own database (users.db, config.db, ...), mirroring the
- * Nativa per-module isolation model. `DB_DRIVER` picks the engine: `sqlite`
- * (the default, one file per module) or `pgsql` (one DSN body per module in
- * `DB_<NAME>`). Connections are created lazily and cached for the
- * request/process lifetime.
+ * SQLite keeps the per-module file model (users.db, config.db, ...). PostgreSQL
+ * uses one database for the whole tree: `DB_DSN` is the shared DSN and each
+ * module gets its own schema, named after the module and selected by
+ * `search_path`. A per-module `DB_<NAME>` DSN remains as a test/legacy
+ * override. Connections are created lazily and cached for the request/process
+ * lifetime.
  *
  * Two ways in:
  *
@@ -183,12 +184,14 @@ final class DatabaseConnectionManager
             }
 
             $key = $name . ':' . $index;
-            $target = Driver::Sqlite === $this->driver()
-                ? $this->resolvePath($path)
-                : $path;
+            $driver = $this->driver();
+            $target = Driver::Sqlite === $driver ? $this->resolvePath($path) : $path;
+            $schema = Driver::Sqlite === $driver || null === $this->env('DB_DSN')
+                ? null
+                : $this->schemaName($name);
 
             $this->readConnections[$key] ??= new PdoConnection(
-                $this->openPdo($target, readOnly: true),
+                $this->openPdo($target, readOnly: true, schema: $schema),
                 $name . ':read' . ($index + 1),
             );
 
@@ -235,18 +238,21 @@ final class DatabaseConnectionManager
     private function createConnection(string $name): \PDO
     {
         if (Driver::Sqlite !== $this->driver()) {
-            $target = $this->env('DB_' . strtoupper($name));
+            $shared = $this->env('DB_DSN');
+            $target = $shared ?? $this->env('DB_' . strtoupper($name));
 
             if (null === $target) {
                 throw new \RuntimeException(sprintf(
-                    'DB_%s must hold the %s DSN when DB_DRIVER=%s',
+                    'DB_DSN or DB_%s must hold the %s DSN when DB_DRIVER=%s',
                     strtoupper($name),
                     $this->driverName(),
                     $this->driverName(),
                 ));
             }
 
-            return $this->openPdo($target, readOnly: false);
+            $schema = null === $shared ? null : $this->schemaName($name);
+
+            return $this->openPdo($target, readOnly: false, schema: $schema);
         }
 
         $path = $this->paths->database($name);
@@ -279,9 +285,11 @@ final class DatabaseConnectionManager
      * The SQLite path keeps the exact statements it always ran, including the
      * refused-WAL log line: every existing deployment is that path. PostgreSQL
      * gets its session settings in `SessionSettings`, and a read-only handle
-     * refuses writes at the session level rather than at a file mode.
+     * refuses writes at the session level rather than at a file mode. A
+     * shared PostgreSQL DSN also gets its module schema created on the primary
+     * handle before `search_path` is selected.
      */
-    private function openPdo(string $target, bool $readOnly): \PDO
+    private function openPdo(string $target, bool $readOnly, ?string $schema = null): \PDO
     {
         $options = [
             \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
@@ -296,9 +304,51 @@ final class DatabaseConnectionManager
         $driver = $this->driver();
         $pdo = new \PDO(DsnBuilder::build($driver, $target), null, null, $options);
 
-        SessionSettings::apply($pdo, $driver, $readOnly, $target);
+        if (null !== $schema && !$readOnly) {
+            $this->ensureSchema($pdo, $schema);
+        }
+
+        SessionSettings::apply($pdo, $driver, $readOnly, $target, $schema);
 
         return $pdo;
+    }
+
+    /**
+     * The PostgreSQL schema that holds one module's tables.
+     *
+     * Module names are already lower-case identifiers; the check keeps a typo
+     * or an external caller from turning a connection name into SQL.
+     */
+    private function schemaName(string $name): string
+    {
+        if (1 !== preg_match('/^[a-z][a-z0-9_]*$/', $name)) {
+            throw new \RuntimeException(sprintf('Invalid module schema name "%s".', $name));
+        }
+
+        return $name;
+    }
+
+    /**
+     * Create the module schema on the primary handle.
+     *
+     * One database holds every module, so the schema is the isolation boundary.
+     * It is created before `search_path` is selected, and only on the primary:
+     * a read-only replica must already have the schema the primary created.
+     */
+    private function ensureSchema(\PDO $pdo, string $schema): void
+    {
+        $statement = $pdo->prepare('SELECT 1 FROM information_schema.schemata WHERE schema_name = ?');
+
+        if (false !== $statement) {
+            $statement->execute([$schema]);
+
+            if (false !== $statement->fetchColumn()) {
+                return;
+            }
+        }
+
+        $quoted = SqlDialect::forDriver(Driver::Pgsql)->quoteIdentifier($schema);
+        $pdo->exec('CREATE SCHEMA IF NOT EXISTS ' . $quoted);
     }
 
     private function resolvePath(string $path): string

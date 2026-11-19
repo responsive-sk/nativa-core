@@ -9,11 +9,11 @@ use Modules\Database\Contracts\StatementInterface;
 use Modules\Database\Exceptions\ConstraintFailure;
 
 /**
- * PdoConnection — one SQLite handle behind the connection contract.
+ * PdoConnection — one PDO handle behind the connection contract.
  *
- * This is the single-file case: every read and every write goes to the handle
+ * This is the single-handle case: every read and every write goes to the handle
  * the manager opened, so there is nothing to route. The hardening (exception
- * mode, fetch mode, busy timeout, foreign keys, WAL) stays in
+ * mode, fetch mode, SQLite pragmas, PostgreSQL session settings) stays in
  * DatabaseConnectionManager::openPdo(), which is where the handle is created;
  * this class does not reconfigure a connection somebody else owns.
  *

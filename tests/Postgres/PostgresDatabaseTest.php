@@ -17,8 +17,9 @@ use PHPUnit\Framework\TestCase;
  * The kernel suite runs on SQLite by default, and the tests that seed their own
  * SQLite files pin that engine rather than inheriting whatever `DB_DRIVER`
  * names. This file is the other side: it owns `DB_DRIVER=pgsql`, refuses to run
- * without the per-module DSNs, and the `postgres` CI job runs it with
- * `--fail-on-skipped`, so a skip is a red job rather than a silent pass.
+ * without the shared `DB_DSN` (or the legacy per-module DSNs), and the
+ * `postgres` CI job runs it with `--fail-on-skipped`, so a skip is a red job
+ * rather than a silent pass.
  *
  * Only kernel classes are named here. The suite lives under `tests/`, which
  * PHPStan analyses in a kernel-only checkout, so reaching for `Modules\Users`
@@ -28,7 +29,7 @@ use PHPUnit\Framework\TestCase;
 final class PostgresDatabaseTest extends TestCase
 {
     /**
-     * Every schema a migrated catalogue has, by the database that owns it.
+     * Every table a migrated catalogue has, by the module schema that owns it.
      *
      * @var array<string, list<string>>
      */
@@ -84,12 +85,14 @@ final class PostgresDatabaseTest extends TestCase
         parent::setUp();
 
         if (Driver::Pgsql->value !== getenv('DB_DRIVER')) {
-            $this->markTestSkipped('PostgreSQL suite: set DB_DRIVER=pgsql and the DB_<NAME> DSNs to run it.');
+            $this->markTestSkipped('PostgreSQL suite: set DB_DRIVER=pgsql and DB_DSN to run it.');
         }
 
-        foreach (array_keys(self::SCHEMAS) as $database) {
-            if (false === getenv('DB_' . strtoupper($database))) {
-                $this->markTestSkipped('PostgreSQL suite: DB_' . strtoupper($database) . ' is not set.');
+        if (false === getenv('DB_DSN')) {
+            foreach (array_keys(self::SCHEMAS) as $database) {
+                if (false === getenv('DB_' . strtoupper($database))) {
+                    $this->markTestSkipped('PostgreSQL suite: set DB_DSN, or every legacy DB_<NAME> DSN, to run it.');
+                }
             }
         }
 
@@ -117,6 +120,51 @@ final class PostgresDatabaseTest extends TestCase
                     "{$database}.{$table} is missing; the PostgreSQL job must run php bin/cms migrate first.",
                 );
             }
+        }
+    }
+
+    #[Test]
+    public function aNotificationRecipientIdIsWideEnoughForAUser(): void
+    {
+        $handle = DatabaseConnectionManager::instance()->connection('notifications');
+        $statement = $handle->prepare(
+            'SELECT character_maximum_length FROM information_schema.columns
+             WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?',
+        );
+
+        self::assertInstanceOf(\PDOStatement::class, $statement);
+        $statement->execute(['notifications', 'notifiable_id']);
+        $length = $statement->fetchColumn();
+
+        self::assertNotFalse($length);
+        self::assertGreaterThanOrEqual(32, (int) $length);
+    }
+
+    #[Test]
+    public function everyModuleSharesOneDatabaseAndItsOwnSchema(): void
+    {
+        if (false === getenv('DB_DSN')) {
+            $this->markTestSkipped('PostgreSQL suite: this test requires the shared DB_DSN arrangement.');
+        }
+
+        $database = null;
+
+        foreach (array_keys(self::SCHEMAS) as $module) {
+            $handle = DatabaseConnectionManager::instance()->connection($module);
+            $databaseStatement = $handle->query('SELECT current_database()');
+            $schemaStatement = $handle->query('SELECT current_schema()');
+
+            self::assertInstanceOf(\PDOStatement::class, $databaseStatement);
+            self::assertInstanceOf(\PDOStatement::class, $schemaStatement);
+
+            $currentDatabase = $databaseStatement->fetchColumn();
+            $currentSchema = $schemaStatement->fetchColumn();
+
+            self::assertIsString($currentDatabase);
+            self::assertSame($module, $currentSchema, 'the module must select its own schema');
+
+            $database ??= $currentDatabase;
+            self::assertSame($database, $currentDatabase, 'every module must share one database');
         }
     }
 

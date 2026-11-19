@@ -17,10 +17,12 @@ namespace Modules\Database\Infrastructure\Persistence;
 final class SessionSettings
 {
     /**
-     * @param string $label what the log line names: the file path for SQLite,
-     *                      the module name for a DSN that may carry credentials
+     * @param string      $label  what the log line names: the file path for SQLite,
+     *                            the module name for a DSN that may carry credentials
+     * @param string|null $schema the PostgreSQL module schema, or null for SQLite
+     *                            and the legacy per-module PostgreSQL layout
      */
-    public static function apply(\PDO $pdo, Driver $driver, bool $readOnly, string $label): void
+    public static function apply(\PDO $pdo, Driver $driver, bool $readOnly, string $label, ?string $schema = null): void
     {
         if (Driver::Sqlite === $driver) {
             self::applySqlite($pdo, $readOnly, $label);
@@ -30,6 +32,10 @@ final class SessionSettings
 
         if ($readOnly) {
             $pdo->exec('SET default_transaction_read_only = on');
+        }
+
+        if (null !== $schema) {
+            $pdo->exec('SET search_path TO ' . SqlDialect::forDriver($driver)->quoteIdentifier($schema));
         }
     }
 

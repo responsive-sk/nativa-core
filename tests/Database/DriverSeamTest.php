@@ -15,8 +15,9 @@ use PHPUnit\Framework\TestCase;
  * DriverSeamTest — the configuration seam, not a running PostgreSQL.
  *
  * Step 1 of the driver plan is the DSN and the session: `DB_DRIVER` chooses
- * the engine, and a `pgsql` module needs its DSN in `DB_<NAME>`. No server is
- * reachable here, so this file pins what can be pinned without one: the DSN
+ * the engine, and `pgsql` needs the shared `DB_DSN` (or a test/legacy
+ * `DB_<NAME>` override). No server is reachable here, so this file pins what
+ * can be pinned without one: the DSN
  * text, the refused driver name, the refusal that names the missing variable,
  * and the contract's own answers on a real SQLite handle.
  */
@@ -24,14 +25,20 @@ final class DriverSeamTest extends TestCase
 {
     private string|false $previousDriver = false;
 
+    private string|false $previousDsn = false;
+
     protected function setUp(): void
     {
         // The class proves the default by removing the variable, but the
         // ambient engine belongs to the run: putting the old value back is
         // what keeps a PostgreSQL run from falling into SQLite halfway
-        // through, with every DB_<NAME> still holding a DSN.
+        // through, with DB_DSN still holding a DSN. The DSN is removed too, so
+        // a PostgreSQL job cannot satisfy the missing-target refusal by
+        // accident.
         $this->previousDriver = getenv('DB_DRIVER');
+        $this->previousDsn = getenv('DB_DSN');
         putenv('DB_DRIVER');
+        putenv('DB_DSN');
         putenv('DB_PROBE');
         DatabaseConnectionManager::resetInstance();
     }
@@ -42,6 +49,12 @@ final class DriverSeamTest extends TestCase
             putenv('DB_DRIVER');
         } else {
             putenv('DB_DRIVER=' . $this->previousDriver);
+        }
+
+        if (false === $this->previousDsn) {
+            putenv('DB_DSN');
+        } else {
+            putenv('DB_DSN=' . $this->previousDsn);
         }
 
         putenv('DB_PROBE');
