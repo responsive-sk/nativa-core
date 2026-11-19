@@ -7,12 +7,15 @@ namespace Modules\Blog\Tests;
 use Modules\Blog\Interfaces\HTTP\Actions\BlogInlineEditAction;
 use Modules\Blog\Interfaces\HTTP\ArticlesTableRenderer;
 use Modules\Core\Infrastructure\Http\Request;
+use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Locales\Infrastructure\Persistence\Migrations\LocalesDatabaseMigrator;
 use Modules\Locales\Infrastructure\Persistence\Repositories\TranslationRepository;
 use Modules\Locales\Interfaces\HTTP\LocalesServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use Tests\Support\SqliteDatabase;
 
 /**
  * MarkEscapeTest — two escape regressions, pinned.
@@ -29,13 +32,17 @@ use ReflectionMethod;
  *   forged hx-request.
  *
  * Like every module test it drives the INSTALLED copy and skips when the
- * modules (or the locales database) are not installed.
+ * modules are not installed. The locales database is a temporary one built by
+ * the module's own migrator, so the test does not depend on a seeded
+ * `storage/data` in the checkout.
  */
 final class MarkEscapeTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string EVIL = '"><svg onload=alert(1)>';
 
-    private const string LOCALES_DB = APP_BASE_PATH . '/storage/data/locales.db';
+    private string $tmpDir = '';
 
     /** Original `blog.saved` value, or null when the key did not exist. */
     private ?string $savedOriginal = null;
@@ -44,6 +51,8 @@ final class MarkEscapeTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         foreach (['Blog', 'Cardboard', 'Locales'] as $module) {
@@ -52,9 +61,22 @@ final class MarkEscapeTest extends TestCase
             }
         }
 
-        if (!is_file(self::LOCALES_DB)) {
-            $this->markTestSkipped('locales.db is not installed.');
-        }
+        $this->tmpDir = sys_get_temp_dir() . '/nativa-mark-escape-' . bin2hex(random_bytes(6));
+        mkdir($this->tmpDir, 0o775, true);
+
+        putenv('DB_LOCALES=' . $this->tmpDir . '/locales.db');
+        putenv('DB_CONFIG=' . $this->tmpDir . '/config.db');
+        DatabaseConnectionManager::resetInstance();
+        LocalesServices::reset();
+
+        $output = new class implements CliOutput {
+            public function writeln(string $message): void
+            {
+            }
+        };
+
+        (new LocalesDatabaseMigrator(new \PDO('sqlite:' . $this->tmpDir . '/locales.db')))->run($output);
+        (new \Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator(new \PDO('sqlite:' . $this->tmpDir . '/config.db')))->run($output);
     }
 
     protected function tearDown(): void
@@ -77,7 +99,24 @@ final class MarkEscapeTest extends TestCase
             $this->savedSeeded = false;
         }
 
+        $this->restoreDatabaseEnvironment();
+
+        if ('' !== $this->tmpDir && is_dir($this->tmpDir)) {
+            putenv('DB_LOCALES');
+            putenv('DB_CONFIG');
+            DatabaseConnectionManager::resetInstance();
+            LocalesServices::reset();
+
+            foreach (glob($this->tmpDir . '/*') ?: [] as $file) {
+                @unlink($file);
+            }
+
+            @rmdir($this->tmpDir);
+        }
+
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     private bool $savedSeeded = false;

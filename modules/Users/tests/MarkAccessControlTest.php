@@ -77,15 +77,23 @@ final class MarkAccessControlTest extends TestCase
 
         putenv('DB_USERS=' . $this->tmpDir . '/users.db');
         putenv('DB_OUTBOX=' . $this->tmpDir . '/outbox.db');
+        putenv('DB_CONFIG=' . $this->tmpDir . '/config.db');
+        putenv('DB_QUESTIONS=' . $this->tmpDir . '/questions.db');
         DatabaseConnectionManager::resetInstance();
         AuthServices::reset();
         OutboxServices::reset();
+        \Modules\Settings\Interfaces\HTTP\SettingsServices::reset();
+        \Modules\Locales\Interfaces\HTTP\LocalesServices::reset();
+        \Modules\Cardboard\Interfaces\HTTP\CardboardServices::reset();
 
         (new UsersDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/users.db')))->run($this->quietOutput());
 
         if (is_dir(APP_BASE_PATH . '/src/Modules/Outbox')) {
             (new OutboxDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/outbox.db')))->run($this->quietOutput());
         }
+
+        (new \Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/config.db')))->run($this->quietOutput());
+        (new \Modules\Questions\Infrastructure\Persistence\Migrations\QuestionsDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/questions.db')))->run($this->quietOutput());
 
         $this->seed();
         $this->signOut();
@@ -100,9 +108,14 @@ final class MarkAccessControlTest extends TestCase
         if ('' !== $this->tmpDir && is_dir($this->tmpDir)) {
             putenv('DB_USERS');
             putenv('DB_OUTBOX');
+            putenv('DB_CONFIG');
+            putenv('DB_QUESTIONS');
             DatabaseConnectionManager::resetInstance();
             AuthServices::reset();
             OutboxServices::reset();
+            \Modules\Settings\Interfaces\HTTP\SettingsServices::reset();
+            \Modules\Locales\Interfaces\HTTP\LocalesServices::reset();
+            \Modules\Cardboard\Interfaces\HTTP\CardboardServices::reset();
 
             foreach (glob($this->tmpDir . '/*') ?: [] as $file) {
                 @unlink($file);

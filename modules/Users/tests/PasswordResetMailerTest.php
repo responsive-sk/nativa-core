@@ -94,10 +94,15 @@ final class PasswordResetMailerTest extends TestCase
         mkdir($this->tmpDir, 0o775, true);
 
         putenv('DB_USERS=' . $this->tmpDir . '/users.db');
+        putenv('DB_CONFIG=' . $this->tmpDir . '/config.db');
         DatabaseConnectionManager::resetInstance();
         AuthServices::reset();
+        \Modules\Settings\Interfaces\HTTP\SettingsServices::reset();
+        \Modules\Locales\Interfaces\HTTP\LocalesServices::reset();
 
         (new UsersDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/users.db')))
+            ->run($this->quietOutput());
+        (new \Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/config.db')))
             ->run($this->quietOutput());
 
         $this->logFile = AppPaths::instance()->logs('app.log');
@@ -122,6 +127,7 @@ final class PasswordResetMailerTest extends TestCase
             $this->restoreLog();
 
             putenv('DB_USERS');
+            putenv('DB_CONFIG');
 
             if (null === $this->appEnvBefore) {
                 putenv('APP_ENV');
@@ -136,6 +142,8 @@ final class PasswordResetMailerTest extends TestCase
 
             DatabaseConnectionManager::resetInstance();
             AuthServices::reset();
+            \Modules\Settings\Interfaces\HTTP\SettingsServices::reset();
+            \Modules\Locales\Interfaces\HTTP\LocalesServices::reset();
 
             foreach (glob($this->tmpDir . '/*') ?: [] as $file) {
                 @unlink($file);

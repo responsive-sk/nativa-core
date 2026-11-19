@@ -32,6 +32,8 @@ final class LocalesShellContextProviderTest extends TestCase
 
     private const string MODULE = 'Locales';
 
+    private string $configDir = '';
+
     protected function setUp(): void
     {
         $this->pinSqliteDatabase();
@@ -40,7 +42,15 @@ final class LocalesShellContextProviderTest extends TestCase
             $this->markTestSkipped(self::MODULE . ' is not installed — the locale answers ship with this module.');
         }
 
+        $this->configDir = sys_get_temp_dir() . '/nativa-locales-config-' . bin2hex(random_bytes(6));
+        mkdir($this->configDir, 0o775, true);
+
+        putenv('DB_CONFIG=' . $this->configDir . '/config.db');
+        DatabaseConnectionManager::resetInstance();
         LocalesServices::reset();
+
+        (new \Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator(new \PDO('sqlite:' . $this->configDir . '/config.db')))
+            ->run(self::quietOutput());
     }
 
     protected function tearDown(): void
@@ -51,7 +61,17 @@ final class LocalesShellContextProviderTest extends TestCase
         // skips in a kernel-only tree — so this must not touch the module
         // when Locales is not installed (Settings precedent).
         if (is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
+            putenv('DB_CONFIG');
+            DatabaseConnectionManager::resetInstance();
             LocalesServices::reset();
+
+            if ('' !== $this->configDir && is_dir($this->configDir)) {
+                foreach (glob($this->configDir . '/*') ?: [] as $file) {
+                    @unlink($file);
+                }
+
+                @rmdir($this->configDir);
+            }
         }
 
         parent::tearDown();
