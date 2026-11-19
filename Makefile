@@ -61,6 +61,7 @@ test-postgres: ## Gate: the PostgreSQL suite against a real server, migrated fir
 	DB_DRIVER=pgsql DB_DSN="$(PG_DSN)" $(COMPOSER) test -- --testsuite postgres --fail-on-skipped
 
 test-mariadb: ## Gate: the MariaDB suite against a real server, migrated first (MARIADB_DSN=…, MARIADB_PREFIX=…)
+	DB_DRIVER=mariadb DB_DSN="$(MARIADB_DSN)" DB_DATABASE_PREFIX="$(MARIADB_PREFIX)" $(PHP) bin/build/mariadb-preflight.php
 	DB_DRIVER=mariadb DB_DSN="$(MARIADB_DSN)" DB_DATABASE_PREFIX="$(MARIADB_PREFIX)" $(PHP) bin/cms migrate
 	DB_DRIVER=mariadb DB_DSN="$(MARIADB_DSN)" DB_DATABASE_PREFIX="$(MARIADB_PREFIX)" $(COMPOSER) test -- --testsuite mariadb --fail-on-skipped
 

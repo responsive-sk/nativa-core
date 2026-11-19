@@ -99,10 +99,18 @@ Either role needs `CREATE` (on the PostgreSQL database, or on the MariaDB
 server), and `php bin/cms migrate` builds every schema or database. Switching
 back is `DB_DRIVER=sqlite`, or removing the lines.
 
+| Engine | What the role needs | `DB_DSN` | `db:export` / `db:import` |
+| --- | --- | --- | --- |
+| SQLite (default) | nothing — a file per module under `storage/data/`, `DB_<NAME>` overrides one path | not read | one entry per module, as a file each; import into a target with rows needs `--force` |
+| PostgreSQL | `CREATE` on the shared database, and `dbname=` must already exist | `host=…;port=5432;dbname=nativa;user=…;password=…` | one entry per module, each connection seeing only its schema; the import runs the migrators first and needs `--force` to replace rows |
+| MariaDB | `CREATE` on the server — the manager creates `<DB_DATABASE_PREFIX><module>` | server DSN, no `dbname` | one entry per module, same as PostgreSQL; the import leaves an empty append-only `audit_log` alone and needs `--force` to replace rows |
+
 `make test` runs SQLite only: `tests/Postgres` and `tests/MariaDb` describe a
 real server and are excluded from that suite. Their one-command run carries the
 driver and DSN itself, migrates first, and treats a skip as a failure — a
-missing server is a red run, not a green no-op:
+missing server is a red run, not a green no-op. The MariaDB run also refuses a
+target whose module databases already hold tables the migrators do not create,
+so the prefix cannot quietly point at another application's namespace:
 
 ```sh
 make test-postgres                                        # PG_DSN=… to point elsewhere
