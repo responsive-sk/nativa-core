@@ -6,6 +6,8 @@ namespace Modules\Users\Application\Services;
 
 use Modules\Core\Infrastructure\Env;
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Core\Interfaces\HTTP\Middleware\CsrfMiddleware;
 use Modules\Security\Application\Services\PasswordHasher;
 use Modules\Security\Application\Services\RateLimiter;
@@ -56,12 +58,15 @@ final readonly class AuthService
      */
     private const string DUMMY_PASSWORD_HASH = '$2y$12$6hO.qcb0O30iOs2k/EReUumcibRsIzq2GbYObFalM7RPajh04fCrG';
 
+    private SqlDialect $dialect;
+
     public function __construct(
         private ConnectionInterface $db,
         private UserRepository $users,
         private PasswordHasher $hasher,
         private RateLimiter $limiter,
     ) {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
     }
 
     /**
@@ -394,7 +399,7 @@ final readonly class AuthService
 
         $stmt = Statement::prepare($this->db,
             'INSERT INTO remember_tokens (id, user_id, token_hash, expires_at, created_at)
-             VALUES (:id, :uid, :hash, datetime(\'now\', \'+30 days\'), CURRENT_TIMESTAMP)',
+             VALUES (:id, :uid, :hash, ' . $this->dialect->shiftedTimestamp("'+30 days'") . ', CURRENT_TIMESTAMP)',
         );
         $stmt->execute([
             ':id'   => bin2hex(random_bytes(16)),
@@ -429,7 +434,7 @@ final readonly class AuthService
         try {
             $stmt = Statement::prepare($this->db,
                 'INSERT INTO sessions (id, user_id, ip_address, user_agent, last_activity)
-                 VALUES (:id, :uid, :ip, :ua, datetime(\'now\'))
+                 VALUES (:id, :uid, :ip, :ua, ' . $this->dialect->currentTimestamp() . ')
                  ON CONFLICT(id) DO UPDATE SET
                      user_id = excluded.user_id,
                      last_activity = excluded.last_activity',

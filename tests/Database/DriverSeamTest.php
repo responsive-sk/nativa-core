@@ -22,8 +22,15 @@ use PHPUnit\Framework\TestCase;
  */
 final class DriverSeamTest extends TestCase
 {
+    private string|false $previousDriver = false;
+
     protected function setUp(): void
     {
+        // The class proves the default by removing the variable, but the
+        // ambient engine belongs to the run: putting the old value back is
+        // what keeps a PostgreSQL run from falling into SQLite halfway
+        // through, with every DB_<NAME> still holding a DSN.
+        $this->previousDriver = getenv('DB_DRIVER');
         putenv('DB_DRIVER');
         putenv('DB_PROBE');
         DatabaseConnectionManager::resetInstance();
@@ -31,7 +38,12 @@ final class DriverSeamTest extends TestCase
 
     protected function tearDown(): void
     {
-        putenv('DB_DRIVER');
+        if (false === $this->previousDriver) {
+            putenv('DB_DRIVER');
+        } else {
+            putenv('DB_DRIVER=' . $this->previousDriver);
+        }
+
         putenv('DB_PROBE');
         DatabaseConnectionManager::resetInstance();
     }

@@ -6,6 +6,8 @@ namespace Modules\Users\Application\Services;
 
 use Modules\Core\Domain\SubmitResult;
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Security\Application\Services\PasswordHasher;
 use Modules\Security\Application\Services\RateLimiter;
 use Modules\Security\Domain\LocalClient;
@@ -45,6 +47,8 @@ final readonly class PasswordResetService
 
     private const int FORGOT_EMAIL_WINDOW = 3600;
 
+    private SqlDialect $dialect;
+
     public function __construct(
         private ConnectionInterface $db,
         private UserRepository $users,
@@ -52,6 +56,7 @@ final readonly class PasswordResetService
         private PasswordResetMailer $mailer,
         private RateLimiter $limiter,
     ) {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
     }
 
     /**
@@ -94,7 +99,7 @@ final readonly class PasswordResetService
 
         $stmt = Statement::prepare($this->db,
             'INSERT INTO password_reset_tokens (id, email, token, expires_at, created_at)
-             VALUES (:id, :email, :token, datetime(\'now\', :ttl), CURRENT_TIMESTAMP)',
+             VALUES (:id, :email, :token, ' . $this->dialect->shiftedTimestamp(':ttl') . ', CURRENT_TIMESTAMP)',
         );
         $stmt->execute([
             ':id'    => bin2hex(random_bytes(16)),

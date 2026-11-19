@@ -6,6 +6,7 @@ namespace Modules\Blog\Tests;
 
 use Modules\Blog\Interfaces\HTTP\Actions\AuthorProfileAction;
 use Modules\Cardboard\Interfaces\HTTP\CardboardLayout;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -77,5 +78,33 @@ final class AuthorMemberSinceTest extends TestCase
     public function anAbsentStampIsEmptyRatherThanADanglingLabel(): void
     {
         self::assertSame('', ($this->memberSince)(''));
+    }
+
+    /**
+     * PostgreSQL reads `TIMESTAMPTZ` back with the offset attached. The date
+     * must stay the same instant, not be read as a second wall clock.
+     */
+    #[Test]
+    #[DataProvider('timestamptzShapes')]
+    public function aTimestamptzStampKeepsTheSameInstant(string $stored): void
+    {
+        $plain = ($this->memberSince)('2026-11-16 23:20:47');
+
+        self::assertSame(
+            $plain,
+            ($this->memberSince)($stored),
+            'a TIMESTAMPTZ offset names the instant already in the column; the reader must not add it again',
+        );
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function timestamptzShapes(): iterable
+    {
+        yield 'utc offset in hours' => ['2026-11-16 23:20:47+00'];
+        yield 'central european offset' => ['2026-11-17 00:20:47+01:00'];
+        yield 'negative offset' => ['2026-11-16 18:20:47-05'];
+        yield 'utc offset with minutes' => ['2026-11-16 23:20:47+00:00'];
     }
 }

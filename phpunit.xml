@@ -25,9 +25,18 @@
     <testsuites>
         <testsuite name="kernel">
             <directory>tests</directory>
+            <exclude>tests/Postgres</exclude>
         </testsuite>
         <testsuite name="modules">
             <directory>modules</directory>
+        </testsuite>
+        <!--
+          `postgres` owns DB_DRIVER=pgsql and skips without it. The `postgres`
+          CI job runs ONLY this suite and treats a skip as a failure, so a
+          skipped test there is a red job rather than a green no-op.
+        -->
+        <testsuite name="postgres">
+            <directory>tests/Postgres</directory>
         </testsuite>
     </testsuites>
     <source>

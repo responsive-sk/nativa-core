@@ -226,7 +226,7 @@ final readonly class SqliteOutboxRepository
      */
     public function countByStatus(): array
     {
-        $stmt = Statement::query($this->connection, '
+        $stmt = Statement::prepare($this->connection, '
             SELECT
                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as processing,

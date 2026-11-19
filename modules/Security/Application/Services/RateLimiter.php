@@ -61,14 +61,18 @@ final readonly class RateLimiter
         $now = time();
         $expires = $now + $windowSeconds;
 
+        // Every named marker appears once: pdo_pgsql prepares natively, and a
+        // repeated name is refused there while SQLite tolerates it. `excluded`
+        // carries the new expiry and the two reset markers carry the same
+        // timestamp to the two CASE branches.
         $stmt = Statement::prepare($this->db, <<<'SQL'
                 INSERT INTO rate_limits ("key", count, expires)
                 VALUES (:key, 1, :expires)
                 ON CONFLICT("key") DO UPDATE SET
-                    count   = CASE WHEN expires < :now THEN 1 ELSE count + 1 END,
-                    expires = CASE WHEN expires < :now THEN :expires ELSE expires END
+                    count   = CASE WHEN rate_limits.expires < :reset THEN 1 ELSE rate_limits.count + 1 END,
+                    expires = CASE WHEN rate_limits.expires < :reset_again THEN excluded.expires ELSE rate_limits.expires END
             SQL);
-        $stmt->execute(['key' => $key, 'expires' => $expires, 'now' => $now]);
+        $stmt->execute(['key' => $key, 'expires' => $expires, 'reset' => $now, 'reset_again' => $now]);
 
         // SQLite < 3.35 has no RETURNING clause (syntax error on older
         // servers) — read the upserted count back instead. The upsert is a
