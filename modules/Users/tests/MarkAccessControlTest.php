@@ -18,6 +18,7 @@ use PDO;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * MarkAccessControlTest — the five answers `/mark` must give, dispatched
@@ -51,6 +52,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class MarkAccessControlTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     private string $holderId = '';
@@ -59,6 +62,8 @@ final class MarkAccessControlTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         foreach (['Users', 'Cardboard', 'Security', 'Validation'] as $module) {
@@ -88,6 +93,8 @@ final class MarkAccessControlTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // PHPUnit runs tearDown() even when setUp() skipped (module absent) —
         // then there is no env, no tmp dir and nothing to restore.
         if ('' !== $this->tmpDir && is_dir($this->tmpDir)) {
@@ -107,6 +114,8 @@ final class MarkAccessControlTest extends TestCase
         $_SESSION = [];
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     /**

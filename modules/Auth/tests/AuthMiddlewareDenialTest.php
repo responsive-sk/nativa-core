@@ -18,6 +18,7 @@ use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use PDO;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * AuthMiddlewareDenialTest — a refused admin path, from the 403 to the audit row.
@@ -62,6 +63,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthMiddlewareDenialTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string CLIENT_IP = '203.0.113.9';
 
     private string $dir = '';
@@ -74,6 +77,8 @@ final class AuthMiddlewareDenialTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         foreach (['Auth', 'Outbox', 'Audit', 'Users'] as $module) {
@@ -116,6 +121,8 @@ final class AuthMiddlewareDenialTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         self::resetOutboxServices();
         self::resetAuditServices();
         AppPaths::resetInstance();
@@ -143,6 +150,8 @@ final class AuthMiddlewareDenialTest extends TestCase
         $this->restoreEnv('REMOTE_ADDR', $this->previousRemoteAddr);
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     /**

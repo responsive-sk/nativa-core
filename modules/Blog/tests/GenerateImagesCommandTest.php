@@ -11,6 +11,7 @@ use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * GenerateImagesCommandTest — the operator command `bin/cms generate-images`
@@ -31,6 +32,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class GenerateImagesCommandTest extends TestCase
 {
+    use SqliteDatabase;
+
     private ?string $slug = null;
 
     /** @var list<string> files this test created, removed in tearDown */
@@ -41,6 +44,8 @@ final class GenerateImagesCommandTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Blog')) {
@@ -75,6 +80,8 @@ final class GenerateImagesCommandTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         foreach ($this->created as $file) {
             if (is_file($file)) {
                 unlink($file);
@@ -92,6 +99,8 @@ final class GenerateImagesCommandTest extends TestCase
         DatabaseConnectionManager::resetInstance();
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

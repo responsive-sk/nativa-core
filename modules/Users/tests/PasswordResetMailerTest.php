@@ -24,6 +24,7 @@ use PDO;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * PasswordResetMailerTest — audit finding #1: `POST /forgot-password` used to
@@ -57,6 +58,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class PasswordResetMailerTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string EMAIL = 'mailer-probe@example.test';
 
     private string $tmpDir = '';
@@ -77,6 +80,8 @@ final class PasswordResetMailerTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         foreach (['Users', 'Security', 'Validation'] as $module) {
@@ -109,6 +114,8 @@ final class PasswordResetMailerTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // PHPUnit runs tearDown() even when setUp() skipped (module absent) —
         // then there is no env, no tmp dir and nothing to restore.
         if ('' !== $this->tmpDir && is_dir($this->tmpDir)) {
@@ -138,6 +145,8 @@ final class PasswordResetMailerTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     /**

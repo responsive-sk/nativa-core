@@ -18,6 +18,7 @@ use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigra
 use Modules\Settings\Infrastructure\Persistence\Repositories\SettingsRepository;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 use Themes\ThemeSetting;
 use Themes\ThemeSettings;
 
@@ -49,6 +50,8 @@ use Themes\ThemeSettings;
  */
 final class ThemeSettingsPanelTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     /** @var \PDO|null */
@@ -58,6 +61,8 @@ final class ThemeSettingsPanelTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         if (!is_dir(APP_BASE_PATH . '/src/Modules/' . basename(dirname(__DIR__)))) {
             $this->markTestSkipped('Cardboard is not installed — the settings screen ships with this module.');
         }
@@ -73,6 +78,8 @@ final class ThemeSettingsPanelTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if ('' === $this->tmpDir) {
             parent::tearDown();
 
@@ -96,6 +103,8 @@ final class ThemeSettingsPanelTest extends TestCase
         @rmdir($this->tmpDir);
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

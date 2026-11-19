@@ -10,6 +10,7 @@ use Modules\Database\Infrastructure\Persistence\PdoConnection;
 use Modules\Database\Infrastructure\Persistence\ReadWriteConnection;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * DatabaseRoutingTest — the manager's side of the contract, over real files.
@@ -21,10 +22,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class DatabaseRoutingTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir;
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         $this->tmpDir = sys_get_temp_dir() . '/nativa-routing-' . bin2hex(random_bytes(6));
         mkdir($this->tmpDir, 0o775, true);
         DatabaseConnectionManager::resetInstance();
@@ -32,6 +37,8 @@ final class DatabaseRoutingTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         putenv('DB_PROBE');
         putenv('DB_PROBE_READ');
         DatabaseConnectionManager::resetInstance();
@@ -41,6 +48,8 @@ final class DatabaseRoutingTest extends TestCase
         }
 
         @rmdir($this->tmpDir);
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

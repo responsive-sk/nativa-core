@@ -14,6 +14,7 @@ use Modules\Outbox\Interfaces\CLI\Command\ProcessOutboxCommand;
 use Modules\Outbox\Interfaces\HTTP\OutboxServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * ProcessOutboxCommandTest — the operator command `bin/cms outbox:process`
@@ -34,12 +35,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class ProcessOutboxCommandTest extends TestCase
 {
+    use SqliteDatabase;
+
     private ?string $dbFile = null;
 
     private ?string $previousDbOutbox = null;
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Outbox')) {
@@ -64,6 +69,8 @@ final class ProcessOutboxCommandTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (isset($this->dbFile)) {
             OutboxServices::reset();
 
@@ -84,6 +91,8 @@ final class ProcessOutboxCommandTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

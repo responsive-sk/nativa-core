@@ -19,6 +19,7 @@ use Modules\RestPanel\Interfaces\HTTP\Actions\ServiceFormAction;
 use Modules\RestPanel\Interfaces\HTTP\RestPanelServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * PanelTest — the F4 panel against fixtures, not the internet.
@@ -43,6 +44,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class PanelTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string MODULE = 'RestPanel';
 
     private string $tmpDir = '';
@@ -52,6 +55,8 @@ final class PanelTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
@@ -84,6 +89,8 @@ final class PanelTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
             putenv('DB_RESTPANEL');
             putenv('RESTADMIN_SPEC_DIR');
@@ -107,6 +114,8 @@ final class PanelTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     /**

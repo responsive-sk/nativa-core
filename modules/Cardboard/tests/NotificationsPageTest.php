@@ -15,6 +15,7 @@ use Modules\Notifications\Interfaces\HTTP\NotificationsServices;
 use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * NotificationsPageTest — the inbox page shows one person's rows and clears
@@ -39,6 +40,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class NotificationsPageTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     /** @var array<string, mixed> */
@@ -46,6 +49,8 @@ final class NotificationsPageTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         foreach (['Cardboard', 'Notifications', 'Settings'] as $module) {
@@ -76,6 +81,8 @@ final class NotificationsPageTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (is_dir(APP_BASE_PATH . '/src/Modules/Notifications')) {
             putenv('DB_NOTIFICATIONS');
             putenv('DB_CONFIG');
@@ -93,6 +100,8 @@ final class NotificationsPageTest extends TestCase
         $_SESSION = $this->session;
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

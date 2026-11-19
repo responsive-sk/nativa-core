@@ -11,6 +11,7 @@ use Modules\Notifications\Infrastructure\Persistence\Migrations\NotificationsDat
 use Modules\Notifications\Interfaces\HTTP\NotificationsServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * NotificationsBadgeTest — the sidebar number belongs to one person.
@@ -27,6 +28,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class NotificationsBadgeTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     /** @var array<string, mixed> */
@@ -34,6 +37,8 @@ final class NotificationsBadgeTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Notifications')) {
@@ -55,6 +60,8 @@ final class NotificationsBadgeTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (is_dir(APP_BASE_PATH . '/src/Modules/Notifications')) {
             putenv('DB_NOTIFICATIONS');
             DatabaseConnectionManager::resetInstance();
@@ -70,6 +77,8 @@ final class NotificationsBadgeTest extends TestCase
         $_SESSION = $this->session;
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

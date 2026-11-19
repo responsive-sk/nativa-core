@@ -15,6 +15,7 @@ use Modules\RestPanel\Infrastructure\Persistence\Migrations\RestPanelDatabaseMig
 use PDO;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * SpecRepositoryTest — the decomposed store, against a real SQLite file.
@@ -34,6 +35,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class SpecRepositoryTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string MODULE = 'RestPanel';
 
     private string $tmpDir = '';
@@ -42,6 +45,8 @@ final class SpecRepositoryTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
@@ -63,6 +68,8 @@ final class SpecRepositoryTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if ('' !== $this->tmpDir && is_dir($this->tmpDir)) {
             putenv(null === $this->envBefore ? 'DB_RESTPANEL' : 'DB_RESTPANEL=' . $this->envBefore);
             DatabaseConnectionManager::resetInstance();
@@ -75,6 +82,8 @@ final class SpecRepositoryTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

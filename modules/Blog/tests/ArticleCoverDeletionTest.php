@@ -13,6 +13,7 @@ use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * ArticleCoverDeletionTest — what deleting an article leaves behind, and what
@@ -49,6 +50,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class ArticleCoverDeletionTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $slug;
 
     /** @var list<string> files and directories this test created, removed in tearDown */
@@ -59,6 +62,8 @@ final class ArticleCoverDeletionTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Blog')) {
@@ -86,6 +91,8 @@ final class ArticleCoverDeletionTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         foreach (array_reverse($this->created) as $path) {
             if (is_file($path)) {
                 unlink($path);
@@ -105,6 +112,8 @@ final class ArticleCoverDeletionTest extends TestCase
         DatabaseConnectionManager::resetInstance();
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

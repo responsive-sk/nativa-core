@@ -17,6 +17,7 @@ use Modules\Queue\Interfaces\HTTP\QueueServices;
 use PDO;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * QueueWorkTest — the panel's "Process now" button, asserted where it
@@ -38,12 +39,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class QueueWorkTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     private string $marker = '';
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Queue') || !is_dir(APP_BASE_PATH . '/src/Modules/Audit')) {
@@ -73,6 +78,8 @@ final class QueueWorkTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if ('' === $this->tmpDir) {
             parent::tearDown();
 
@@ -93,6 +100,8 @@ final class QueueWorkTest extends TestCase
         @rmdir($this->tmpDir);
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

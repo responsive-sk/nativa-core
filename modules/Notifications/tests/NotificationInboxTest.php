@@ -12,6 +12,7 @@ use Modules\Notifications\Infrastructure\Persistence\Statement;
 use Modules\Notifications\Interfaces\HTTP\NotificationsServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * NotificationInboxTest — the inbox is per user, and reading it is per user.
@@ -36,10 +37,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class NotificationInboxTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Notifications')) {
@@ -59,6 +64,8 @@ final class NotificationInboxTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // PHPUnit runs tearDown() even when setUp() skipped, so nothing here
         // assumes the module is installed or the tmp dir exists.
         if (is_dir(APP_BASE_PATH . '/src/Modules/Notifications')) {
@@ -74,6 +81,8 @@ final class NotificationInboxTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

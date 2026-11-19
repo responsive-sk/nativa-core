@@ -14,6 +14,7 @@ use Modules\Media\Interfaces\HTTP\Actions\MediaIndexAction;
 use Modules\Media\Interfaces\HTTP\MediaServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * MediaIndexRenderingTest — GET /mark/media renders, filter bar and all.
@@ -47,10 +48,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class MediaIndexRenderingTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Media')) {
             $this->markTestSkipped('Media is not installed — the media index ships with this module.');
         }
@@ -68,6 +73,8 @@ final class MediaIndexRenderingTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // PHPUnit runs tearDown() even when setUp() skipped, so nothing here
         // assumes the module is installed or the tmp dir exists.
         if (is_dir(APP_BASE_PATH . '/src/Modules/Media')) {
@@ -81,6 +88,8 @@ final class MediaIndexRenderingTest extends TestCase
 
             @rmdir($this->tmpDir);
         }
+
+        $this->restoreDatabaseEnvironment();
     }
 
     /**

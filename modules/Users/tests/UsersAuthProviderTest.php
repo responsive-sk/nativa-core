@@ -16,6 +16,7 @@ use PDO;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * UsersAuthProviderTest — the mapping half of the gate, in isolation.
@@ -44,10 +45,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class UsersAuthProviderTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         foreach (['Users', 'Security'] as $module) {
@@ -72,6 +77,8 @@ final class UsersAuthProviderTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if ('' !== $this->tmpDir && is_dir($this->tmpDir)) {
             putenv('DB_USERS');
             putenv('DB_OUTBOX');
@@ -89,6 +96,8 @@ final class UsersAuthProviderTest extends TestCase
         $_SESSION = [];
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

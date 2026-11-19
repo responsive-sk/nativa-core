@@ -13,6 +13,7 @@ use Modules\RestPanel\Interfaces\MCP\Server;
 use Modules\RestPanel\Interfaces\MCP\ToolRegistry;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * McpServerTest — the protocol and the tools, without a process.
@@ -29,6 +30,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class McpServerTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string MODULE = 'RestPanel';
 
     private string $tmpDir = '';
@@ -37,6 +40,8 @@ final class McpServerTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
@@ -57,6 +62,8 @@ final class McpServerTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
             putenv('DB_RESTPANEL');
             putenv('RESTADMIN_SPEC_DIR');
@@ -78,6 +85,8 @@ final class McpServerTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

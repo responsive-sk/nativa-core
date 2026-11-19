@@ -14,6 +14,7 @@ use Modules\Locales\Interfaces\HTTP\LocalesServices;
 use Modules\Locales\Interfaces\HTTP\LocalesShellContextProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * LocalesShellContextProviderTest — the locale answers of the shell port.
@@ -27,10 +28,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class LocalesShellContextProviderTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string MODULE = 'Locales';
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         if (!is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
             $this->markTestSkipped(self::MODULE . ' is not installed — the locale answers ship with this module.');
         }
@@ -40,6 +45,8 @@ final class LocalesShellContextProviderTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // PHPUnit runs tearDown() even when setUp() skipped, and setUp()
         // skips in a kernel-only tree — so this must not touch the module
         // when Locales is not installed (Settings precedent).
@@ -48,6 +55,8 @@ final class LocalesShellContextProviderTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

@@ -18,6 +18,7 @@ use Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigra
 use PDO;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * CardboardNavContractTest — the sidebar's source, through the wrapper.
@@ -40,12 +41,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class CardboardNavContractTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     private ConnectionInterface $connection;
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Cardboard') || !is_dir(APP_BASE_PATH . '/src/Modules/Settings')) {
@@ -68,6 +73,8 @@ final class CardboardNavContractTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (is_dir(APP_BASE_PATH . '/src/Modules/Cardboard')) {
             putenv('DB_CONFIG');
             DatabaseConnectionManager::resetInstance();
@@ -82,6 +89,8 @@ final class CardboardNavContractTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     /**

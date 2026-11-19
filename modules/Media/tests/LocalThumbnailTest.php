@@ -13,6 +13,7 @@ use Modules\Media\Infrastructure\Persistence\Migrations\MediaDatabaseMigrator;
 use Modules\Media\Interfaces\HTTP\MediaServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * LocalThumbnailTest — a local upload gets one 300px square, and a tile loads
@@ -34,6 +35,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class LocalThumbnailTest extends TestCase
 {
+    use SqliteDatabase;
+
     /** @var list<string> files this test wrote, removed in tearDown */
     private array $created = [];
 
@@ -41,6 +44,8 @@ final class LocalThumbnailTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Media')) {
             $this->markTestSkipped('Media is not installed — the local squares ship with this module.');
         }
@@ -50,6 +55,8 @@ final class LocalThumbnailTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // PHPUnit runs tearDown() even after a skipped setUp(), so nothing
         // here assumes the module or the files exist.
         if (is_dir(APP_BASE_PATH . '/src/Modules/Media')) {
@@ -74,6 +81,8 @@ final class LocalThumbnailTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     /**

@@ -11,6 +11,7 @@ use Modules\Queue\Infrastructure\Persistence\Migrations\QueueDatabaseMigrator;
 use Modules\Queue\Interfaces\HTTP\QueueServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * QueueWorkCommandTest — the seam `bin/cms queue:work` drives, beside the code
@@ -29,12 +30,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class QueueWorkCommandTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $dbFile;
 
     private ?string $previousDbQueue = null;
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Queue')) {
@@ -59,6 +64,8 @@ final class QueueWorkCommandTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // Everything below exists only if setUp got past its skip. Calling
         // `QueueServices::reset()` unguarded is an Error — "class not found" —
         // in a kernel-only tree, which is precisely the tree where this whole
@@ -83,6 +90,8 @@ final class QueueWorkCommandTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

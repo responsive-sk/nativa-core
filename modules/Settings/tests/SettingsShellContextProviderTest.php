@@ -19,6 +19,7 @@ use Modules\Settings\Interfaces\HTTP\SettingsShellContextProvider;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * SettingsShellContextProviderTest (Boot 23) — the menu the shell port asks for
@@ -54,6 +55,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class SettingsShellContextProviderTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string MODULE = 'Settings';
 
     private string $tmpDir = '';
@@ -64,6 +67,8 @@ final class SettingsShellContextProviderTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         if (!is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
             $this->markTestSkipped(self::MODULE . ' is not installed — the provider ships with this module.');
         }
@@ -88,6 +93,8 @@ final class SettingsShellContextProviderTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // PHPUnit runs tearDown() even when setUp() skipped, and setUp()
         // skips in a kernel-only tree — so this must not touch the module
         // (or the tmp dir it never created) when Settings is not installed.
@@ -104,6 +111,8 @@ final class SettingsShellContextProviderTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

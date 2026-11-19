@@ -14,6 +14,7 @@ use Modules\Outbox\Interfaces\HTTP\OutboxServices;
 use PDO;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * OutboxSecurityEventSinkTest — the kernel port's implementation, against a real
@@ -36,6 +37,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class OutboxSecurityEventSinkTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $dbFile = '';
 
     private ?string $previousDbOutbox = null;
@@ -45,6 +48,8 @@ final class OutboxSecurityEventSinkTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/Outbox')) {
@@ -71,6 +76,8 @@ final class OutboxSecurityEventSinkTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         // PHPUnit calls this even when `setUp()` skipped on a kernel-only tree,
         // where the module's classes are not on disk at all — hence the flag
         // rather than the install check again.
@@ -90,6 +97,8 @@ final class OutboxSecurityEventSinkTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     /**

@@ -9,6 +9,7 @@ use Modules\RestPanel\Infrastructure\Persistence\Migrations\RestPanelDatabaseMig
 use PDO;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * LegacyDatabaseAdoptionTest — the panel's rows survive the file's rename.
@@ -27,12 +28,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class LegacyDatabaseAdoptionTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $directory = '';
 
     private string|false $legacyEnv = false;
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/RestPanel')) {
@@ -47,6 +52,8 @@ final class LegacyDatabaseAdoptionTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (false === $this->legacyEnv) {
             putenv('DB_RESTADMIN');
         } else {
@@ -60,6 +67,8 @@ final class LegacyDatabaseAdoptionTest extends TestCase
         @rmdir($this->directory);
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

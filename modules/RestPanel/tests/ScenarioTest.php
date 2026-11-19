@@ -19,6 +19,7 @@ use Modules\RestPanel\Interfaces\HTTP\Actions\ServiceFormAction;
 use Modules\RestPanel\Interfaces\HTTP\RestPanelServices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * ScenarioTest — the F6 acceptance path through the HTTP layer, in one test.
@@ -35,12 +36,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class ScenarioTest extends TestCase
 {
+    use SqliteDatabase;
+
     private const string MODULE = 'RestPanel';
 
     private string $tmpDir = '';
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         if (!is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
@@ -77,6 +82,8 @@ final class ScenarioTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (is_dir(APP_BASE_PATH . '/src/Modules/' . self::MODULE)) {
             putenv('DB_RESTPANEL');
             putenv('RESTADMIN_SPEC_DIR');
@@ -101,6 +108,8 @@ final class ScenarioTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

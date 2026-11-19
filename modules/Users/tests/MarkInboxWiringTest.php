@@ -23,6 +23,7 @@ use Modules\Users\Infrastructure\Persistence\Repositories\UserRepository;
 use Modules\Users\Infrastructure\Persistence\Statement;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * MarkInboxWiringTest — who a `notify.admin` job is addressed to.
@@ -49,12 +50,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class MarkInboxWiringTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     private UserRepository $users;
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         foreach (['Users', 'Notifications'] as $module) {
@@ -83,6 +88,8 @@ final class MarkInboxWiringTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         if (is_dir(APP_BASE_PATH . '/src/Modules/Notifications')) {
             putenv('DB_USERS');
             putenv('DB_NOTIFICATIONS');
@@ -97,6 +104,8 @@ final class MarkInboxWiringTest extends TestCase
         }
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]

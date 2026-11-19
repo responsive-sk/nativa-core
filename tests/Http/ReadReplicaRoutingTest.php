@@ -11,6 +11,7 @@ use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\SqliteDatabase;
 
 /**
  * ReadReplicaRoutingTest — the routing rules inside a real request.
@@ -40,6 +41,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class ReadReplicaRoutingTest extends TestCase
 {
+    use SqliteDatabase;
+
     private string $tmpDir = '';
 
     /** @var array<string, string|false> */
@@ -47,6 +50,8 @@ final class ReadReplicaRoutingTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->pinSqliteDatabase();
+
         parent::setUp();
 
         $this->tmpDir = sys_get_temp_dir() . '/nativa-replica-request-' . bin2hex(random_bytes(6));
@@ -62,6 +67,8 @@ final class ReadReplicaRoutingTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->restoreDatabaseEnvironment();
+
         foreach ($this->previous as $key => $value) {
             if (false === $value) {
                 putenv($key);
@@ -81,6 +88,8 @@ final class ReadReplicaRoutingTest extends TestCase
         @rmdir($this->tmpDir);
 
         parent::tearDown();
+
+        $this->restoreDatabaseEnvironment();
     }
 
     #[Test]
