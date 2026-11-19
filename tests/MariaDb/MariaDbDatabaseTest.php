@@ -6,6 +6,9 @@ namespace Tests\MariaDb;
 
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
 use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\DsnBuilder;
+use Modules\Database\Infrastructure\Persistence\ReadWriteConnection;
+use Modules\Database\Infrastructure\Persistence\SessionSettings;
 use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -106,6 +109,78 @@ final class MariaDbDatabaseTest extends TestCase
     {
         DatabaseConnectionManager::resetInstance();
         parent::tearDown();
+    }
+
+    #[Test]
+    public function aMariaDbReplicaServesReadsAndRefusesDirectWrites(): void
+    {
+        $dsn = (string) getenv('DB_DSN');
+        $suffix = bin2hex(random_bytes(4));
+        $primaryName = 'nativa_probe_primary_' . $suffix;
+        $replicaName = 'nativa_probe_replica_' . $suffix;
+        $server = new \PDO('mysql:' . DsnBuilder::withCharset(DsnBuilder::withoutDatabase($dsn)));
+        $server->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $server->exec('CREATE DATABASE ' . $primaryName . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+        $server->exec('CREATE DATABASE ' . $replicaName . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+
+        $primary = new \PDO('mysql:' . DsnBuilder::withDatabase($dsn, $primaryName));
+        $replica = new \PDO('mysql:' . DsnBuilder::withDatabase($dsn, $replicaName));
+        $previous = [];
+        $connection = null;
+
+        foreach (['DB_CONFIG', 'DB_CONFIG_READ'] as $key) {
+            $previous[$key] = getenv($key);
+        }
+
+        try {
+            foreach ([$primary, $replica] as $pdo) {
+                $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+                $pdo->exec('CREATE TABLE replica_probe (v VARCHAR(32) NOT NULL)');
+            }
+
+            $primary->exec("INSERT INTO replica_probe (v) VALUES ('primary')");
+            $replica->exec("INSERT INTO replica_probe (v) VALUES ('replica')");
+
+            $readOnly = new \PDO('mysql:' . DsnBuilder::withDatabase($dsn, $replicaName));
+            $readOnly->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            SessionSettings::apply($readOnly, Driver::MariaDb, true, 'probe replica');
+
+            try {
+                $readOnly->exec("INSERT INTO replica_probe (v) VALUES ('forbidden')");
+                self::fail('a MariaDB read-only session must refuse a write');
+            } catch (\PDOException $failure) {
+                self::assertStringContainsString('READ ONLY', strtoupper($failure->getMessage()));
+            } finally {
+                unset($readOnly);
+            }
+
+            putenv('DB_CONFIG=' . DsnBuilder::withDatabase($dsn, $primaryName));
+            putenv('DB_CONFIG_READ=' . DsnBuilder::withDatabase($dsn, $replicaName));
+            DatabaseConnectionManager::resetInstance();
+
+            $connection = DatabaseConnectionManager::instance()->connect('config');
+
+            self::assertInstanceOf(ReadWriteConnection::class, $connection);
+            self::assertSame('replica', $connection->query('SELECT v FROM replica_probe ORDER BY v LIMIT 1')->fetchColumn());
+
+            $connection->execute("INSERT INTO replica_probe (v) VALUES ('written')");
+
+            self::assertSame(
+                ['primary', 'written'],
+                $connection->query('SELECT v FROM replica_probe ORDER BY v')->fetchAll(\PDO::FETCH_COLUMN),
+            );
+        } finally {
+            unset($connection, $readOnly, $primary, $replica);
+            DatabaseConnectionManager::resetInstance();
+
+            foreach ($previous as $key => $value) {
+                false === $value ? putenv($key) : putenv($key . '=' . $value);
+            }
+
+            DatabaseConnectionManager::resetInstance();
+            $server->exec('DROP DATABASE IF EXISTS ' . $primaryName);
+            $server->exec('DROP DATABASE IF EXISTS ' . $replicaName);
+        }
     }
 
     #[Test]
