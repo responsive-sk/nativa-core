@@ -93,7 +93,12 @@ final class MarkAccessControlTest extends TestCase
         }
 
         (new \Modules\Settings\Infrastructure\Persistence\Migrations\SettingsDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/config.db')))->run($this->quietOutput());
-        (new \Modules\Questions\Infrastructure\Persistence\Migrations\QuestionsDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/questions.db')))->run($this->quietOutput());
+
+        // Questions is optional: the dashboard renders its metric only when the
+        // module is installed, and the export profile does not carry it.
+        if (is_dir(APP_BASE_PATH . '/src/Modules/Questions')) {
+            (new \Modules\Questions\Infrastructure\Persistence\Migrations\QuestionsDatabaseMigrator(new PDO('sqlite:' . $this->tmpDir . '/questions.db')))->run($this->quietOutput());
+        }
 
         $this->seed();
         $this->signOut();
