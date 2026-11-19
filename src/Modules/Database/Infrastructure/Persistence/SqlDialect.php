@@ -317,4 +317,224 @@ final readonly class SqlDialect
 
         return version_compare($version, '3.35', '>=');
     }
+
+    /**
+     * The tables a snapshot must carry, in a stable order.
+     *
+     * SQLite answers from `sqlite_master`; PostgreSQL from `pg_catalog`. The
+     * internal SQLite tables are excluded because they are engine state, not
+     * module data.
+     *
+     * @return list<string>
+     */
+    public function tableNames(\PDO $pdo): array
+    {
+        $statement = $this->isSqlite()
+            ? $pdo->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid")
+            : $pdo->query('SELECT tablename AS name FROM pg_catalog.pg_tables WHERE schemaname = current_schema() ORDER BY tablename');
+
+        if (false === $statement) {
+            throw new \RuntimeException('Cannot list the tables of this database.');
+        }
+
+        $names = [];
+
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            if (is_array($row) && is_string($row['name'] ?? null)) {
+                $names[] = $row['name'];
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Strong column types, by column name and declaration order.
+     *
+     * The snapshot uses these only to explain its data and to convert the two
+     * boolean spellings; a column type never decides whether a value is
+     * exported.
+     *
+     * @return array<string, string>
+     */
+    public function columnTypes(\PDO $pdo, string $table): array
+    {
+        if ($this->isSqlite()) {
+            $statement = $pdo->query('PRAGMA table_info(' . $this->quoteIdentifier($table) . ')');
+        } else {
+            $statement = $pdo->prepare(
+                'SELECT column_name AS name, data_type AS type FROM information_schema.columns
+                 WHERE table_schema = current_schema() AND table_name = ? ORDER BY ordinal_position',
+            );
+
+            if (false !== $statement) {
+                $statement->execute([$table]);
+            }
+        }
+
+        if (false === $statement) {
+            return [];
+        }
+
+        $types = [];
+
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            if (!is_array($row) || !is_string($row['name'] ?? null)) {
+                continue;
+            }
+
+            $types[$row['name']] = is_string($row['type'] ?? null) ? $row['type'] : '';
+        }
+
+        return $types;
+    }
+
+    /**
+     * Foreign-key edges, child table => referenced tables.
+     *
+     * A self-reference is left out: it is a row-order question inside one
+     * table, not a table-order question, and treating it as a dependency would
+     * make the topological sort stall on a valid schema.
+     *
+     * @return array<string, list<string>>
+     */
+    public function foreignKeys(\PDO $pdo): array
+    {
+        /** @var array<string, array<string, true>> $edges */
+        $edges = [];
+
+        if ($this->isSqlite()) {
+            foreach ($this->tableNames($pdo) as $table) {
+                $statement = $pdo->query('PRAGMA foreign_key_list(' . $this->quoteIdentifier($table) . ')');
+
+                if (false === $statement) {
+                    continue;
+                }
+
+                foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $parent = is_array($row) ? ($row['table'] ?? null) : null;
+
+                    if (is_string($parent) && $parent !== $table) {
+                        $edges[$table][$parent] = true;
+                    }
+                }
+            }
+        } else {
+            $statement = $pdo->query(<<<'SQL'
+                SELECT tc.table_name AS child, ccu.table_name AS parent
+                FROM information_schema.table_constraints AS tc
+                JOIN information_schema.constraint_column_usage AS ccu
+                  ON ccu.constraint_name = tc.constraint_name
+                 AND ccu.constraint_schema = tc.constraint_schema
+                WHERE tc.constraint_type = 'FOREIGN KEY'
+                  AND tc.table_schema = current_schema()
+                  AND ccu.table_schema = current_schema()
+                  AND ccu.table_name <> tc.table_name
+                GROUP BY tc.table_name, ccu.table_name
+                ORDER BY tc.table_name, ccu.table_name
+                SQL);
+
+            if (false !== $statement) {
+                foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $child = is_array($row) ? ($row['child'] ?? null) : null;
+                    $parent = is_array($row) ? ($row['parent'] ?? null) : null;
+
+                    if (is_string($child) && is_string($parent)) {
+                        $edges[$child][$parent] = true;
+                    }
+                }
+            }
+        }
+
+        $result = [];
+
+        foreach ($edges as $table => $parents) {
+            $result[$table] = array_keys($parents);
+            sort($result[$table]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * The identity columns of a table, in declaration order.
+     *
+     * SQLite updates `sqlite_sequence` itself when an explicit id is inserted,
+     * so it has nothing to reset. PostgreSQL keeps its sequence separate, and
+     * an import that inserts explicit ids has to move it past the highest row.
+     *
+     * @return list<string>
+     */
+    public function identityColumns(\PDO $pdo, string $table): array
+    {
+        if ($this->isSqlite()) {
+            return [];
+        }
+
+        $statement = $pdo->prepare(
+            "SELECT column_name AS name FROM information_schema.columns
+             WHERE table_schema = current_schema() AND table_name = ?
+               AND (is_identity = 'YES' OR column_default LIKE 'nextval(%')
+             ORDER BY ordinal_position",
+        );
+
+        if (false === $statement) {
+            return [];
+        }
+
+        $statement->execute([$table]);
+
+        $names = [];
+
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            if (is_array($row) && is_string($row['name'] ?? null)) {
+                $names[] = $row['name'];
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Move a PostgreSQL identity sequence past the imported maximum.
+     *
+     * `setval` is given the maximum only when the table has rows: an empty
+     * table must leave `is_called` false so the next insert gets 1, not 2.
+     */
+    public function resetIdentity(\PDO $pdo, string $table, string $column): void
+    {
+        if ($this->isSqlite()) {
+            return;
+        }
+
+        $tableLiteral = $pdo->quote($table);
+        $columnLiteral = $pdo->quote($column);
+
+        if (false === $tableLiteral || false === $columnLiteral) {
+            throw new \RuntimeException(sprintf('Cannot quote the identity column %s.%s.', $table, $column));
+        }
+
+        $quotedTable = $this->quoteIdentifier($table);
+        $quotedColumn = $this->quoteIdentifier($column);
+
+        $pdo->exec(sprintf(
+            'SELECT setval(pg_get_serial_sequence(%s, %s), COALESCE((SELECT MAX(%s) FROM %s), 1), EXISTS (SELECT 1 FROM %s))',
+            $tableLiteral,
+            $columnLiteral,
+            $quotedColumn,
+            $quotedTable,
+            $quotedTable,
+        ));
+    }
+
+    /**
+     * The PostgreSQL clause that lets an import write an explicit identity id.
+     *
+     * `GENERATED ALWAYS` refuses a caller-supplied value without it. SQLite
+     * has no such restriction, so its fragment is empty.
+     */
+    public function overridingIdentity(): string
+    {
+        return $this->isSqlite() ? '' : ' OVERRIDING SYSTEM VALUE';
+    }
 }

@@ -68,6 +68,20 @@ final readonly class DatabaseMigrator
     }
 
     /**
+     * The module databases this tree can migrate, sorted.
+     *
+     * The export/import commands use this list instead of a second hand-kept
+     * inventory: a module that ships a migrator is exactly a database the
+     * transfer has to carry.
+     *
+     * @return list<string>
+     */
+    public function databases(): array
+    {
+        return array_keys($this->discoverMigrators());
+    }
+
+    /**
      * Discover #[AsMigrator] classes by scanning module migrations dirs.
      *
      * @return array<string, class-string<MigratorInterface>> module name → migrator class

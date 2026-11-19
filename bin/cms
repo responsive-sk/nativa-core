@@ -16,6 +16,8 @@ declare(strict_types = 1);
  *   module:add <Name>        copy the slice in (refuses an incomplete closure by name)
  *   module:remove <Name>     delete the slice (refuses while another module imports it)
  *   migrate                  run every module migrator (the first-request run, forced)
+ *   db:export <dir>          write every module database as a portable NDJSON snapshot
+ *   db:import <dir> [--force] restore a snapshot; --force replaces target rows
  *   settings:profile [--file=PATH]  apply a committed deployment profile (needs the Settings module)
  *   schedule:run             run the Scheduler timetable entries due now (needs the Scheduler module)
  *   queue:work               work one batch of queued jobs (needs the Queue module)
@@ -392,6 +394,9 @@ function usageLines(): array
         '  module:add <Name>        install a module (refuses an incomplete closure)',
         '  module:remove <Name>' . optionUsage('module:remove') . '  remove a module (refuses while imported)',
         '  migrate                  run every module migrator (the first-request run, forced)',
+        '  db:export <dir>          write every module database as a portable NDJSON snapshot',
+        '  db:import <dir> [--force]',
+        '                            restore a snapshot; --force replaces target rows',
         '  schedule:run             run due Scheduler timetable entries (exit 1 on any failure)',
         '  queue:work [<name>]' . optionUsage('queue:work') . '  work one batch of queued jobs (exit 1 on a parked job)',
         '  queue:prune' . optionUsage('queue:prune'),
@@ -427,6 +432,33 @@ function usageLines(): array
 function cmdMigrate(): void
 {
     (new DatabaseMigrator())->run(output());
+}
+
+/**
+ * Write every installed module database to a portable snapshot directory.
+ *
+ * @param list<string> $argv the full argv; the directory starts at index 2
+ */
+function cmdDatabaseExport(array $argv): void
+{
+    $command = new \Modules\Database\Interfaces\CLI\Command\ExportCommand();
+
+    exit($command->run(array_merge(['db:export'], array_slice($argv, 2)), output()));
+}
+
+/**
+ * Restore a snapshot into the installed module databases.
+ *
+ * The command runs the migrators first, so the target schema exists even on
+ * an engine this checkout has never booted.
+ *
+ * @param list<string> $argv the full argv; options start at index 2
+ */
+function cmdDatabaseImport(array $argv): void
+{
+    $command = new \Modules\Database\Interfaces\CLI\Command\ImportCommand();
+
+    exit($command->run(array_merge(['db:import'], array_slice($argv, 2)), output()));
 }
 
 /**
@@ -790,6 +822,11 @@ function commandOptions(): array
         'module:add'        => [],
         'module:remove'     => ['--force' => '[--force]'],
         'migrate'           => [],
+
+        // Delegated: the Database command classes own their arguments.
+        'db:export'         => null,
+        'db:import'         => null,
+
         'schedule:run'      => [],
         'queue:work'        => ['--limit=' => '[--limit=N]'],
         'queue:prune'       => ['--interval=' => '[--interval="30 days"]', '--dry-run' => '[--dry-run]'],
@@ -935,6 +972,16 @@ function main(array $argv): void
 
         case 'migrate':
             cmdMigrate();
+
+            break;
+
+        case 'db:export':
+            cmdDatabaseExport($argv);
+
+            break;
+
+        case 'db:import':
+            cmdDatabaseImport($argv);
 
             break;
 
