@@ -99,7 +99,7 @@ final readonly class PasswordResetService
 
         $stmt = Statement::prepare($this->db,
             'INSERT INTO password_reset_tokens (id, email, token, expires_at, created_at)
-             VALUES (:id, :email, :token, ' . $this->dialect->shiftedTimestamp(':ttl') . ', CURRENT_TIMESTAMP)',
+             VALUES (:id, :email, :token, ' . $this->dialect->shiftedTimestamp(':ttl', 'HOUR') . ', CURRENT_TIMESTAMP)',
         );
         $stmt->execute([
             ':id'    => bin2hex(random_bytes(16)),

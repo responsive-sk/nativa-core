@@ -5,6 +5,8 @@ declare(strict_types = 1);
 namespace Modules\Settings\Infrastructure\Persistence\Repositories;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Settings\Infrastructure\Persistence\Statement;
 
 /**
@@ -15,8 +17,11 @@ final class SettingsRepository
     /** @var array<string, mixed>|null */
     private ?array $cache = null;
 
+    private SqlDialect $dialect;
+
     public function __construct(private readonly ConnectionInterface $connection)
     {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
     }
 
     /**
@@ -44,16 +49,16 @@ final class SettingsRepository
             $stored = '';
         }
 
-        $stmt = Statement::prepare($this->connection,
+        $stmt = Statement::prepare($this->connection, $this->dialect->upsert(
             'INSERT INTO settings (id, setting_key, setting_value, value_type, group_name, is_public, created_at, updated_at)
-             VALUES (:id, :key, :value, :type, :group, :public, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-             ON CONFLICT(setting_key) DO UPDATE SET
-               setting_value = excluded.setting_value,
-               value_type = excluded.value_type,
-               group_name = excluded.group_name,
-               is_public = excluded.is_public,
-               updated_at = CURRENT_TIMESTAMP',
-        );
+             VALUES (:id, :key, :value, :type, :group, :public, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            'setting_key',
+            'setting_value = excluded.setting_value,
+             value_type = excluded.value_type,
+             group_name = excluded.group_name,
+             is_public = excluded.is_public,
+             updated_at = CURRENT_TIMESTAMP',
+        ));
         $stmt->execute([
             ':id'     => bin2hex(random_bytes(16)),
             ':key'    => $key,
@@ -141,11 +146,12 @@ final class SettingsRepository
         $encoded = json_encode($value);
         $json = false === $encoded ? '""' : $encoded;
 
-        Statement::prepare($this->connection,
+        Statement::prepare($this->connection, $this->dialect->upsert(
             'INSERT INTO design_tokens (id, token_key, token_value, created_at, updated_at)
-             VALUES (:id, :key, :value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-             ON CONFLICT(token_key) DO UPDATE SET token_value = excluded.token_value, updated_at = CURRENT_TIMESTAMP',
-        )->execute([
+             VALUES (:id, :key, :value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            'token_key',
+            'token_value = excluded.token_value, updated_at = CURRENT_TIMESTAMP',
+        ))->execute([
             ':id'    => bin2hex(random_bytes(16)),
             ':key'   => $key,
             ':value' => $json,

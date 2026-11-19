@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Database\Infrastructure\Persistence;
 
 /**
- * SqlDialect — the SQL forms where SQLite and PostgreSQL differ.
+ * SqlDialect — the SQL forms where SQLite, PostgreSQL and MariaDB differ.
  *
  * Measured before this class existed: 43 lines in 43 SQL-bearing files, and
  * the rest of the SQL (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, parameters,
@@ -61,8 +61,17 @@ final readonly class SqlDialect
         return Driver::Sqlite === $this->driver;
     }
 
+    public function isMariaDb(): bool
+    {
+        return Driver::MariaDb === $this->driver;
+    }
+
     public function quoteIdentifier(string $identifier): string
     {
+        if ($this->isMariaDb()) {
+            return '`' . str_replace('`', '``', $identifier) . '`';
+        }
+
         return '"' . str_replace('"', '""', $identifier) . '"';
     }
 
@@ -79,7 +88,34 @@ final readonly class SqlDialect
             return (string) preg_replace('/^(\s*)INSERT\s+/i', '$1INSERT OR IGNORE ', $insert, 1);
         }
 
+        if ($this->isMariaDb()) {
+            return (string) preg_replace('/^(\s*)INSERT\s+/i', '$1INSERT IGNORE ', $insert, 1);
+        }
+
         return $insert . ' ON CONFLICT DO NOTHING';
+    }
+
+    /**
+     * An insert that updates the existing row on a conflict.
+     *
+     * SQLite and PostgreSQL use `ON CONFLICT (column) DO UPDATE SET` and the
+     * `excluded` alias. MariaDB uses `ON DUPLICATE KEY UPDATE` and `VALUES()`;
+     * the conflict column is not part of its syntax. The caller keeps one
+     * update list, and this method rewrites only the MariaDB alias.
+     */
+    public function upsert(string $insert, string $conflict, string $updates): string
+    {
+        if ($this->isMariaDb()) {
+            $updates = (string) preg_replace(
+                '/\bexcluded\.([a-z_][a-z0-9_]*)/i',
+                'VALUES($1)',
+                $updates,
+            );
+
+            return $insert . ' ON DUPLICATE KEY UPDATE ' . $updates;
+        }
+
+        return $insert . ' ON CONFLICT(' . $conflict . ') DO UPDATE SET ' . $updates;
     }
 
     /**
@@ -88,14 +124,20 @@ final readonly class SqlDialect
      */
     public function autoIncrementColumn(string $name = 'id'): string
     {
-        return $this->isSqlite()
-            ? $name . ' INTEGER PRIMARY KEY AUTOINCREMENT'
-            : $name . ' BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY';
+        return match ($this->driver) {
+            Driver::Sqlite => $name . ' INTEGER PRIMARY KEY AUTOINCREMENT',
+            Driver::Pgsql => $name . ' BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY',
+            Driver::MariaDb => $name . ' BIGINT AUTO_INCREMENT PRIMARY KEY',
+        };
     }
 
     public function currentTimestamp(): string
     {
-        return $this->isSqlite() ? "datetime('now')" : 'now()';
+        return match ($this->driver) {
+            Driver::Sqlite => "datetime('now')",
+            Driver::Pgsql => 'now()',
+            Driver::MariaDb => 'CURRENT_TIMESTAMP',
+        };
     }
 
     /**
@@ -103,12 +145,16 @@ final readonly class SqlDialect
      *
      * SQLite needs the write lock up front (`BEGIN IMMEDIATE`); PDO's deferred
      * begin would let two claimants read the same row before either update.
-     * PostgreSQL takes row locks instead, which is what `skipLocked()` is for,
-     * so a plain `BEGIN` is the right shape there.
+     * PostgreSQL and MariaDB take row locks instead, which is what
+     * `skipLocked()` is for, so a plain begin is the right shape there.
      */
     public function beginWrite(): string
     {
-        return $this->isSqlite() ? 'BEGIN IMMEDIATE' : 'BEGIN';
+        return match ($this->driver) {
+            Driver::Sqlite => 'BEGIN IMMEDIATE',
+            Driver::Pgsql => 'BEGIN',
+            Driver::MariaDb => 'START TRANSACTION',
+        };
     }
 
     /**
@@ -116,11 +162,17 @@ final readonly class SqlDialect
      * run the same row twice.
      *
      * SQLite serialises writers by taking the write lock, so its usual begin
-     * already provides the guarantee; PostgreSQL has to be asked.
+     * already provides the guarantee; PostgreSQL has to be asked. MariaDB's
+     * `START TRANSACTION` has no isolation clause, so the session was already
+     * set to SERIALIZABLE in `SessionSettings` and the plain begin inherits it.
      */
     public function beginSerializable(): string
     {
-        return $this->isSqlite() ? 'BEGIN IMMEDIATE' : 'BEGIN ISOLATION LEVEL SERIALIZABLE';
+        return match ($this->driver) {
+            Driver::Sqlite => 'BEGIN IMMEDIATE',
+            Driver::Pgsql => 'BEGIN ISOLATION LEVEL SERIALIZABLE',
+            Driver::MariaDb => 'START TRANSACTION',
+        };
     }
 
     /**
@@ -148,10 +200,20 @@ final readonly class SqlDialect
      * `'-7 days'` or `'-1 hour'`.
      *
      * SQLite takes the interval as a second argument to `datetime()`;
-     * PostgreSQL adds a cast interval to `now()`.
+     * PostgreSQL adds a cast interval to `now()`; MariaDB needs a numeric
+     * amount and a unit keyword, so the amount is read from the interval
+     * string and the unit is supplied by the caller (or inferred from a
+     * literal).
      */
-    public function shiftedTimestamp(string $parameter): string
+    public function shiftedTimestamp(string $parameter, ?string $unit = null): string
     {
+        if ($this->isMariaDb()) {
+            $expression = $this->mariaDbIntervalExpression($parameter);
+            $unit = $this->mariaDbIntervalUnit($parameter, $unit);
+
+            return 'DATE_ADD(NOW(), INTERVAL CAST(SUBSTRING_INDEX(' . $expression . ", ' ', 1) AS SIGNED) {$unit})";
+        }
+
         return $this->isSqlite()
             ? "datetime('now', {$parameter})"
             : "now() + ({$parameter})::interval";
@@ -165,7 +227,10 @@ final readonly class SqlDialect
      */
     public function timestampType(): string
     {
-        return $this->isSqlite() ? 'DATETIME' : 'TIMESTAMPTZ';
+        return match ($this->driver) {
+            Driver::Sqlite, Driver::MariaDb => 'DATETIME',
+            Driver::Pgsql => 'TIMESTAMPTZ',
+        };
     }
 
     /**
@@ -176,7 +241,7 @@ final readonly class SqlDialect
      */
     public function booleanLiteral(bool $value): string
     {
-        if ($this->isSqlite()) {
+        if ($this->isSqlite() || $this->isMariaDb()) {
             return $value ? '1' : '0';
         }
 
@@ -203,8 +268,8 @@ final readonly class SqlDialect
      * A case-insensitive equality, with the parameter named by the caller.
      *
      * SQLite keeps its collation on the parameter side, so the column side is
-     * byte-identical to the SQL it replaced; PostgreSQL lowers both sides,
-     * because its collation is not case-folding.
+     * byte-identical to the SQL it replaced; PostgreSQL and MariaDB lower both
+     * sides, because their default collations are not a portable guarantee.
      */
     public function noCaseEquals(string $column, string $parameter): string
     {
@@ -214,13 +279,30 @@ final readonly class SqlDialect
     }
 
     /**
+     * The portable concatenation: `||` on SQLite and PostgreSQL, CONCAT on
+     * MariaDB where `||` is logical OR unless PIPES_AS_CONCAT is enabled.
+     */
+    public function concat(string ...$parts): string
+    {
+        return $this->isMariaDb()
+            ? 'CONCAT(' . implode(', ', $parts) . ')'
+            : implode(' || ', $parts);
+    }
+
+    /**
      * The statement that answers "does this table exist?", with one `?`.
      */
     public function tableExists(): string
     {
-        return $this->isSqlite()
-            ? "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?"
-            : 'SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = ?';
+        if ($this->isSqlite()) {
+            return "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?";
+        }
+
+        if ($this->isMariaDb()) {
+            return 'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?';
+        }
+
+        return 'SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = ?';
     }
 
     /**
@@ -235,6 +317,15 @@ final readonly class SqlDialect
     {
         if ($this->isSqlite()) {
             $statement = $pdo->query('PRAGMA table_info(' . $this->quoteIdentifier($table) . ')');
+        } elseif ($this->isMariaDb()) {
+            $statement = $pdo->prepare(
+                'SELECT column_name AS name FROM information_schema.columns
+                 WHERE table_schema = DATABASE() AND table_name = ? ORDER BY ordinal_position',
+            );
+
+            if (false !== $statement) {
+                $statement->execute([$table]);
+            }
         } else {
             $statement = $pdo->prepare(
                 'SELECT column_name AS name FROM information_schema.columns
@@ -281,6 +372,15 @@ final readonly class SqlDialect
             ];
         }
 
+        if ($this->isMariaDb()) {
+            return [
+                "DROP TRIGGER IF EXISTS {$table}_no_update",
+                "CREATE TRIGGER {$table}_no_update BEFORE UPDATE ON {$quoted} FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '{$message}'",
+                "DROP TRIGGER IF EXISTS {$table}_no_delete",
+                "CREATE TRIGGER {$table}_no_delete BEFORE DELETE ON {$quoted} FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '{$message}'",
+            ];
+        }
+
         $function = 'nativa_refuse_' . $table . '_write';
 
         return [
@@ -298,11 +398,15 @@ final readonly class SqlDialect
      */
     public function returning(string $columns = '*'): string
     {
-        return ' RETURNING ' . $columns;
+        return $this->isMariaDb() ? '' : ' RETURNING ' . $columns;
     }
 
     public function supportsReturning(\PDO $pdo): bool
     {
+        if ($this->isMariaDb()) {
+            return false;
+        }
+
         if (!$this->isSqlite()) {
             return true;
         }
@@ -329,9 +433,13 @@ final readonly class SqlDialect
      */
     public function tableNames(\PDO $pdo): array
     {
-        $statement = $this->isSqlite()
-            ? $pdo->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid")
-            : $pdo->query('SELECT tablename AS name FROM pg_catalog.pg_tables WHERE schemaname = current_schema() ORDER BY tablename');
+        if ($this->isSqlite()) {
+            $statement = $pdo->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid");
+        } elseif ($this->isMariaDb()) {
+            $statement = $pdo->query("SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE' ORDER BY table_name");
+        } else {
+            $statement = $pdo->query('SELECT tablename AS name FROM pg_catalog.pg_tables WHERE schemaname = current_schema() ORDER BY tablename');
+        }
 
         if (false === $statement) {
             throw new \RuntimeException('Cannot list the tables of this database.');
@@ -361,6 +469,16 @@ final readonly class SqlDialect
     {
         if ($this->isSqlite()) {
             $statement = $pdo->query('PRAGMA table_info(' . $this->quoteIdentifier($table) . ')');
+        } elseif ($this->isMariaDb()) {
+            $statement = $pdo->prepare(
+                'SELECT column_name AS name, data_type AS type, column_type AS full_type
+                 FROM information_schema.columns
+                 WHERE table_schema = DATABASE() AND table_name = ? ORDER BY ordinal_position',
+            );
+
+            if (false !== $statement) {
+                $statement->execute([$table]);
+            }
         } else {
             $statement = $pdo->prepare(
                 'SELECT column_name AS name, data_type AS type FROM information_schema.columns
@@ -383,7 +501,15 @@ final readonly class SqlDialect
                 continue;
             }
 
-            $types[$row['name']] = is_string($row['type'] ?? null) ? $row['type'] : '';
+            $type = is_string($row['type'] ?? null) ? $row['type'] : '';
+            $fullType = strtolower(is_string($row['full_type'] ?? null) ? $row['full_type'] : '');
+
+            // MariaDB reports BOOLEAN as tinyint(1), not as a boolean type.
+            if ($this->isMariaDb() && 'tinyint' === strtolower($type) && str_starts_with($fullType, 'tinyint(1)')) {
+                $type = 'boolean';
+            }
+
+            $types[$row['name']] = $type;
         }
 
         return $types;
@@ -416,6 +542,28 @@ final readonly class SqlDialect
 
                     if (is_string($parent) && $parent !== $table) {
                         $edges[$table][$parent] = true;
+                    }
+                }
+            }
+        } elseif ($this->isMariaDb()) {
+            $statement = $pdo->query(<<<'SQL'
+                SELECT kcu.TABLE_NAME AS child, kcu.REFERENCED_TABLE_NAME AS parent
+                FROM information_schema.KEY_COLUMN_USAGE AS kcu
+                WHERE kcu.TABLE_SCHEMA = DATABASE()
+                  AND kcu.REFERENCED_TABLE_SCHEMA = DATABASE()
+                  AND kcu.REFERENCED_TABLE_NAME IS NOT NULL
+                  AND kcu.REFERENCED_TABLE_NAME <> kcu.TABLE_NAME
+                GROUP BY kcu.TABLE_NAME, kcu.REFERENCED_TABLE_NAME
+                ORDER BY kcu.TABLE_NAME, kcu.REFERENCED_TABLE_NAME
+                SQL);
+
+            if (false !== $statement) {
+                foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $child = is_array($row) ? ($row['child'] ?? null) : null;
+                    $parent = is_array($row) ? ($row['parent'] ?? null) : null;
+
+                    if (is_string($child) && is_string($parent)) {
+                        $edges[$child][$parent] = true;
                     }
                 }
             }
@@ -467,7 +615,7 @@ final readonly class SqlDialect
      */
     public function identityColumns(\PDO $pdo, string $table): array
     {
-        if ($this->isSqlite()) {
+        if ($this->isSqlite() || $this->isMariaDb()) {
             return [];
         }
 
@@ -503,7 +651,7 @@ final readonly class SqlDialect
      */
     public function resetIdentity(\PDO $pdo, string $table, string $column): void
     {
-        if ($this->isSqlite()) {
+        if ($this->isSqlite() || $this->isMariaDb()) {
             return;
         }
 
@@ -535,6 +683,46 @@ final readonly class SqlDialect
      */
     public function overridingIdentity(): string
     {
-        return $this->isSqlite() ? '' : ' OVERRIDING SYSTEM VALUE';
+        return $this->isSqlite() || $this->isMariaDb() ? '' : ' OVERRIDING SYSTEM VALUE';
+    }
+
+    /**
+     * MariaDB has no `||` concatenation without PIPES_AS_CONCAT, and the
+     * retention queries build a signed interval from a bound amount. One
+     * explicit CONCAT keeps both drivers on the same call site.
+     */
+    private function mariaDbIntervalExpression(string $parameter): string
+    {
+        if (!str_contains($parameter, '||')) {
+            return $parameter;
+        }
+
+        $parts = array_map(trim(...), explode('||', $parameter));
+
+        return 'CONCAT(' . implode(', ', $parts) . ')';
+    }
+
+    private function mariaDbIntervalUnit(string $parameter, ?string $unit): string
+    {
+        if (null !== $unit) {
+            return $this->normaliseMariaDbIntervalUnit($unit);
+        }
+
+        if (1 === preg_match("/^'[+-]?\d+\s+(seconds?|minutes?|hours?|days?|weeks?|months?|years?)'$/i", trim($parameter), $matches)) {
+            return $this->normaliseMariaDbIntervalUnit($matches[1]);
+        }
+
+        return 'DAY';
+    }
+
+    private function normaliseMariaDbIntervalUnit(string $unit): string
+    {
+        $unit = strtoupper(rtrim($unit, 's'));
+
+        if (!in_array($unit, ['SECOND', 'MINUTE', 'HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], true)) {
+            throw new \InvalidArgumentException(sprintf('Unsupported MariaDB interval unit "%s".', $unit));
+        }
+
+        return $unit;
     }
 }

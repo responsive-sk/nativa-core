@@ -73,9 +73,10 @@ final readonly class NotificationsDatabaseMigrator implements MigratorInterface
             return;
         }
 
+        $schema = $this->dialect->isMariaDb() ? 'DATABASE()' : 'current_schema()';
         $statement = $this->pdo->prepare(
             'SELECT character_maximum_length FROM information_schema.columns
-             WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?',
+             WHERE table_schema = ' . $schema . ' AND table_name = ? AND column_name = ?',
         );
 
         if (false === $statement) {
@@ -86,6 +87,12 @@ final readonly class NotificationsDatabaseMigrator implements MigratorInterface
         $length = $statement->fetchColumn();
 
         if (false === $length || (int) $length >= 32) {
+            return;
+        }
+
+        if ($this->dialect->isMariaDb()) {
+            $this->pdo->exec('ALTER TABLE notifications MODIFY COLUMN notifiable_id VARCHAR(32) NOT NULL');
+
             return;
         }
 

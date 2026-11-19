@@ -13,9 +13,11 @@ use Modules\Database\Contracts\ConnectionInterface;
  * SQLite keeps the per-module file model (users.db, config.db, ...). PostgreSQL
  * uses one database for the whole tree: `DB_DSN` is the shared DSN and each
  * module gets its own schema, named after the module and selected by
- * `search_path`. A per-module `DB_<NAME>` DSN remains as a test/legacy
- * override. Connections are created lazily and cached for the request/process
- * lifetime.
+ * `search_path`. MariaDB has no separate schema layer, so there `DB_DSN` is a
+ * server DSN and each module gets its own database named
+ * `<DB_DATABASE_PREFIX><module>` (default prefix `nativa_`), created on first
+ * connection. A per-module `DB_<NAME>` DSN remains as a test/legacy override.
+ * Connections are created lazily and cached for the request/process lifetime.
  *
  * Two ways in:
  *
@@ -186,9 +188,19 @@ final class DatabaseConnectionManager
             $key = $name . ':' . $index;
             $driver = $this->driver();
             $target = Driver::Sqlite === $driver ? $this->resolvePath($path) : $path;
-            $schema = Driver::Sqlite === $driver || null === $this->env('DB_DSN')
-                ? null
-                : $this->schemaName($name);
+            $shared = $this->env('DB_DSN');
+            $override = $this->env('DB_' . strtoupper($name));
+            $schema = Driver::Pgsql === $driver && null !== $shared && null === $override
+                ? $this->schemaName($name)
+                : null;
+
+            if (Driver::MariaDb === $driver) {
+                $target = DsnBuilder::withCharset($target);
+
+                if (null !== $shared && null === $override) {
+                    $target = DsnBuilder::withDatabase($target, $this->mariaDbDatabase($name));
+                }
+            }
 
             $this->readConnections[$key] ??= new PdoConnection(
                 $this->openPdo($target, readOnly: true, schema: $schema),
@@ -237,28 +249,45 @@ final class DatabaseConnectionManager
      */
     private function createConnection(string $name): \PDO
     {
-        if (Driver::Sqlite !== $this->driver()) {
-            $shared = $this->env('DB_DSN');
-            $target = $shared ?? $this->env('DB_' . strtoupper($name));
+        $driver = $this->driver();
 
-            if (null === $target) {
-                throw new \RuntimeException(sprintf(
-                    'DB_DSN or DB_%s must hold the %s DSN when DB_DRIVER=%s',
-                    strtoupper($name),
-                    $this->driverName(),
-                    $this->driverName(),
-                ));
-            }
+        if (Driver::Sqlite === $driver) {
+            $path = $this->paths->database($name);
+            $this->paths->ensureDir(dirname($path));
 
-            $schema = null === $shared ? null : $this->schemaName($name);
-
-            return $this->openPdo($target, readOnly: false, schema: $schema);
+            return $this->openPdo($path, readOnly: false);
         }
 
-        $path = $this->paths->database($name);
-        $this->paths->ensureDir(dirname($path));
+        $shared = $this->env('DB_DSN');
+        $override = $this->env('DB_' . strtoupper($name));
 
-        return $this->openPdo($path, readOnly: false);
+        if (null === $shared && null === $override) {
+            throw new \RuntimeException(sprintf(
+                'DB_DSN or DB_%s must hold the %s DSN when DB_DRIVER=%s',
+                strtoupper($name),
+                $this->driverName(),
+                $this->driverName(),
+            ));
+        }
+
+        if (Driver::MariaDb === $driver) {
+            if (null !== $override) {
+                return $this->openPdo(DsnBuilder::withCharset($override), readOnly: false);
+            }
+
+            $database = $this->mariaDbDatabase($name);
+            $this->ensureMariaDbDatabase($shared, $database);
+
+            return $this->openPdo(
+                DsnBuilder::withDatabase($shared, $database),
+                readOnly: false,
+            );
+        }
+
+        $target = $shared ?? $override;
+        $schema = null === $shared ? null : $this->schemaName($name);
+
+        return $this->openPdo($target, readOnly: false, schema: $schema);
     }
 
     /**
@@ -284,10 +313,11 @@ final class DatabaseConnectionManager
      *
      * The SQLite path keeps the exact statements it always ran, including the
      * refused-WAL log line: every existing deployment is that path. PostgreSQL
-     * gets its session settings in `SessionSettings`, and a read-only handle
-     * refuses writes at the session level rather than at a file mode. A
-     * shared PostgreSQL DSN also gets its module schema created on the primary
-     * handle before `search_path` is selected.
+     * and MariaDB get their session settings in `SessionSettings`, and a
+     * read-only handle refuses writes at the session level rather than at a
+     * file mode. A shared PostgreSQL DSN also gets its module schema created
+     * on the primary handle before `search_path` is selected; MariaDB creates
+     * its module database before the handle is opened.
      */
     private function openPdo(string $target, bool $readOnly, ?string $schema = null): \PDO
     {
@@ -349,6 +379,48 @@ final class DatabaseConnectionManager
 
         $quoted = SqlDialect::forDriver(Driver::Pgsql)->quoteIdentifier($schema);
         $pdo->exec('CREATE SCHEMA IF NOT EXISTS ' . $quoted);
+    }
+
+    /**
+     * The MariaDB database that holds one module's tables.
+     *
+     * MariaDB has no schema inside a database, so the module boundary is a
+     * database of its own. The prefix keeps a shared server from colliding
+     * with an unrelated `users` database and is operator-configurable.
+     */
+    private function mariaDbDatabase(string $module): string
+    {
+        $prefix = $this->env('DB_DATABASE_PREFIX') ?? 'nativa_';
+
+        if ('' !== $prefix && 1 !== preg_match('/^[a-z][a-z0-9_]*$/', $prefix)) {
+            throw new \RuntimeException(sprintf('Invalid DB_DATABASE_PREFIX "%s".', $prefix));
+        }
+
+        $database = $prefix . $module;
+
+        if (strlen($database) > 64 || 1 !== preg_match('/^[a-z][a-z0-9_]*$/', $database)) {
+            throw new \RuntimeException(sprintf('Invalid MariaDB module database name "%s".', $database));
+        }
+
+        return $database;
+    }
+
+    /**
+     * Create the module database on a connection that has none selected.
+     *
+     * `DB_DSN` is a server DSN for MariaDB; a `dbname` in it is ignored on
+     * this path because the module database is derived from the prefix. The
+     * role therefore needs CREATE on the server.
+     */
+    private function ensureMariaDbDatabase(string $dsn, string $database): void
+    {
+        $pdo = $this->openPdo(
+            DsnBuilder::withCharset(DsnBuilder::withoutDatabase($dsn)),
+            readOnly: false,
+        );
+
+        $quoted = SqlDialect::forDriver(Driver::MariaDb)->quoteIdentifier($database);
+        $pdo->exec('CREATE DATABASE IF NOT EXISTS ' . $quoted . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
     }
 
     private function resolvePath(string $path): string

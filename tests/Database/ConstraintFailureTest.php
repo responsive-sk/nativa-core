@@ -79,6 +79,16 @@ final class ConstraintFailureTest extends TestCase
     }
 
     #[Test]
+    public function theMariaDbForeignKeyStatesAreClassifiedWithoutAServer(): void
+    {
+        $insert = self::synthetic('23000', 1452, 'Cannot add or update a child row: a foreign key constraint fails');
+        $delete = self::synthetic('23000', 1451, 'Cannot delete or update a parent row: a foreign key constraint fails');
+
+        self::assertInstanceOf(ForeignKeyViolationException::class, ForeignKeyViolationException::detect('probe', $insert));
+        self::assertInstanceOf(ForeignKeyViolationException::class, ForeignKeyViolationException::detect('probe', $delete));
+    }
+
+    #[Test]
     public function aSerializationConflictIsNotAConstraintFailure(): void
     {
         $conflict = self::synthetic('40001', 7, 'could not serialize access');

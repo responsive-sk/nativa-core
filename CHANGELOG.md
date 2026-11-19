@@ -5,6 +5,16 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### MariaDB is a third engine
+
+`DB_DRIVER=mariadb` reads `DB_DSN` as a server DSN and gives every module its
+own database under `DB_DATABASE_PREFIX` (default `nativa_`). The dialect learned
+MariaDB's DDL, `INSERT IGNORE`, `ON DUPLICATE KEY UPDATE`, `CONCAT`, `DATE_ADD`,
+`SIGNAL` triggers and `FOR UPDATE SKIP LOCKED`; the connection pins UTC and
+SERIALIZABLE, and foreign-key errors 1451/1452 are translated. The
+`mariadb:11.4` CI job runs the suite with `--fail-on-skipped`, migrates the full
+catalogue twice and walks the login/dashboard/outbox path.
+
 ### The runtime SQL follows the dialect too
 
 The DDL that `ViewCounter` and `RateLimiter` create on first use, the Scheduler

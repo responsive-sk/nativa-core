@@ -143,6 +143,24 @@ final class DatabaseTransferTest extends TestCase
     }
 
     #[Test]
+    public function anEmptyAppendOnlyTableSurvivesAForcedImport(): void
+    {
+        $this->createEventSchema($this->sourceAlpha);
+        $export = $this->directory . '/append-only-export';
+        (new DatabaseTransfer(DatabaseConnectionManager::instance()))->export(['alpha'], $export);
+
+        $this->switchToTargets();
+        $this->createEventSchema($this->targetAlpha);
+
+        $result = (new DatabaseTransfer(DatabaseConnectionManager::instance()))
+            ->import(['alpha'], $export, true);
+
+        self::assertSame(1, $result['databases']);
+        self::assertSame(3, $result['tables']);
+        self::assertSame(4, $result['rows']);
+    }
+
+    #[Test]
     public function theCommandsExportAndImportTheSameSnapshot(): void
     {
         $export = $this->directory . '/command-export';
@@ -198,6 +216,17 @@ final class DatabaseTransferTest extends TestCase
             $pdo->exec("INSERT INTO parents (id, name, active, created_at) VALUES (1, 'one', 1, '2026-11-19 07:41:02'), (2, 'two', 0, '2026-11-19 08:41:02+01')");
             $pdo->exec("INSERT INTO children (id, parent_id, note) VALUES (10, 1, NULL), (11, 2, 'kept')");
         }
+    }
+
+    private function createEventSchema(string $path): void
+    {
+        $pdo = new PDO('sqlite:' . $path);
+        $pdo->exec('CREATE TABLE events (id INTEGER PRIMARY KEY, body TEXT NOT NULL)');
+        $pdo->exec(
+            "CREATE TRIGGER events_no_delete BEFORE DELETE ON events BEGIN
+                SELECT RAISE(ABORT, 'events is immutable');
+            END",
+        );
     }
 
     private function createBetaSchema(string $path, bool $source): void

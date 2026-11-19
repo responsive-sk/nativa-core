@@ -16,9 +16,9 @@ use Throwable;
 /**
  * DatabaseTransfer — one portable snapshot for every module database.
  *
- * The format is deliberately not a SQL dump. SQLite DDL and PostgreSQL DDL
- * differ, and a dump that includes either engine's schema cannot be restored
- * into the other. A snapshot carries the DATA only:
+ * The format is deliberately not a SQL dump. SQLite, PostgreSQL and MariaDB
+ * DDL differ, and a dump that includes one engine's schema cannot be restored
+ * into another. A snapshot carries the DATA only:
  *
  *   manifest.json      format, source driver, one entry per database, table
  *                      columns/types/dependencies/row counts and file hashes
@@ -182,8 +182,10 @@ final readonly class DatabaseTransfer
      * Restore a snapshot into the named databases.
      *
      * Without $replace, a target table with rows refuses the import before a
-     * single write. With it, every target table is cleared in reverse
-     * dependency order first. The caller runs the migrators before this method,
+     * single write. With it, every non-empty target table is cleared in reverse
+     * dependency order first; an empty table is already clear, which matters for
+     * an append-only table whose trigger refuses a DELETE. The caller runs the
+     * migrators before this method,
      * because the schema is engine-specific and the snapshot intentionally
      * carries no DDL.
      *
@@ -326,6 +328,7 @@ final readonly class DatabaseTransfer
 
             $ordered = $this->orderTables(array_keys($plan['tables']), $dependencies);
             $nonEmpty = [];
+            $counts = [];
 
             foreach ($ordered as $table) {
                 $statement = $pdo->query('SELECT COUNT(*) FROM ' . $dialect->quoteIdentifier($table));
@@ -335,6 +338,7 @@ final readonly class DatabaseTransfer
                 }
 
                 $count = (int) $statement->fetchColumn();
+                $counts[$table] = $count;
 
                 if ($count > 0) {
                     $nonEmpty[] = $table . ' (' . $count . ')';
@@ -354,6 +358,10 @@ final readonly class DatabaseTransfer
             try {
                 if ($replace) {
                     foreach (array_reverse($ordered) as $table) {
+                        if (0 === ($counts[$table] ?? 0)) {
+                            continue;
+                        }
+
                         $pdo->exec('DELETE FROM ' . $dialect->quoteIdentifier($table));
                     }
                 }

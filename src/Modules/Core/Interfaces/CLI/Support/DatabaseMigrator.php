@@ -19,7 +19,8 @@ use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
  * MigratorInterface. Each migrator receives its module PDO connection and
  * builds idempotent CREATE TABLE IF NOT EXISTS statements, so re-running
  * is safe. Under PostgreSQL those connections share one database and differ
- * only by the module schema selected in their session.
+ * only by the module schema selected in their session; under MariaDB each
+ * module gets its own database.
  */
 final readonly class DatabaseMigrator
 {

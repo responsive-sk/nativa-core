@@ -35,7 +35,7 @@ interface ConnectionInterface
     public function name(): string;
 
     /**
-     * The driver this connection speaks: `sqlite`, `pgsql`.
+     * The driver this connection speaks: `sqlite`, `pgsql`, `mariadb`.
      *
      * A dialect needs it, and asking the handle is the only answer that cannot
      * disagree with the connection that was actually opened.

@@ -228,7 +228,7 @@ final readonly class UsersDatabaseMigrator implements MigratorInterface
     {
         $this->pdo->exec(<<<SQL
                 CREATE TABLE IF NOT EXISTS rate_limits (
-                    "key" VARCHAR(255) PRIMARY KEY,
+                    {$this->dialect->quoteIdentifier('key')} VARCHAR(255) PRIMARY KEY,
                     count INTEGER NOT NULL DEFAULT 0,
                     expires INTEGER NOT NULL
                 )

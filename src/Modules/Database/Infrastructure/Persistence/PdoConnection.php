@@ -43,7 +43,9 @@ final readonly class PdoConnection implements ConnectionInterface
             throw new \RuntimeException('PDO did not report a driver name for ' . $this->name);
         }
 
-        return $driver;
+        // PDO_MYSQL calls MariaDB `mysql`; the contract names the engine the
+        // tree actually supports, so every dialect lookup gets the same value.
+        return Driver::fromName($driver)->value;
     }
 
     public function quoteIdentifier(string $identifier): string

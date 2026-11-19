@@ -10,7 +10,8 @@ namespace Modules\Database\Exceptions;
  *
  * PostgreSQL says 23503. SQLite says 23000 with driver code 19 and
  * `FOREIGN KEY constraint failed`, the same driver code as a unique violation,
- * which is why the message decides there.
+ * which is why the message decides there. MariaDB says 23000 with driver code
+ * 1451 (a parent is still referenced) or 1452 (a child points nowhere).
  *
  * Extends `\PDOException` for the same reason as its unique sibling: existing
  * catches keep working and the driver's `errorInfo` survives.
@@ -29,7 +30,9 @@ final class ForeignKeyViolationException extends \PDOException
             || ('23000' === $state['sqlstate']
                 && 19 === $state['driver']
                 && str_contains($failure->getMessage(), 'FOREIGN KEY constraint failed'))
-            || str_contains($failure->getMessage(), 'violates foreign key constraint');
+            || ('23000' === $state['sqlstate'] && in_array($state['driver'], [1451, 1452], true))
+            || str_contains($failure->getMessage(), 'violates foreign key constraint')
+            || str_contains($failure->getMessage(), 'foreign key constraint fails');
 
         if (!$foreignKey) {
             return null;

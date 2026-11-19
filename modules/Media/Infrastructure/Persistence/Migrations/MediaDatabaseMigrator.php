@@ -197,7 +197,7 @@ final readonly class MediaDatabaseMigrator implements MigratorInterface
                     SELECT DISTINCT folder FROM assets
                     WHERE folder != '' AND provider != 'cloudinary'
                     AND folder NOT IN (SELECT path FROM media_folders)
-                )
+                ) AS unregistered
             SQL);
 
         return false !== $stmt && (int) $stmt->fetchColumn() > 0;

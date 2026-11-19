@@ -148,18 +148,18 @@ final readonly class SpecRepository
 
     private function upsertService(ConnectionInterface $db, ServiceConfig $service): void
     {
-        Statement::prepare($db, <<<'SQL'
-            INSERT INTO services (id, name, base_url, auth_header, token_env, timeout_seconds, headers)
-            VALUES (:id, :name, :base_url, :auth_header, :token_env, :timeout_seconds, :headers)
-            ON CONFLICT(id) DO UPDATE SET
-                name = excluded.name,
-                base_url = excluded.base_url,
-                auth_header = excluded.auth_header,
-                token_env = excluded.token_env,
-                timeout_seconds = excluded.timeout_seconds,
-                headers = excluded.headers,
-                updated_at = CURRENT_TIMESTAMP
-            SQL)->execute([
+        Statement::prepare($db, $this->dialect->upsert(
+            'INSERT INTO services (id, name, base_url, auth_header, token_env, timeout_seconds, headers)
+             VALUES (:id, :name, :base_url, :auth_header, :token_env, :timeout_seconds, :headers)',
+            'id',
+            'name = excluded.name,
+             base_url = excluded.base_url,
+             auth_header = excluded.auth_header,
+             token_env = excluded.token_env,
+             timeout_seconds = excluded.timeout_seconds,
+             headers = excluded.headers,
+             updated_at = CURRENT_TIMESTAMP',
+        ))->execute([
                 ':id'              => $service->id,
                 ':name'            => $service->name,
                 ':base_url'        => $service->baseUrl,

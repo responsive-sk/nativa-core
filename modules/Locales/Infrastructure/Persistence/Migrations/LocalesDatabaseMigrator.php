@@ -108,7 +108,7 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
              WHERE translation_key LIKE 'admin.%'
                AND EXISTS (
                    SELECT 1 FROM translations AS mark
-                   WHERE mark.translation_key = 'mark.' || substr(translations.translation_key, 7)
+                   WHERE mark.translation_key = " . $this->dialect->concat("'mark.'", 'substr(translations.translation_key, 7)') . "
                      AND mark.locale = translations.locale
                )",
         );
@@ -116,7 +116,7 @@ final readonly class LocalesDatabaseMigrator implements MigratorInterface
 
         $update = Statement::prepare($this->connection,
             "UPDATE translations
-             SET translation_key = 'mark.' || substr(translation_key, 7),
+             SET translation_key = " . $this->dialect->concat("'mark.'", 'substr(translation_key, 7)') . ",
                  group_name = 'mark',
                  updated_at = CURRENT_TIMESTAMP
              WHERE translation_key LIKE 'admin.%'",

@@ -4,8 +4,7 @@
     xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
     bootstrap="tests/bootstrap.php"
     colors="true"
-    failOnRisky="true"
->
+    failOnRisky="true">
     <!--
       Two suites, and the split is the point.
 
@@ -26,6 +25,7 @@
         <testsuite name="kernel">
             <directory>tests</directory>
             <exclude>tests/Postgres</exclude>
+            <exclude>tests/MariaDb</exclude>
         </testsuite>
         <testsuite name="modules">
             <directory>modules</directory>
@@ -37,6 +37,13 @@
         -->
         <testsuite name="postgres">
             <directory>tests/Postgres</directory>
+        </testsuite>
+        <!--
+          `mariadb` owns DB_DRIVER=mariadb and skips without it. The `mariadb`
+          CI job runs ONLY this suite and treats a skip as a failure.
+        -->
+        <testsuite name="mariadb">
+            <directory>tests/MariaDb</directory>
         </testsuite>
     </testsuites>
     <source>

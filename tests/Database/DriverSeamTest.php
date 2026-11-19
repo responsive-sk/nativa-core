@@ -78,14 +78,48 @@ final class DriverSeamTest extends TestCase
     }
 
     #[Test]
+    public function aMariaDbTargetUsesTheMysqlPdoScheme(): void
+    {
+        self::assertSame(
+            'mysql:host=db;port=3306;dbname=nativa_users',
+            DsnBuilder::build(Driver::MariaDb, 'host=db;port=3306;dbname=nativa_users'),
+        );
+        self::assertSame(Driver::MariaDb, Driver::fromName('mysql'));
+    }
+
+    #[Test]
+    public function aMariaDbServerDsnSelectsOneModuleDatabase(): void
+    {
+        self::assertSame(
+            'host=db;port=3306;user=root;charset=utf8mb4;dbname=nativa_users',
+            DsnBuilder::withDatabase('host=db;port=3306;user=root', 'nativa_users'),
+        );
+        self::assertSame(
+            'host=db;user=root',
+            DsnBuilder::withoutDatabase('host=db;dbname=old;user=root'),
+        );
+    }
+
+    #[Test]
     public function anUnknownDriverIsRefusedBeforeAnyConnection(): void
     {
-        putenv('DB_DRIVER=mysql');
+        putenv('DB_DRIVER=oracle');
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('sqlite, pgsql');
+        $this->expectExceptionMessage('sqlite, pgsql, mariadb');
 
         DatabaseConnectionManager::instance()->driverName();
+    }
+
+    #[Test]
+    public function aMariaDbModuleWithoutATargetNamesTheMissingVariable(): void
+    {
+        putenv('DB_DRIVER=mariadb');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('DB_PROBE');
+
+        DatabaseConnectionManager::instance()->connection('probe');
     }
 
     #[Test]

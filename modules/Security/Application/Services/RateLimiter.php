@@ -12,7 +12,7 @@ use Modules\Security\Infrastructure\Persistence\Statement;
 /**
  * RateLimiter — DB-backed atomic rate limiting.
  *
- * State persists in the users.db tables rate_limits ("key", count, expires)
+ * State persists in the users tables rate_limits (key, count, expires)
  * and login_attempts (email, ip_address, attempted_at), surviving restarts.
  *
  * Schema ownership: the canonical DDL lives in the Users module migrator
@@ -65,20 +65,20 @@ final readonly class RateLimiter
         // repeated name is refused there while SQLite tolerates it. `excluded`
         // carries the new expiry and the two reset markers carry the same
         // timestamp to the two CASE branches.
-        $stmt = Statement::prepare($this->db, <<<'SQL'
-                INSERT INTO rate_limits ("key", count, expires)
-                VALUES (:key, 1, :expires)
-                ON CONFLICT("key") DO UPDATE SET
-                    count   = CASE WHEN rate_limits.expires < :reset THEN 1 ELSE rate_limits.count + 1 END,
-                    expires = CASE WHEN rate_limits.expires < :reset_again THEN excluded.expires ELSE rate_limits.expires END
-            SQL);
+        $keyColumn = $this->dialect->quoteIdentifier('key');
+        $stmt = Statement::prepare($this->db, $this->dialect->upsert(
+            'INSERT INTO rate_limits (' . $keyColumn . ', count, expires) VALUES (:key, 1, :expires)',
+            $keyColumn,
+            'count = CASE WHEN rate_limits.expires < :reset THEN 1 ELSE rate_limits.count + 1 END, '
+            . 'expires = CASE WHEN rate_limits.expires < :reset_again THEN excluded.expires ELSE rate_limits.expires END',
+        ));
         $stmt->execute(['key' => $key, 'expires' => $expires, 'reset' => $now, 'reset_again' => $now]);
 
         // SQLite < 3.35 has no RETURNING clause (syntax error on older
         // servers) — read the upserted count back instead. The upsert is a
         // single atomic statement, so this SELECT cannot observe a stale
         // count from a concurrent request.
-        $countStmt = Statement::prepare($this->db, 'SELECT count FROM rate_limits WHERE "key" = :key');
+        $countStmt = Statement::prepare($this->db, 'SELECT count FROM rate_limits WHERE ' . $this->dialect->quoteIdentifier('key') . ' = :key');
         $countStmt->execute(['key' => $key]);
         $count = (int) $countStmt->fetchColumn();
 
@@ -98,7 +98,7 @@ final readonly class RateLimiter
      */
     public function getRetryAfter(string $key): int
     {
-        $stmt = Statement::prepare($this->db, 'SELECT expires FROM rate_limits WHERE "key" = :key');
+        $stmt = Statement::prepare($this->db, 'SELECT expires FROM rate_limits WHERE ' . $this->dialect->quoteIdentifier('key') . ' = :key');
         $stmt->execute(['key' => $key]);
         /** @var array{expires: string}|false $row */
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -115,7 +115,7 @@ final readonly class RateLimiter
      */
     public function reset(string $key): void
     {
-        Statement::prepare($this->db, 'DELETE FROM rate_limits WHERE "key" = :key')
+        Statement::prepare($this->db, 'DELETE FROM rate_limits WHERE ' . $this->dialect->quoteIdentifier('key') . ' = :key')
             ->execute(['key' => $key]);
     }
 
@@ -155,9 +155,10 @@ final readonly class RateLimiter
     private function ensureSchema(): void
     {
         if (!$this->tableExists('rate_limits')) {
-            $this->db->execute(<<<'SQL'
+            $keyColumn = $this->dialect->quoteIdentifier('key');
+            $this->db->execute(<<<SQL
                     CREATE TABLE IF NOT EXISTS rate_limits (
-                        "key" VARCHAR(255) PRIMARY KEY,
+                        {$keyColumn} VARCHAR(255) PRIMARY KEY,
                         count INTEGER NOT NULL DEFAULT 0,
                         expires INTEGER NOT NULL
                     )

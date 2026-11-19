@@ -432,13 +432,13 @@ final readonly class AuthService
     private function persistSessionRow(string $userId, ?string $ip, ?string $userAgent): void
     {
         try {
-            $stmt = Statement::prepare($this->db,
-                'INSERT INTO sessions (id, user_id, ip_address, user_agent, last_activity)
-                 VALUES (:id, :uid, :ip, :ua, ' . $this->dialect->currentTimestamp() . ')
-                 ON CONFLICT(id) DO UPDATE SET
-                     user_id = excluded.user_id,
-                     last_activity = excluded.last_activity',
-            );
+            $insert = 'INSERT INTO sessions (id, user_id, ip_address, user_agent, last_activity)
+                 VALUES (:id, :uid, :ip, :ua, ' . $this->dialect->currentTimestamp() . ')';
+            $stmt = Statement::prepare($this->db, $this->dialect->upsert(
+                $insert,
+                'id',
+                'user_id = excluded.user_id, last_activity = excluded.last_activity',
+            ));
             $stmt->execute([
                 ':id'  => self::dbSessionKey(),
                 ':uid' => $userId,
