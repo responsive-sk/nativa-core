@@ -9,11 +9,19 @@ namespace Modules\Core\Infrastructure;
  *
  * Parses a .env file (if present) and populates $_ENV / putenv() once.
  * Existing values in $_ENV / $_SERVER always win (immutable semantics).
+ *
+ * A second layer may be applied from a JSON file (`apply()`); it obeys the
+ * same rule, so the order of application IS the precedence: process
+ * environment, then .env, then the file. The winning source is remembered per
+ * key so a screen can say which layer set a value instead of guessing.
  */
 final class Env
 {
     /** @var array<string, string> Cached parsed values. */
     private static array $cache = [];
+
+    /** @var array<string, string> Source label of each applied key. */
+    private static array $origins = [];
 
     private static bool $loaded = false;
 
@@ -59,10 +67,58 @@ final class Env
             // Strip surrounding quotes
             $value = self::stripQuotes($value);
 
+            self::apply('.env', [$key => $value]);
+        }
+    }
+
+    /**
+     * Apply a batch of values immutably, remembering which source set them.
+     *
+     * A key already present in $_ENV, $_SERVER or the applied cache is left
+     * alone — that is what makes a later layer (the JSON file) a fallback for
+     * a deployment that exports the same variable.
+     *
+     * The whole batch must be validated by the caller first: a half-applied
+     * batch is a process running with a combination nobody configured.
+     *
+     * @param string                $source label such as '.env'
+     * @param array<string, string> $values
+     */
+    public static function apply(string $source, array $values): void
+    {
+        foreach ($values as $key => $value) {
+            if (array_key_exists($key, $_ENV)
+                || array_key_exists($key, $_SERVER)
+                || array_key_exists($key, self::$cache)
+            ) {
+                continue;
+            }
+
             $_ENV[$key] = $value;
             self::$cache[$key] = $value;
+            self::$origins[$key] = $source;
             putenv($key . '=' . $value);
         }
+    }
+
+    /**
+     * Which layer supplied a key, or null when nothing did.
+     *
+     * A key already in the process environment before any loader ran reads as
+     * 'process' — that is the layer that wins, so it is the layer to report.
+     */
+    public static function origin(string $key): ?string
+    {
+        if (array_key_exists($key, self::$origins)) {
+            return self::$origins[$key];
+        }
+
+        $env = getenv($key);
+        if (false !== $env && '' !== trim($env)) {
+            return 'process';
+        }
+
+        return array_key_exists($key, $_ENV) || array_key_exists($key, $_SERVER) ? 'process' : null;
     }
 
     /**
@@ -71,6 +127,7 @@ final class Env
     public static function reset(): void
     {
         self::$cache = [];
+        self::$origins = [];
         self::$loaded = false;
     }
 

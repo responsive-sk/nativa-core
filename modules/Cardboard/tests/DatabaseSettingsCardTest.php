@@ -78,7 +78,8 @@ final class DatabaseSettingsCardTest extends TestCase
         $html = SettingsAction::renderDatabaseCard(ConnectionSummary::fromEnvironment());
 
         self::assertStringContainsString('sqlite', $html);
-        self::assertStringContainsString('DB_DRIVER is not set', $html);
+        self::assertStringContainsString('nothing sets <code>DB_DRIVER</code>', $html);
+        self::assertStringContainsString('storage/config/database.json', $html);
         self::assertStringContainsString('storage/data/', $html);
         self::assertStringNotContainsString('<form', $html);
     }
@@ -111,6 +112,39 @@ final class DatabaseSettingsCardTest extends TestCase
         self::assertTrue($summary->usesPrefix());
         self::assertStringContainsString('app_&lt;module&gt;', $html);
         self::assertStringNotContainsString('hunter2', $html);
+    }
+
+    #[Test]
+    public function theCardNamesTheLayerAndWarnsWhenTheEnvironmentShadowsTheFile(): void
+    {
+        putenv('DB_DRIVER=sqlite');
+        putenv('DB_DSN');
+        putenv('DB_DATABASE_PREFIX');
+
+        $file = [
+            'driver' => 'pgsql',
+            'dsn'    => 'host=file.internal;password=file-secret',
+            'prefix' => 'nativa_',
+        ];
+
+        $html = SettingsAction::renderDatabaseCard(
+            ConnectionSummary::fromEnvironment($file),
+            $file,
+            'csrf-token',
+            '/mark/settings/database',
+        );
+
+        // The layer that won, not just the value: a save the environment
+        // overrides must not look like a save that did nothing.
+        self::assertStringContainsString('environment', $html);
+        self::assertStringContainsString(
+            'DB_DRIVER is sqlite in the environment but pgsql in storage/config/database.json',
+            $html,
+        );
+        self::assertStringContainsString('<form', $html);
+        self::assertStringContainsString('action="/mark/settings/database"', $html);
+        self::assertStringContainsString('csrf-token', $html);
+        self::assertStringNotContainsString('file-secret', $html);
     }
 
     #[Test]

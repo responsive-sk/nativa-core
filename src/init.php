@@ -3,6 +3,7 @@
 declare(strict_types = 1);
 
 use Modules\Core\Infrastructure\Env;
+use Modules\Database\Infrastructure\Persistence\DatabaseConfigFile;
 
 /*
  * Application Initialization — zero-dependency bootstrap.
@@ -155,6 +156,18 @@ set_exception_handler(static function (\Throwable $e): void {
 
     exit(1);
 });
+
+// ============================================================================
+// 6b. DATABASE ENGINE FROM STORAGE
+// ============================================================================
+
+// `storage/config/database.json` is where the Settings panel writes the engine.
+// It is loaded after the error handler and before anything opens a database, so
+// a broken file stops the boot with the reason in the log rather than halfway
+// through a request. `Env::apply()` is immutable: the process environment and
+// `.env` still win over the file, which makes the file the deployment default
+// and keeps `DB_DRIVER=…` on a command line meaning what it says.
+DatabaseConfigFile::load(APP_BASE_PATH);
 
 // ============================================================================
 // 7. SESSION SETUP

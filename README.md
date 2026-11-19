@@ -75,6 +75,28 @@ SQLite is the default: one file per module under `storage/data/`, and `DB_<NAME>
 (a module name in upper case) is that module's file path. `DB_DRIVER` in `.env`
 switches the whole tree to a server; nothing else reads the driver.
 
+The same choice can live in `storage/config/database.json`, which the Settings
+panel writes (Settings → Database):
+
+```json
+{
+  "driver": "pgsql",
+  "dsn": "host=127.0.0.1;port=5432;dbname=nativa;user=nativa;password=secret",
+  "prefix": "nativa_"
+}
+```
+
+Precedence is the process environment, then `.env`, then the file: a deployment
+that exports `DB_DRIVER` or `DB_DSN` always wins, so the file is the default for
+the installation rather than an override. `driver` takes `sqlite`, `pgsql` or
+`mariadb` (`mysql` means `mariadb`); an unknown key fails the boot instead of
+being ignored, and `dsn` is refused for SQLite, which reads files. The file is
+written atomically with mode `0600` because it holds a password, and it is
+gitignored with the rest of `storage/`. A save applies on the next request —
+the request that saved it already holds its connections — and
+`php bin/cms migrate` builds the new target's tables (the panel refuses an
+empty server only until the save is explicitly confirmed).
+
 PostgreSQL uses one database for every module. Each module gets a schema named
 after it, created and selected by the manager on first connection, so table
 names and migrations stay unchanged:

@@ -12,6 +12,9 @@ use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
 use Modules\Core\Interfaces\HTTP\ResolvesRouteUrls;
 use Modules\Database\Infrastructure\Persistence\ConnectionSummary;
+use Modules\Database\Infrastructure\Persistence\DatabaseConfigFile;
+use Modules\Database\Infrastructure\Persistence\DatabaseTargetProbe;
+use Modules\Database\Infrastructure\Persistence\Driver;
 use Modules\PageCache\Application\Services\CacheInvalidator;
 use Modules\Settings\Application\DTOs\MenuItemDTO;
 use Themes\ThemeKernel;
@@ -44,6 +47,7 @@ use View\ViewRenderer;
 #[Route(path: '/mark/settings/nav/{id}/delete', method: 'POST', name: 'mark.settings.nav.delete', handlerMethod: 'deleteNav')]
 #[Route(path: '/mark/settings/nav/reorder', method: 'POST', name: 'mark.settings.nav.reorder', handlerMethod: 'reorderNav')]
 #[Route(path: '/mark/settings/flush-cache', method: 'POST', name: 'mark.settings.flush-cache', handlerMethod: 'flushCache')]
+#[Route(path: '/mark/settings/database', method: 'POST', name: 'mark.settings.database', handlerMethod: 'saveDatabase')]
 #[Route(path: '/mark/settings/panel-nav', method: 'POST', name: 'mark.settings.panel-nav', handlerMethod: 'savePanelNav')]
 #[Route(path: '/mark/settings/panel-nav/{id}/toggle', method: 'POST', name: 'mark.settings.panel-nav.toggle', handlerMethod: 'togglePanelNav')]
 #[Route(path: '/mark/settings/panel-nav/{id}/sort', method: 'POST', name: 'mark.settings.panel-nav.sort', handlerMethod: 'sortPanelNav')]
@@ -99,7 +103,7 @@ final class SettingsAction
             $this->url('mark.settings.panel-nav'),
         );
 
-        $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'general'), 'databaseCard' => self::renderDatabaseCard(ConnectionSummary::fromEnvironment()), 'adminEmail' => $adminEmail, 'panelNavTable' => $panelNavTable, 'declaredNavTable' => $declaredNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
+        $content = ViewRenderer::render('Modules/Cardboard/Interfaces/HTTP/templates/settings-form.phtml', ['url' => $this->urlBuilder(), 'settingsTabs' => CardboardLayout::settingsTabs($this->urlBuilder(), 'general'), 'databaseCard' => $this->databaseCard($csrf), 'adminEmail' => $adminEmail, 'panelNavTable' => $panelNavTable, 'declaredNavTable' => $declaredNavTable, 'csrf' => $csrf, 'errorHtml' => $errorHtml, 'iconOptions' => $iconOptions, 'layoutSelect' => $layoutSelect, 'locale' => $locale, 'navTable' => $navTable, 'parentOptions' => $parentOptions, 'regChecked' => $regChecked, 'siteDescription' => $siteDescription, 'siteName' => $siteName, 'themeSelect' => $themeSelect, 'themeSettingsCard' => $themeSettingsCard, 'timezone' => $timezone, 'tokenTable' => $tokenTable]);
 
         return CardboardLayout::render(
             'Settings',
@@ -110,23 +114,36 @@ final class SettingsAction
     }
 
     /**
-     * The Database tab: which engine this process talks to, and the DSN it
-     * talks to it with.
+     * The Database tab: which engine this process talks to, which layer set
+     * each value, and the form that writes `storage/config/database.json`.
      *
-     * Read-only on purpose, and not a form with a disabled input: the engine is
-     * chosen by the environment (`DB_DRIVER`, `DB_DSN`, `DB_DATABASE_PREFIX`)
-     * and read on every connection, so a value saved here could never be the
-     * one the panel boots with — reading the setting would need the connection
-     * the setting picks. The card says so in words, because a screen that looks
-     * editable and silently is not is worse than no screen.
+     * The layers are read in precedence order — process environment, `.env`,
+     * the file — and the card names the winner for every row. Without that, a
+     * file saved while the environment still exports `DB_DRIVER` would look
+     * like a switch that silently did nothing.
+     *
+     * The form writes the file only. A value saved into the database could
+     * never be the value this panel booted with: reading a setting needs the
+     * connection the setting picks. Saving therefore takes effect on the NEXT
+     * request, and the card says so — this request already holds the
+     * connections it opened.
      *
      * The DSN arrives redacted (`ConnectionSummary::redact()`); this renderer
-     * never sees the password.
+     * never sees the password, and the file's DSN is never rendered back into
+     * an input value.
+     *
+     * @param array{driver?: string, dsn?: string, prefix?: string, updated_at?: string}|null $file
      */
-    public static function renderDatabaseCard(ConnectionSummary $summary): string
-    {
+    public static function renderDatabaseCard(
+        ConnectionSummary $summary,
+        ?array $file = null,
+        string $csrf = '',
+        string $actionUrl = '',
+    ): string {
         $engine = CardboardLayout::e($summary->driver)
-            . ($summary->driverIsDefault ? ' <span class="m-muted">(default — DB_DRIVER is not set)</span>' : '');
+            . ($summary->driverIsDefault
+                ? ' <span class="m-muted">(default — nothing sets <code>DB_DRIVER</code>)</span>'
+                : '');
 
         $dsn = '' === $summary->dsn
             ? '<span class="m-muted">Not set — SQLite reads a file per module from <code>storage/data/</code>.</span>'
@@ -139,20 +156,104 @@ final class SettingsAction
             default                      => 'One file per module under <code>storage/data/</code> (<code>DB_&lt;MODULE&gt;</code> overrides one path)',
         };
 
-        return '<div class="m-card">'
+        $notice = $summary->overrideNotice();
+        $noticeHtml = null === $notice
+            ? ''
+            : '<p class="m-hint m-hint--tight">' . CardboardLayout::e($notice) . '</p>';
+
+        return '<div class="m-card" id="database">'
             . '<h2 class="m-heading">Database</h2>'
-            . '<p class="m-muted m-card-intro">Where this panel keeps its data. Read-only: the engine is configured in'
-            . ' the environment and cannot be changed from here — the panel needs a database before it can read a setting.</p>'
-            . '<table class="m-table"><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody>'
-            . '<tr><td>Engine</td><td>' . $engine . '</td></tr>'
-            . '<tr><td><code>DB_DSN</code></td><td>' . $dsn . '</td></tr>'
-            . '<tr><td>Module databases</td><td>' . $moduleDatabases . '</td></tr>'
+            . '<p class="m-muted m-card-intro">Where this panel keeps its data. Values are read at boot from'
+            . ' the process environment, then <code>.env</code>, then <code>' . DatabaseConfigFile::relativePath()
+            . '</code> — the first layer that sets a key wins. Saving this form writes the file and takes effect'
+            . ' on the next request.</p>'
+            . $noticeHtml
+            . '<table class="m-table"><thead><tr><th>Setting</th><th>Value</th><th>Set by</th></tr></thead><tbody>'
+            . '<tr><td>Engine</td><td>' . $engine . '</td><td>' . CardboardLayout::e($summary->driverSource) . '</td></tr>'
+            . '<tr><td><code>DB_DSN</code></td><td>' . $dsn . '</td><td>' . CardboardLayout::e($summary->dsnSource) . '</td></tr>'
+            . '<tr><td>Module databases</td><td>' . $moduleDatabases . '</td><td>'
+            . CardboardLayout::e($summary->prefixSource) . ' <code>DB_DATABASE_PREFIX</code></td></tr>'
             . '</tbody></table>'
-            . '<p class="m-muted m-hint m-hint--tight">Passwords are masked. To switch engines, set'
-            . ' <code>DB_DRIVER</code> and <code>DB_DSN</code> in the environment, run'
-            . ' <code>php bin/cms migrate</code>, and move the data with'
-            . ' <code>db:export</code> / <code>db:import</code>.</p>'
+            . self::databaseForm($summary, $file, $csrf, $actionUrl)
+            . '<p class="m-muted m-hint m-hint--tight">Passwords are masked here, and the file is written with mode'
+            . ' <code>0600</code> because it holds one. After switching engines run <code>php bin/cms migrate</code>'
+            . ' and move the data with <code>db:export</code> / <code>db:import</code>.</p>'
             . '</div>';
+    }
+
+    /**
+     * The write side of the card — or nothing, when the caller has no CSRF
+     * field and no route to post to (the render tests).
+     *
+     * @param array{driver?: string, dsn?: string, prefix?: string, updated_at?: string}|null $file
+     */
+    private static function databaseForm(
+        ConnectionSummary $summary,
+        ?array $file,
+        string $csrf,
+        string $actionUrl,
+    ): string {
+        if ('' === $csrf || '' === $actionUrl) {
+            return '';
+        }
+
+        $current = $file['driver'] ?? $summary->driver;
+        $prefix = $file['prefix'] ?? $summary->prefix;
+        $storedDsn = isset($file['dsn']) && '' !== $file['dsn'];
+
+        $options = '';
+
+        foreach ([Driver::Sqlite, Driver::Pgsql, Driver::MariaDb] as $case) {
+            $selected = $case->value === $current ? ' selected' : '';
+            $options .= '<option value="' . $case->value . '"' . $selected . '>' . self::driverLabel($case) . '</option>';
+        }
+
+        $dsnHint = $storedDsn
+            ? 'A DSN is already stored; leave empty to keep it.'
+            : 'host=…;port=…;dbname=…;user=…;password=…';
+
+        return '<form class="m-form m-form--after-table" method="POST" action="' . CardboardLayout::e($actionUrl) . '">'
+            . $csrf
+            . '<div class="m-form-grid">'
+            . '<label>Engine <select name="driver">' . $options . '</select></label>'
+            . '<label>DSN <input type="password" name="dsn" autocomplete="new-password" placeholder="'
+            . CardboardLayout::e($dsnHint) . '"></label>'
+            . '<label>MariaDB prefix <input type="text" name="prefix" value="'
+            . CardboardLayout::e($prefix) . '"></label>'
+            . '</div>'
+            . '<div class="m-check"><input type="checkbox" id="confirm_empty" name="confirm_empty" value="on">'
+            . '<label for="confirm_empty">The target is ready — empty is fine, I will run'
+            . ' <code>php bin/cms migrate</code> right after saving</label></div>'
+            . '<p><button class="m-btn" type="submit">Save to <code>' . DatabaseConfigFile::relativePath()
+            . '</code></button></p>'
+            . '</form>';
+    }
+
+    private static function driverLabel(Driver $driver): string
+    {
+        return match ($driver) {
+            Driver::Sqlite  => 'SQLite (one file per module; default)',
+            Driver::Pgsql   => 'PostgreSQL (one schema per module)',
+            Driver::MariaDb => 'MariaDB (one database per module)',
+        };
+    }
+
+    /**
+     * The card as this request sees it: the applied configuration, the file on
+     * disk (for prefilling the form) and the route that writes it.
+     *
+     * @param array{driver?: string, dsn?: string, prefix?: string, updated_at?: string}|null $file
+     */
+    private function databaseCard(string $csrf, ?array $file = null): string
+    {
+        $file ??= DatabaseConfigFile::read(APP_BASE_PATH);
+
+        return self::renderDatabaseCard(
+            ConnectionSummary::fromEnvironment($file ?? []),
+            $file,
+            $csrf,
+            $this->url('mark.settings.database'),
+        );
     }
 
     /**
@@ -742,6 +843,93 @@ final class SettingsAction
 
         CacheInvalidator::flush();
         \Modules\Audit\Interfaces\HTTP\AuditServices::log('settings.save', 'settings', 'Saved site settings', $request->getClientIp());
+
+        return Response::redirect($this->url('mark.settings'));
+    }
+
+    /**
+     * Save the engine into `storage/config/database.json`.
+     *
+     * Four gates before anything is written, in the order a mistake would hurt
+     * most: the values must be valid, a server engine needs a DSN, the target
+     * must be reachable, and a target with no tables must be acknowledged.
+     * Then the write is atomic, so a request killed mid-save leaves the
+     * previous configuration rather than half of a new one.
+     *
+     * The running process is deliberately NOT reconfigured: it already holds
+     * the connections it opened, and two engines inside one page is worse than
+     * a change that applies on the next request.
+     */
+    public function saveDatabase(Request $request): Response
+    {
+        $basePath = APP_BASE_PATH;
+        $existing = DatabaseConfigFile::read($basePath);
+
+        try {
+            $driver = Driver::fromName(trim($request->bodyString('driver')));
+        } catch (\InvalidArgumentException $exception) {
+            return Response::html($this->settingsPage([$exception->getMessage()]));
+        }
+
+        $dsn = trim($request->bodyString('dsn'));
+
+        if ('' === $dsn) {
+            $dsn = $existing['dsn'] ?? '';
+        }
+
+        $prefix = trim($request->bodyString('prefix'));
+
+        if ('' === $prefix) {
+            $prefix = $existing['prefix'] ?? 'nativa_';
+        }
+
+        if (Driver::Sqlite !== $driver && '' === $dsn) {
+            return Response::html($this->settingsPage([sprintf(
+                'A DSN is required for the %s driver, for example'
+                . ' host=127.0.0.1;port=5432;dbname=nativa;user=nativa;password=secret',
+                $driver->value,
+            )]));
+        }
+
+        if (Driver::Sqlite !== $driver) {
+            try {
+                $tables = DatabaseTargetProbe::tables($driver, $dsn, $prefix);
+            } catch (\PDOException $exception) {
+                // PDO names the host and the role, never the password.
+                return Response::html($this->settingsPage(['The target could not be reached: ' . $exception->getMessage()]));
+            } catch (\InvalidArgumentException $exception) {
+                return Response::html($this->settingsPage([$exception->getMessage()]));
+            }
+
+            if (0 === $tables && 'on' !== $request->bodyString('confirm_empty')) {
+                return Response::html($this->settingsPage([
+                    'The target holds no tables yet. Running php bin/cms migrate after saving builds them;'
+                    . ' tick "The target is ready" to save anyway.',
+                ]));
+            }
+        }
+
+        try {
+            DatabaseConfigFile::write(
+                $basePath,
+                $driver->value,
+                Driver::Sqlite === $driver ? '' : $dsn,
+                $prefix,
+            );
+        } catch (\InvalidArgumentException $exception) {
+            return Response::html($this->settingsPage([$exception->getMessage()]));
+        } catch (\RuntimeException $exception) {
+            error_log('[SettingsAction.saveDatabase] ' . $exception->getMessage());
+
+            return Response::html($this->settingsPage(['The database configuration could not be saved; see the server log.']));
+        }
+
+        \Modules\Audit\Interfaces\HTTP\AuditServices::log(
+            'settings.database',
+            'settings',
+            'Saved the database engine (' . $driver->value . ', prefix ' . $prefix . ')',
+            $request->getClientIp(),
+        );
 
         return Response::redirect($this->url('mark.settings'));
     }
