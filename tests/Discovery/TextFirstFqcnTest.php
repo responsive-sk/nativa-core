@@ -8,6 +8,7 @@ use Modules\Core\Interfaces\HTTP\Middleware\MiddlewareRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Shell\HomepageSurfaceRegistry;
 use Shell\ShellContextProviderRegistry;
 use Themes\ThemeRegistry;
 
@@ -41,6 +42,7 @@ final class TextFirstFqcnTest extends TestCase
     /** The registries that resolve an FQCN from file text. */
     private const array REGISTRIES = [
         ShellContextProviderRegistry::class,
+        HomepageSurfaceRegistry::class,
         ThemeRegistry::class,
         MiddlewareRegistry::class,
         'Modules\\Markdown\\Interfaces\\HTTP\\Markdown\\MarkdownBlockRegistry',

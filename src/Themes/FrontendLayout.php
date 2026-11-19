@@ -44,6 +44,22 @@ final class FrontendLayout
     public const string DEFAULT_DESCRIPTION = 'Nativa PHP Core — the kernel-only tree: zero-dependency runtime, attribute routing, a middleware pipeline, per-module SQLite connections and a theme that needs no build.';
 
     /**
+     * The brand a page title ends with: the configured site name, or the kernel
+     * default when no provider answers.
+     *
+     * One owner, because the alternative is what this tree had until
+     * 2026-11-19: Pages and Docs appended a literal `Nativa` while Blog asked
+     * the shell port, so a site named `responsive.sk` rendered `O nas — Nativa`
+     * on a page, `Documentation — Nativa` on a guide, and the site's own name
+     * on every article. The title is the most visible SEO field a page has, and
+     * a wrong brand in it is invisible from inside the panel.
+     */
+    public static function brandSuffix(): string
+    {
+        return ShellContextProviderRegistry::siteName() ?? self::DEFAULT_SITE_NAME;
+    }
+
+    /**
      * The shared public base critical-CSS chain, in cascade order — the
      * single source of truth every public theme's `criticalCss()` list
      * starts with (themes that layer their own sections append them after

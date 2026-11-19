@@ -8,6 +8,7 @@ use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
 use Seo\WebsiteStructuredData;
+use Shell\HomepageSurfaceRegistry;
 use Shell\PageContext;
 use Shell\ShellContextProviderRegistry;
 use Themes\FrontendLayout;
@@ -48,7 +49,13 @@ final class HomepageAction
     public function handle(Request $request): Response
     {
         $theme = (new ThemeResolver())->resolve($request);
-        $locale = ShellContextProviderRegistry::defaultLocale() ?? 'sk_SK';
+        // The locale the middleware RESOLVED for this request, not the site's
+        // default: `/en` answered its copy from the Slovak group and read as an
+        // untranslated page. `activeLocale()` already falls back to the default
+        // when nothing has resolved, so `/` is unchanged.
+        $locale = ShellContextProviderRegistry::activeLocale()
+            ?? ShellContextProviderRegistry::defaultLocale()
+            ?? 'sk_SK';
         $siteName = ShellContextProviderRegistry::siteName() ?? 'Nativa PHP Core';
 
         // `+` and not `array_merge`: the site name is the kernel's own answer for
@@ -57,14 +64,28 @@ final class HomepageAction
         // (`home.hero_title`) is added beside it.
         $copy = ['title' => $siteName] + ShellContextProviderRegistry::copy('home', $locale);
 
-        $content = ThemeKernel::for($theme)->homepage(
-            PageContext::forHomepage(
-                $request,
-                $theme,
-                $locale,
-                copy: $copy,
-            ),
+        $context = PageContext::forHomepage(
+            $request,
+            $theme,
+            $locale,
+            copy: $copy,
         );
+
+        // A module may own the landing (`#[AsHomepageSurface]`): its content, its
+        // title, its description. Nothing installed answers null and the theme's
+        // own homepage renders, exactly as before — the kernel is the floor, not
+        // the finished page.
+        $surface = HomepageSurfaceRegistry::first();
+        $homepage = null === $surface ? null : $surface->homepage($context);
+
+        $content = null === $homepage
+            ? ThemeKernel::for($theme)->homepage($context)
+            : $homepage->content;
+
+        // The landing's own head, where it names one: a title that says what the
+        // site does, alternates for its languages, an absolute share image.
+        $title = null === $homepage ? $siteName : ($homepage->title ?? $siteName);
+        $hreflang = null === $homepage || [] === $homepage->hreflang ? null : $homepage->hreflang;
 
         $homeUrl = $request->absoluteUrl('/');
 
@@ -73,10 +94,14 @@ final class HomepageAction
         // request's, so a kernel with nothing installed still emits a truthful
         // block; Blog's article builders live with the module that owns them.
         return Response::html(FrontendLayout::render(
-            $siteName,
+            $title,
             $content,
+            description: $homepage?->description,
             currentPath: '/',
+            lang: $homepage?->lang,
+            hreflangLinks: $hreflang,
             canonicalUrl: $homeUrl,
+            ogImage: $homepage?->ogImage,
             structuredData: WebsiteStructuredData::website($siteName, $homeUrl),
             theme: $theme,
         ));

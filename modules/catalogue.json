@@ -128,6 +128,12 @@
             "source": "modules/Settings",
             "requires": []
         },
+        "Site": {
+            "source": "modules/Site",
+            "requires": [
+                "ContentLocale"
+            ]
+        },
         "Uploads": {
             "source": "modules/Uploads",
             "requires": []

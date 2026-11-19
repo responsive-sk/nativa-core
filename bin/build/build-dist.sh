@@ -83,6 +83,11 @@ APPLY_PROFILE=true
 # because each of these would be a bug in the artifact rather than clutter:
 #
 #   ./dist             the output directory itself
+#   ./releases         release artifacts (`--to releases/<UTC-date>`): the
+#                       directory a deployment is uploaded from and rolled back
+#                       to, never an input of the next build. Without this line
+#                       a 2026-11-20 build copies the whole 2026-11-19 release
+#                       into itself.
 #   ./.git ./.github   history and CI are not deployable
 #   ./tests             the harness is not the application
 #   ./fixtures          the theme-gallery inputs, read by
@@ -122,6 +127,7 @@ APPLY_PROFILE=true
 #                       how this tree is DEVELOPED, not how it runs
 EXCLUDES=(
     "./dist"
+    "./releases"
     "./.git"
     "./.github"
     "./tests"
@@ -209,6 +215,16 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+# `--to` arrives relative to the caller and everything below compares it to
+# $ROOT, so resolve it once here. Same reason the tar exclude needs it: the
+# target can live INSIDE the tree (`--to releases/<date>` does), and tar then
+# reads the directory it is writing to — measured 2026-11-19, that copy ended
+# with "file changed as we read it" and a half-assembled artifact.
+case "$DIST_DIR" in
+    /*) ;;
+    *) DIST_DIR="$ROOT/$DIST_DIR" ;;
+esac
+
 # --- Assets ------------------------------------------------------------------
 # `make assets` is the only build path (pnpm workspace under Frontend/packages).
 # Its output is gitignored by design, so `--skip-assets` on a tree that has
@@ -251,6 +267,11 @@ for path in "${EXCLUDES[@]}"; do
     tar_args+=( --exclude="$path" )
 done
 [ "$WITH_CATALOGUE" = false ] && tar_args+=( --exclude="./modules" )
+# The target, for any `--to` that points inside the tree. `./dist` and
+# `./releases` are in the list above; this covers the rest (`--to build/x`).
+case "$DIST_DIR" in
+    "$ROOT"/*) tar_args+=( --exclude="./${DIST_DIR#"$ROOT"/}" ) ;;
+esac
 
 ( cd "$ROOT" && tar "${tar_args[@]}" -cf - . ) | ( cd "$DIST_DIR" && tar -xf - )
 
