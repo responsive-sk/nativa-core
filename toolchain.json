@@ -38,6 +38,18 @@
             "answers": "does the tree behave (PHPUnit: tests/ plus modules/*/tests/)"
         },
         {
+            "target": "test-postgres",
+            "tier": "kernel",
+            "can_fail": true,
+            "answers": "does the engine seam hold against a real PostgreSQL server — a schema per module, the session settings, the dialect and the migrators — on a server migrated first, with a skip counted as a failure"
+        },
+        {
+            "target": "test-mariadb",
+            "tier": "kernel",
+            "can_fail": true,
+            "answers": "does the engine seam hold against a real MariaDB server — a database per module, the UTC/SERIALIZABLE session, the dialect and the migrators — on a server migrated first, with a skip counted as a failure"
+        },
+        {
             "target": "analyze",
             "tier": "kernel",
             "can_fail": true,

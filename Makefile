@@ -44,6 +44,26 @@ dependency-audit: ## Gate: no high/critical advisories in either lockfile
 	composer audit --locked --ignore-severity=low --ignore-severity=medium
 	cd Frontend/packages && pnpm audit --audit-level high
 
+##@ Database engines
+# `make test` runs the SQLite default; `tests/Postgres` and `tests/MariaDb`
+# describe a real server and are excluded from that suite, and PHPUnit skips
+# them silently when `DB_DRIVER` says otherwise. These targets carry the driver
+# and DSN themselves, migrate first, and treat a skip as a failure. The defaults
+# are the credentials the source repository's CI services use; point them at your
+# server on the command line (PG_DSN=…, MARIADB_DSN=…, MARIADB_PREFIX=…), a
+# socket DSN included.
+PG_DSN ?= host=127.0.0.1;port=5432;dbname=nativa;user=postgres;password=postgres
+MARIADB_DSN ?= host=127.0.0.1;port=3306;user=root;password=root
+MARIADB_PREFIX ?= nativa_
+
+test-postgres: ## Gate: the PostgreSQL suite against a real server, migrated first (PG_DSN=…)
+	DB_DRIVER=pgsql DB_DSN="$(PG_DSN)" $(PHP) bin/cms migrate
+	DB_DRIVER=pgsql DB_DSN="$(PG_DSN)" $(COMPOSER) test -- --testsuite postgres --fail-on-skipped
+
+test-mariadb: ## Gate: the MariaDB suite against a real server, migrated first (MARIADB_DSN=…, MARIADB_PREFIX=…)
+	DB_DRIVER=mariadb DB_DSN="$(MARIADB_DSN)" DB_DATABASE_PREFIX="$(MARIADB_PREFIX)" $(PHP) bin/cms migrate
+	DB_DRIVER=mariadb DB_DSN="$(MARIADB_DSN)" DB_DATABASE_PREFIX="$(MARIADB_PREFIX)" $(COMPOSER) test -- --testsuite mariadb --fail-on-skipped
+
 ##@ Mago
 mago-spike: ## Informational: run mago lint/analyze/format/guard over the phpstan scope
 	@bin/build/mago-spike.sh $(MAGO_ARGS)

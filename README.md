@@ -69,6 +69,46 @@ The panel is catalogued but not installed, so `/mark` answers 404 until you run
 `php bin/cms user:operator` creates an administrator. `RestPanel` answers under
 `/mark/rest`.
 
+## Database engines
+
+SQLite is the default: one file per module under `storage/data/`, and `DB_<NAME>`
+(a module name in upper case) is that module's file path. `DB_DRIVER` in `.env`
+switches the whole tree to a server; nothing else reads the driver.
+
+PostgreSQL uses one database for every module. Each module gets a schema named
+after it, created and selected by the manager on first connection, so table
+names and migrations stay unchanged:
+
+```env
+DB_DRIVER=pgsql
+DB_DSN=host=127.0.0.1;port=5432;dbname=nativa;user=nativa;password=secret
+```
+
+MariaDB has no schema layer inside a database, so the isolation boundary is one
+database per module. `DB_DSN` is the server DSN (no `dbname`); the manager
+creates `<DB_DATABASE_PREFIX><module>` (default `nativa_`) on first connection.
+Sessions are pinned to `time_zone = '+00:00'` and SERIALIZABLE transactions:
+
+```env
+DB_DRIVER=mariadb
+DB_DSN=host=127.0.0.1;port=3306;user=nativa;password=secret
+DB_DATABASE_PREFIX=nativa_
+```
+
+Either role needs `CREATE` (on the PostgreSQL database, or on the MariaDB
+server), and `php bin/cms migrate` builds every schema or database. Switching
+back is `DB_DRIVER=sqlite`, or removing the lines.
+
+`make test` runs SQLite only: `tests/Postgres` and `tests/MariaDb` describe a
+real server and are excluded from that suite. Their one-command run carries the
+driver and DSN itself, migrates first, and treats a skip as a failure — a
+missing server is a red run, not a green no-op:
+
+```sh
+make test-postgres                                        # PG_DSN=… to point elsewhere
+make test-mariadb MARIADB_DSN="unix_socket=/run/mysqld/mysqld.sock;user=root;password="
+```
+
 ## Install a module
 
 ```sh
