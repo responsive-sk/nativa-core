@@ -51,8 +51,11 @@ final class SiteCopy
      */
     public static function contacts(): array
     {
+        // The address the site's own contact page publishes. The phone stays
+        // empty on purpose: an unpublished number is an absent row, not a
+        // guessed one.
         return [
-            'email' => '',
+            'email' => 'ahoj@responsive.sk',
             'phone' => '',
         ];
     }

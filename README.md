@@ -166,6 +166,58 @@ make assets     # pnpm workspace → public/dist/nativa
 `make assets` needs pnpm and network access for the first install. A deployment
 does not: the frozen bundle is committed.
 
+## Update a deployment
+
+An update replaces the CODE. It never replaces `storage/`, because that is where
+the site is: `storage/pages/`, `storage/blog/`, `storage/blog-images/`,
+`storage/uploads/` and one database file per module under `storage/data/`. The
+artifact ships a migrated `storage/` skeleton for a first install, so copying it
+over a running site deletes the content and leaves a database-shaped shell. That
+is not hypothetical: it is what made a rebuilt site look deleted on 2026-10-17.
+
+```sh
+# 1. A release is a directory with a provenance stamp.
+bin/build/build-dist.sh --skip-assets --to releases/2026-11-19
+cat releases/2026-11-19/.build-info     # VERSION, COMMIT, VENDOR=absent
+
+# 2. Snapshot first, on the server, before anything moves.
+php bin/cms db:export storage/backups/2026-11-19
+tar czf storage/backups/2026-11-19-files.tgz \
+    storage/pages storage/blog storage/blog-images storage/uploads
+
+# 3. Optionally take the site out of service (/mark → Settings → maintenance_mode).
+
+# 4. Code only — rsync with an exclude, never `cp -R`.
+rsync -a --delete --exclude 'storage/' --exclude '.build-info' \
+    releases/2026-11-19/ /var/www/site/
+install -m 644 releases/2026-11-19/.build-info /var/www/site/.build-info
+
+# 5. Schema on the target (idempotent; the first request would run it anyway).
+php bin/cms migrate
+```
+
+Then hand `storage/` to the user the web server runs as (`chgrp -R www-data
+storage`, or `nginx`, `_www`): an rsync user that owns it and a SAPI user that
+cannot write it is a 500 on every request, or a 503 once the re-migration it
+triggers hits the timeout.
+
+Verify the update, not just the upload: `/health` answers 200 with every probe
+healthy, `/` answers 200, and the file counts under `storage/pages` and
+`storage/uploads` are the same as before the rsync. A count that dropped is a
+copy that included `storage/`.
+
+**`settings:profile` is not part of an update.** `config/deploy.php` describes
+what a BUILD starts as; run against a running site it would write the build's
+`site_name`, `theme`, `site_description` and `timezone` over what the operator
+set in `/mark` → Settings. It belongs to `bin/build/build-dist.sh`, which runs it
+inside the artifact before the site exists.
+
+Rollback is the previous release directory plus the snapshot: rsync the older
+`releases/<date>/` back the same way, then
+`php bin/cms db:import storage/backups/<date> --force` if the schema moved. Keep
+release directories (they are gitignored, like `dist/`) rather than rebuilding
+one on demand.
+
 ## Gates
 
 ```sh

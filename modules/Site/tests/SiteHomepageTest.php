@@ -96,6 +96,18 @@ final class SiteHomepageTest extends TestCase
     }
 
     #[Test]
+    public function theLandingCarriesThePublishedContactAddress(): void
+    {
+        $html = $this->page('/');
+
+        self::assertStringContainsString(
+            'href="mailto:ahoj@responsive.sk"',
+            $html,
+            'The closing call is where a visitor writes; an empty contact block is a dead end.',
+        );
+    }
+
+    #[Test]
     public function theShareImageTheSurfaceNamesActuallyExists(): void
     {
         self::assertFileExists(APP_BASE_PATH . '/public' . SiteCopy::shareImage(), 'The head points at a file the deployment must serve.');
