@@ -5,6 +5,8 @@ declare(strict_types = 1);
 namespace Modules\Notifications\Infrastructure\Persistence\Repositories;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Notifications\Domain\Model\Notification;
 use Modules\Notifications\Infrastructure\Persistence\Statement;
 
@@ -17,16 +19,19 @@ use Modules\Notifications\Infrastructure\Persistence\Statement;
  * moderator could clear another's row by guessing an id. Scoping in SQL rather
  * than in a caller is what makes that unskippable.
  *
- * Ordering is `created_at DESC, rowid DESC` — the rowid tiebreak exists because
- * `gmdate('Y-m-d H:i:s')` has one-second resolution, and a burst of two
- * notifications in the same second would otherwise come back in insert order
- * only by accident.
+ * Ordering is `created_at DESC` plus the dialect's insertion-order column —
+ * the tiebreak exists because `gmdate('Y-m-d H:i:s')` has one-second
+ * resolution, and a burst of two notifications in the same second would
+ * otherwise come back in insert order only by accident.
  */
 final readonly class SqliteNotificationRepository
 {
+    private SqlDialect $dialect;
+
     public function __construct(
         private ConnectionInterface $connection,
     ) {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
     }
 
     public function save(Notification $notification): void
@@ -77,7 +82,7 @@ final readonly class SqliteNotificationRepository
         $stmt = Statement::prepare($this->connection, '
             SELECT * FROM notifications
             WHERE notifiable_id = ?
-            ORDER BY created_at DESC, rowid DESC
+            ORDER BY created_at DESC, ' . $this->dialect->insertionOrder() . ' DESC
             LIMIT ? OFFSET ?
         ');
         $stmt->execute([$notifiableId, max(1, $limit), max(0, $offset)]);

@@ -169,18 +169,23 @@ final readonly class SqlDialect
     }
 
     /**
-     * The default literal for a boolean column.
+     * The literal for a boolean, in a column default or in a comparison.
      *
-     * SQLite stores `1`/`0`; PostgreSQL refuses an integer default on a
+     * SQLite stores `1`/`0`; PostgreSQL refuses an integer against a
      * `BOOLEAN` column and needs the keyword.
      */
-    public function booleanDefault(bool $value): string
+    public function booleanLiteral(bool $value): string
     {
         if ($this->isSqlite()) {
             return $value ? '1' : '0';
         }
 
         return $value ? 'TRUE' : 'FALSE';
+    }
+
+    public function booleanDefault(bool $value): string
+    {
+        return $this->booleanLiteral($value);
     }
 
     /**
@@ -192,6 +197,20 @@ final readonly class SqlDialect
         return $this->isSqlite()
             ? $expression . ' COLLATE NOCASE'
             : 'LOWER(' . $expression . ')';
+    }
+
+    /**
+     * A case-insensitive equality, with the parameter named by the caller.
+     *
+     * SQLite keeps its collation on the parameter side, so the column side is
+     * byte-identical to the SQL it replaced; PostgreSQL lowers both sides,
+     * because its collation is not case-folding.
+     */
+    public function noCaseEquals(string $column, string $parameter): string
+    {
+        return $this->isSqlite()
+            ? $column . ' = ' . $parameter . ' COLLATE NOCASE'
+            : 'LOWER(' . $column . ') = LOWER(' . $parameter . ')';
     }
 
     /**

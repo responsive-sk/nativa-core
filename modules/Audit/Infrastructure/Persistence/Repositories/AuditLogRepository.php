@@ -7,6 +7,8 @@ namespace Modules\Audit\Infrastructure\Persistence\Repositories;
 use Modules\Audit\Domain\Entities\AuditEntry;
 use Modules\Audit\Infrastructure\Persistence\Statement;
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * AuditLogRepository — append-only persistence for audit_log.
@@ -18,8 +20,11 @@ use Modules\Database\Contracts\ConnectionInterface;
  */
 final readonly class AuditLogRepository
 {
+    private SqlDialect $dialect;
+
     public function __construct(private ConnectionInterface $db)
     {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
     }
 
     /**
@@ -47,16 +52,16 @@ final readonly class AuditLogRepository
     /**
      * Newest entries first.
      *
-     * created_at has second granularity, so rowid (monotonic insert order) is
-     * the tiebreaker — two entries logged in the same second keep their real
-     * order instead of a random id order.
+     * created_at has second granularity, so the dialect's insertion-order
+     * column is the tiebreaker — two entries logged in the same second keep
+     * their real order instead of a random id order.
      *
      * @return list<AuditEntry>
      */
     public function recent(int $limit): array
     {
         $stmt = Statement::prepare($this->db,
-            'SELECT * FROM audit_log ORDER BY created_at DESC, rowid DESC LIMIT :limit',
+            'SELECT * FROM audit_log ORDER BY created_at DESC, ' . $this->dialect->insertionOrder() . ' DESC LIMIT :limit',
         );
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $stmt->execute();

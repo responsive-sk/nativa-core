@@ -28,7 +28,13 @@ final class User
     public function __construct(private array $data)
     {
         $active = $data['is_active'] ?? 1;
-        $this->isActive = 1 === (is_numeric($active) ? (int) $active : 0);
+        $this->isActive = match (true) {
+            is_bool($active) => $active,
+            is_int($active)  => 1 === $active,
+            // PostgreSQL returns BOOLEAN as `t`/`f`; SQLite returns `1`/`0`.
+            is_string($active) => in_array(strtolower($active), ['1', 't', 'true'], true),
+            default => false,
+        };
 
         $lastLogin = $data['last_login_at'] ?? null;
         $this->lastLoginAt = is_string($lastLogin) && '' !== $lastLogin ? $lastLogin : null;

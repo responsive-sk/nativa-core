@@ -7,6 +7,8 @@ namespace Modules\Blog\Application\Services;
 use Modules\Blog\Infrastructure\Persistence\Statement;
 use Modules\Markdown\Application\Services\MarkdownRenderer;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * BlogAuthorResolver — resolve a blog article's optional author_email
@@ -23,8 +25,11 @@ use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
  */
 final readonly class BlogAuthorResolver
 {
+    private SqlDialect $dialect;
+
     public function __construct(private DatabaseConnectionManager $manager)
     {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($manager->driverName()));
     }
 
     /**
@@ -45,7 +50,9 @@ final readonly class BlogAuthorResolver
     public function profile(string $email): ?array
     {
         $row = $this->lookup(
-            'SELECT id, name, avatar FROM users WHERE email = :email COLLATE NOCASE AND is_active = 1 LIMIT 1',
+            'SELECT id, name, avatar FROM users WHERE '
+            . $this->dialect->noCaseEquals('email', ':email')
+            . ' AND is_active = ' . $this->dialect->booleanLiteral(true) . ' LIMIT 1',
             [':email' => $email],
         );
 
@@ -71,7 +78,8 @@ final readonly class BlogAuthorResolver
     public function profileById(string $id): ?array
     {
         $row = $this->lookup(
-            'SELECT id, name, avatar, created_at FROM users WHERE id = :id AND is_active = 1 LIMIT 1',
+            'SELECT id, name, avatar, created_at FROM users WHERE id = :id AND is_active = '
+            . $this->dialect->booleanLiteral(true) . ' LIMIT 1',
             [':id' => $id],
         );
 
@@ -149,7 +157,8 @@ final readonly class BlogAuthorResolver
         try {
             $stmt = Statement::query(
                 $this->manager->connect('users'),
-                'SELECT id, name, avatar, created_at FROM users WHERE is_active = 1',
+                'SELECT id, name, avatar, created_at FROM users WHERE is_active = '
+                . $this->dialect->booleanLiteral(true),
             );
             $rows = $stmt->fetchAll();
         } catch (\PDOException) {

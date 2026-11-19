@@ -13,6 +13,8 @@ use Modules\Cardboard\Infrastructure\Attributes\AsMetricProvider;
 use Modules\Cardboard\Infrastructure\Registry\CardboardRegistry;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Users\Infrastructure\Persistence\Statement;
 
 /**
@@ -70,8 +72,9 @@ final readonly class UsersMetric implements MetricContract
 
     private function registerSessionsCard(ConnectionInterface $db, Period $period): void
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
         $activeStmt = Statement::query($db,
-            'SELECT COUNT(*) FROM sessions WHERE last_activity > datetime("now", "-30 minutes")',
+            'SELECT COUNT(*) FROM sessions WHERE last_activity > ' . $dialect->shiftedTimestamp("'-30 minutes'"),
         );
         $active = (int) $activeStmt->fetchColumn();
 
@@ -99,8 +102,9 @@ final readonly class UsersMetric implements MetricContract
      */
     private function countInPeriod(ConnectionInterface $db, string $table, string $column, string $interval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
         $stmt = Statement::prepare($db,
-            "SELECT COUNT(*) FROM {$table} WHERE {$column} >= datetime('now', :interval)",
+            "SELECT COUNT(*) FROM {$table} WHERE {$column} >= " . $dialect->shiftedTimestamp(':interval'),
         );
         $stmt->execute([':interval' => $interval]);
 
@@ -119,8 +123,10 @@ final readonly class UsersMetric implements MetricContract
         string $fromInterval,
         string $toInterval,
     ): int {
+        $dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
         $stmt = Statement::prepare($db,
-            "SELECT COUNT(*) FROM {$table} WHERE {$column} >= datetime('now', :from) AND {$column} < datetime('now', :to)",
+            "SELECT COUNT(*) FROM {$table} WHERE {$column} >= " . $dialect->shiftedTimestamp(':from')
+            . " AND {$column} < " . $dialect->shiftedTimestamp(':to'),
         );
         $stmt->execute([':from' => $fromInterval, ':to' => $toInterval]);
 

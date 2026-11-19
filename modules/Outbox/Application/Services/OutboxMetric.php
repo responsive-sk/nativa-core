@@ -13,6 +13,8 @@ use Modules\Cardboard\Infrastructure\Attributes\AsMetricProvider;
 use Modules\Cardboard\Infrastructure\Registry\CardboardRegistry;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Outbox\Infrastructure\Persistence\Repositories\SqliteOutboxRepository;
 use Modules\Outbox\Infrastructure\Persistence\Statement;
 
@@ -70,8 +72,10 @@ final readonly class OutboxMetric implements MetricContract
 
     private function countProcessedSince(ConnectionInterface $connection, string $interval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
         $stmt = Statement::prepare($connection,
-            'SELECT COUNT(*) FROM outbox_messages WHERE status = \'processed\' AND processed_at >= datetime(\'now\', :interval)',
+            'SELECT COUNT(*) FROM outbox_messages WHERE status = \'processed\' AND processed_at >= '
+            . $dialect->shiftedTimestamp(':interval'),
         );
         $stmt->execute([':interval' => $interval]);
 
@@ -80,8 +84,11 @@ final readonly class OutboxMetric implements MetricContract
 
     private function countProcessedBetween(ConnectionInterface $connection, string $fromInterval, string $toInterval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
         $stmt = Statement::prepare($connection,
-            'SELECT COUNT(*) FROM outbox_messages WHERE status = \'processed\' AND processed_at >= datetime(\'now\', :from) AND processed_at < datetime(\'now\', :to)',
+            'SELECT COUNT(*) FROM outbox_messages WHERE status = \'processed\' AND processed_at >= '
+            . $dialect->shiftedTimestamp(':from')
+            . ' AND processed_at < ' . $dialect->shiftedTimestamp(':to'),
         );
         $stmt->execute([':from' => $fromInterval, ':to' => $toInterval]);
 
@@ -90,8 +97,10 @@ final readonly class OutboxMetric implements MetricContract
 
     private function countFailedSince(ConnectionInterface $connection, string $interval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
         $stmt = Statement::prepare($connection,
-            'SELECT COUNT(*) FROM outbox_messages WHERE status = \'failed\' AND last_attempt_at >= datetime(\'now\', :interval)',
+            'SELECT COUNT(*) FROM outbox_messages WHERE status = \'failed\' AND last_attempt_at >= '
+            . $dialect->shiftedTimestamp(':interval'),
         );
         $stmt->execute([':interval' => $interval]);
 

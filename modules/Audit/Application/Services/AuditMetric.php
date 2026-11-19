@@ -15,6 +15,8 @@ use Modules\Cardboard\Infrastructure\Attributes\AsMetricProvider;
 use Modules\Cardboard\Infrastructure\Registry\CardboardRegistry;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * AuditMetric — aggregated admin action metric cards for the dashboard.
@@ -62,8 +64,9 @@ final readonly class AuditMetric implements MetricContract
 
     private function countInPeriod(ConnectionInterface $db, string $interval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
         $stmt = Statement::prepare($db,
-            'SELECT COUNT(*) FROM audit_log WHERE created_at >= datetime(\'now\', :interval)',
+            'SELECT COUNT(*) FROM audit_log WHERE created_at >= ' . $dialect->shiftedTimestamp(':interval'),
         );
         $stmt->execute([':interval' => $interval]);
 
@@ -72,8 +75,10 @@ final readonly class AuditMetric implements MetricContract
 
     private function countBetweenPeriods(ConnectionInterface $db, string $fromInterval, string $toInterval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
         $stmt = Statement::prepare($db,
-            'SELECT COUNT(*) FROM audit_log WHERE created_at >= datetime(\'now\', :from) AND created_at < datetime(\'now\', :to)',
+            'SELECT COUNT(*) FROM audit_log WHERE created_at >= ' . $dialect->shiftedTimestamp(':from')
+            . ' AND created_at < ' . $dialect->shiftedTimestamp(':to'),
         );
         $stmt->execute([':from' => $fromInterval, ':to' => $toInterval]);
 
@@ -87,8 +92,11 @@ final readonly class AuditMetric implements MetricContract
      */
     private function topActions(ConnectionInterface $db, string $interval): array
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($db->driverName()));
         $stmt = Statement::prepare($db,
-            'SELECT action, COUNT(*) as cnt FROM audit_log WHERE created_at >= datetime(\'now\', :interval) GROUP BY action ORDER BY cnt DESC LIMIT 5',
+            'SELECT action, COUNT(*) as cnt FROM audit_log WHERE created_at >= '
+            . $dialect->shiftedTimestamp(':interval')
+            . ' GROUP BY action ORDER BY cnt DESC LIMIT 5',
         );
         $stmt->execute([':interval' => $interval]);
 

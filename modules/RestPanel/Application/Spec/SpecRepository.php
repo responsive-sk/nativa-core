@@ -5,6 +5,8 @@ declare(strict_types = 1);
 namespace Modules\RestPanel\Application\Spec;
 
 use Modules\Database\Contracts\ConnectionInterface;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\RestPanel\Domain\Model\ActionSet;
 use Modules\RestPanel\Domain\Model\AuthSpec;
 use Modules\RestPanel\Domain\Model\FieldContext;
@@ -44,8 +46,11 @@ use Modules\RestPanel\Infrastructure\Persistence\Statement;
  */
 final readonly class SpecRepository
 {
+    private SqlDialect $dialect;
+
     public function __construct(private ConnectionInterface $connection)
     {
+        $this->dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
     }
 
     /**
@@ -263,7 +268,7 @@ final readonly class SpecRepository
         $resources = [];
         $resourceStatement = Statement::prepare(
             $this->connection,
-            'SELECT * FROM resources WHERE service_id = :sid ORDER BY rowid ASC',
+            'SELECT * FROM resources WHERE service_id = :sid ORDER BY ' . $this->dialect->insertionOrder() . ' ASC',
         );
         $resourceStatement->execute([':sid' => $serviceId]);
 
@@ -285,7 +290,7 @@ final readonly class SpecRepository
         $fields = [];
         $fieldStatement = Statement::prepare(
             $this->connection,
-            'SELECT * FROM fields WHERE resource_id = :rid ORDER BY sort_order ASC, rowid ASC',
+            'SELECT * FROM fields WHERE resource_id = :rid ORDER BY sort_order ASC, ' . $this->dialect->insertionOrder() . ' ASC',
         );
         $fieldStatement->execute([':rid' => $resourceId]);
 
@@ -305,7 +310,7 @@ final readonly class SpecRepository
         $relations = [];
         $relationStatement = Statement::prepare(
             $this->connection,
-            'SELECT * FROM relations WHERE resource_id = :rid ORDER BY sort_order ASC, rowid ASC',
+            'SELECT * FROM relations WHERE resource_id = :rid ORDER BY sort_order ASC, ' . $this->dialect->insertionOrder() . ' ASC',
         );
         $relationStatement->execute([':rid' => $resourceId]);
 

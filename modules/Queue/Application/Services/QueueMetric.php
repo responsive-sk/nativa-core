@@ -13,6 +13,8 @@ use Modules\Cardboard\Infrastructure\Attributes\AsMetricProvider;
 use Modules\Cardboard\Infrastructure\Registry\CardboardRegistry;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 use Modules\Queue\Infrastructure\Persistence\Statement;
 
 /**
@@ -90,8 +92,9 @@ final readonly class QueueMetric implements MetricContract
 
     private function countPushedSince(ConnectionInterface $connection, string $interval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
         $stmt = Statement::prepare($connection,
-            'SELECT COUNT(*) FROM jobs WHERE created_at >= datetime(\'now\', :interval)',
+            'SELECT COUNT(*) FROM jobs WHERE created_at >= ' . $dialect->shiftedTimestamp(':interval'),
         );
         $stmt->execute([':interval' => $interval]);
 
@@ -100,8 +103,10 @@ final readonly class QueueMetric implements MetricContract
 
     private function countPushedBetween(ConnectionInterface $connection, string $fromInterval, string $toInterval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
         $stmt = Statement::prepare($connection,
-            'SELECT COUNT(*) FROM jobs WHERE created_at >= datetime(\'now\', :from) AND created_at < datetime(\'now\', :to)',
+            'SELECT COUNT(*) FROM jobs WHERE created_at >= ' . $dialect->shiftedTimestamp(':from')
+            . ' AND created_at < ' . $dialect->shiftedTimestamp(':to'),
         );
         $stmt->execute([':from' => $fromInterval, ':to' => $toInterval]);
 

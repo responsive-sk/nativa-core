@@ -25,7 +25,9 @@ final readonly class UserRepository
 
     public function findByEmail(string $email): ?User
     {
-        $stmt = Statement::prepare($this->db, 'SELECT * FROM users WHERE email = :email COLLATE NOCASE LIMIT 1');
+        $stmt = Statement::prepare($this->db,
+            'SELECT * FROM users WHERE ' . $this->dialect->noCaseEquals('email', ':email') . ' LIMIT 1',
+        );
         $stmt->execute([':email' => $email]);
         /** @var array<string, mixed>|false $row */
         $row = $stmt->fetch();
@@ -76,13 +78,14 @@ final readonly class UserRepository
     public function update(string $id, string $name, string $email, bool $isActive): void
     {
         $stmt = Statement::prepare($this->db,
-            'UPDATE users SET name = :name, email = :email, is_active = :active, updated_at = CURRENT_TIMESTAMP WHERE id = :id',
+            'UPDATE users SET name = :name, email = :email, is_active = '
+            . $this->dialect->booleanLiteral($isActive)
+            . ', updated_at = CURRENT_TIMESTAMP WHERE id = :id',
         );
         $stmt->execute([
-            ':name'   => $name,
-            ':email'  => strtolower($email),
-            ':active' => $isActive ? 1 : 0,
-            ':id'     => $id,
+            ':name'  => $name,
+            ':email' => strtolower($email),
+            ':id'    => $id,
         ]);
     }
 
@@ -121,7 +124,9 @@ final readonly class UserRepository
 
     public function emailExists(string $email): bool
     {
-        $stmt = Statement::prepare($this->db, 'SELECT 1 FROM users WHERE email = :email COLLATE NOCASE LIMIT 1');
+        $stmt = Statement::prepare($this->db,
+            'SELECT 1 FROM users WHERE ' . $this->dialect->noCaseEquals('email', ':email') . ' LIMIT 1',
+        );
         $stmt->execute([':email' => $email]);
 
         return false !== $stmt->fetch();
@@ -143,7 +148,8 @@ final readonly class UserRepository
 
         $stmt = Statement::prepare($this->db,
             'INSERT INTO users (id, name, email, password, avatar, is_active, created_at, updated_at)
-             VALUES (:id, :name, :email, :password, :avatar, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+             VALUES (:id, :name, :email, :password, :avatar, '
+            . $this->dialect->booleanLiteral(true) . ', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
         );
         $stmt->execute([
             ':id'       => $id,

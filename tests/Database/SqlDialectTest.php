@@ -49,6 +49,12 @@ final class SqlDialectTest extends TestCase
         self::assertSame('now()', $pgsql->currentTimestamp());
         self::assertSame('email COLLATE NOCASE', $sqlite->noCase('email'));
         self::assertSame('LOWER(email)', $pgsql->noCase('email'));
+        self::assertSame('email = :email COLLATE NOCASE', $sqlite->noCaseEquals('email', ':email'));
+        self::assertSame('LOWER(email) = LOWER(:email)', $pgsql->noCaseEquals('email', ':email'));
+        self::assertSame('1', $sqlite->booleanLiteral(true));
+        self::assertSame('0', $sqlite->booleanLiteral(false));
+        self::assertSame('TRUE', $pgsql->booleanLiteral(true));
+        self::assertSame('FALSE', $pgsql->booleanLiteral(false));
         self::assertStringContainsString('sqlite_master', $sqlite->tableExists());
         self::assertStringContainsString('information_schema.tables', $pgsql->tableExists());
         self::assertSame(' RETURNING id', $sqlite->returning('id'));

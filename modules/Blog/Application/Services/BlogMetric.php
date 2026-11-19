@@ -16,6 +16,8 @@ use Modules\Cardboard\Infrastructure\Registry\CardboardRegistry;
 use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Modules\Database\Contracts\ConnectionInterface;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
+use Modules\Database\Infrastructure\Persistence\Driver;
+use Modules\Database\Infrastructure\Persistence\SqlDialect;
 
 /**
  * BlogMetric — aggregated blog views/articles metric cards for the dashboard.
@@ -143,8 +145,9 @@ final readonly class BlogMetric implements MetricContract
      */
     private function countViewsInPeriod(ConnectionInterface $connection, string $interval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
         $stmt = Statement::prepare($connection,
-            'SELECT COUNT(*) FROM article_views WHERE viewed_at >= datetime(\'now\', :interval)',
+            'SELECT COUNT(*) FROM article_views WHERE viewed_at >= ' . $dialect->shiftedTimestamp(':interval'),
         );
         $stmt->execute([':interval' => $interval]);
 
@@ -156,8 +159,10 @@ final readonly class BlogMetric implements MetricContract
      */
     private function countViewsBetweenPeriods(ConnectionInterface $connection, string $fromInterval, string $toInterval): int
     {
+        $dialect = SqlDialect::forDriver(Driver::fromName($connection->driverName()));
         $stmt = Statement::prepare($connection,
-            'SELECT COUNT(*) FROM article_views WHERE viewed_at >= datetime(\'now\', :from) AND viewed_at < datetime(\'now\', :to)',
+            'SELECT COUNT(*) FROM article_views WHERE viewed_at >= ' . $dialect->shiftedTimestamp(':from')
+            . ' AND viewed_at < ' . $dialect->shiftedTimestamp(':to'),
         );
         $stmt->execute([':from' => $fromInterval, ':to' => $toInterval]);
 
