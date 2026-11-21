@@ -174,6 +174,18 @@ function http_kernel(): Kernel
     // purpose: serving a page a visitor did not just render is a deployment's
     // decision, not a kernel default, and a cached HTML copy outlives the
     // request that produced it.
+    //
+    // The lever exists because "does the cache cause the render delay?" is not
+    // answerable by reading code: measured on responsive.sk, the cache HIT
+    // served TTFB in 0 ms while Lighthouse reported an LCP element render
+    // delay of 2500 ms, and every candidate the delay could come from is ruled
+    // out on its own terms — `font-display: swap` on all seven @font-face
+    // rules, the 47 KB critical CSS inlined and resolving, 61–158 KB hero
+    // images, and Total Blocking Time at 0 ms. Speed Index measures visual
+    // completeness from screenshots, which a server-side HTML cache does not
+    // touch, so the switch makes the claim measurable on the deployment
+    // instead of argued. Turning it ON buys the 0 ms HIT; leaving it off pays
+    // the render on every request.
     $keepString = static fn (string $class): string => $class;
     $pageCache = null;
     $pageCacheMiddleware = null;

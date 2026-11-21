@@ -4,11 +4,11 @@ declare(strict_types = 1);
 
 namespace Modules\PageCache\Application\Services;
 
-use Modules\Core\Domain\MarkRoutePolicy;
+use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Modules\Core\Domain\Contracts\PageCacheReader;
+use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
-use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Modules\Core\Interfaces\HTTP\Middleware\CsrfMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\SecurityHeadersMiddleware;
 
@@ -524,7 +524,22 @@ final readonly class PageCacheService implements PageCacheReader
     private const int PRUNE_INTERVAL = 300;
 
     /**
-     * Lazy pruning — at most once per PRUNE_INTERVAL seconds.
+     * Entry bytes one prune pass may read before it stops.
+     *
+     * The sweep used to read and decode every file in the directory inside
+     * whichever visitor request found the marker stale, so its cost was linear
+     * in cache size: measured on 80 KB pages, 1 000 entries added 130 ms to that
+     * request's TTFB and 3 000 added 382 ms. A directory grown by campaign
+     * query variants reaches the multi-second stall this cache was switched off
+     * for on the live site. The pass now stops at this budget; the marker is
+     * stamped either way, expired keys still delete themselves on read, and the
+     * remainder is swept on the next interval.
+     */
+    private const int PRUNE_BUDGET_BYTES = 4_000_000;
+
+    /**
+     * Lazy pruning — at most once per PRUNE_INTERVAL seconds, and bounded work
+     * each time.
      * Runs on get() so expired entries are cleaned when they are
      * actually looked up, not on every write.
      *
@@ -556,10 +571,25 @@ final readonly class PageCacheService implements PageCacheReader
         }
 
         $now = time();
+        $budget = self::PRUNE_BUDGET_BYTES;
 
         foreach ($files as $file) {
             if (!is_file($file)) {
                 continue;
+            }
+
+            // set() writes an entry once, whole, so mtime is cachedAt: a file
+            // younger than the TTL cannot be expired and is skipped without
+            // reading its body. Deleting still needs the decode below, so an
+            // entry stored with a longer TTL is deferred, never dropped early.
+            $written = @filemtime($file);
+
+            if (false === $written || $written + self::DEFAULT_TTL >= $now) {
+                continue;
+            }
+
+            if ($budget <= 0) {
+                return;
             }
 
             $raw = file_get_contents($file);
@@ -567,6 +597,8 @@ final readonly class PageCacheService implements PageCacheReader
             if (false === $raw) {
                 continue;
             }
+
+            $budget -= strlen($raw);
 
             /** @var array{cachedAt?: int, ttl?: int}|null $entry */
             $entry = json_decode($raw, true);
