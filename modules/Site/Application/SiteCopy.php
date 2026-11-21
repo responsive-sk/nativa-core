@@ -93,6 +93,7 @@ final class SiteCopy
                     ['title' => 'E-shopy', 'text' => 'Predaj od produktu po objednávku ' . "\u{2014}" . ' platby, doprava a napojenie na to, čo už používate.'],
                     ['title' => 'Aplikácie', 'text' => 'Interné nástroje na mieru: evidencie, rezervácie, reporty. Tam, kde tabuľka prestáva stačiť.'],
                     ['title' => 'Rozvoj', 'text' => 'Údržba, meranie a postupné zlepšovanie toho, čo už beží.'],
+                    ['title' => 'Meranie a diagnostika', 'text' => 'Filmstrip a reálne merania: pomenujeme, čo stránku zdržuje, a opravíme to ' . "\u{2014}" . ' s číslami pred a po.'],
                 ],
             ],
             'process' => [
@@ -156,6 +157,7 @@ final class SiteCopy
                     ['title' => 'Online stores', 'text' => 'From product to order ' . "\u{2014}" . ' payments, shipping and the systems you already run.'],
                     ['title' => 'Applications', 'text' => 'Custom internal tools: records, bookings, reports. Where a spreadsheet stops working.'],
                     ['title' => 'Maintenance', 'text' => 'Upkeep, measurement and steady improvement of what is already running.'],
+                    ['title' => 'Performance audits', 'text' => 'Filmstrip and real measurements: we name what slows the page down and fix it ' . "\u{2014}" . ' with before and after numbers.'],
                 ],
             ],
             'process' => [
