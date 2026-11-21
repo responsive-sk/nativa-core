@@ -20,7 +20,7 @@ use SplFileInfo;
  * `mark.css`, its classes are `m-`, and `ADMIN_PATH` defaults to that spelling.
  * The name on disk was the one place the application and its own files
  * disagreed: measured 2026-11-17 on export `cba3518`, 130 tracked paths carried
- * `admin` — 99 of them inside `modules/RestPanel/` — including the kernel's own
+ * `admin` — 99 of them inside `modules/RestApi/` — including the kernel's own
  * route table.
  *
  * ## What this is, and what it is not
@@ -42,7 +42,7 @@ use SplFileInfo;
  * The finish line is an empty ledger, not a passing allowance.
  *
  * A directory entry ends in `/` and excuses everything beneath it:
- * `modules/RestPanel/` is one module move, not 99 separate renames.
+ * `modules/RestApi/` is one module move, not 99 separate renames.
  *
  * ## The second test catches the half-rename
  *

@@ -17,7 +17,7 @@ The kernel and the Nativa theme, with no site attached:
 - `src/Modules/KernelTheme` and `src/Themes/kernel`: the default presentation
   that needs no build.
 - `modules/`: the catalogue — `Themes/Nativa`, `Settings` (the theme vote),
-  `ContentLocale` (the locale mapping every theme asks for), `RestPanel` (the
+  `ContentLocale` (the locale mapping every theme asks for), `RestApi` (the
   REST panel under `/mark/rest`) and the admin stack its closure needs:
   `Cardboard`, `Users`, `Auth`, `Locales`, `Navigation`, `Notifications`,
   `Outbox`, `PageCache`, `Pagination`, `Security`, `Uploads` and `Validation`.
@@ -41,14 +41,14 @@ it needed. Every row is a module that could be added, with its measured cost:
 | Surface | Modules | Cost | Without it |
 |---|---|---|---|
 | Nativa on `/` | `Settings`, `ContentLocale` | +16 files | `/` renders `KernelTheme` |
-| Admin at `/mark` | `RestPanel`, `Cardboard`, `Users` + their closure | +311 files | 404 |
+| Admin at `/mark` | `RestApi`, `Cardboard`, `Users` + their closure | +311 files | 404 |
 | Blog and `/mark/articles` | `Blog`, `Audit`, `Markdown`, `Media`, `Queue` + their closure | +156 files | 404 |
 | `/cookies` | `Pages` | +18 files | 404 |
 
 `Settings` is kept because the theme vote is a kernel port with no kernel
 implementation. `ContentLocale` is kept because every theme asks it for the
 locale-to-URL-prefix rule; it has no routes, tables or admin screen. The admin
-stack is kept because `RestPanel` is a product surface this tree ships, and it
+stack is kept because `RestApi` is a product surface this tree ships, and it
 cannot install without `Cardboard` and `Users`. `Blog` is kept because
 `/mark/articles` is the content admin surface, and its closure ships with it.
 `Pages` remains a product surface the catalogue does not carry, so `/cookies`
@@ -66,7 +66,7 @@ installs a PSR-4 fallback loader, and `composer install` is development tooling
 only. The first request, or `php bin/cms migrate`, builds the databases empty.
 The panel is catalogued but not installed, so `/mark` answers 404 until you run
 `make modules-install`; after that it redirects to `/login`, and
-`php bin/cms user:operator` creates an administrator. `RestPanel` answers under
+`php bin/cms user:operator` creates an administrator. `RestApi` answers under
 `/mark/rest`.
 
 ## Database engines

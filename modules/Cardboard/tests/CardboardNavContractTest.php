@@ -331,7 +331,7 @@ final class CardboardNavContractTest extends TestCase
      *
      * The scan is a text match on `AsCardboardNavItem` plus an FQCN resolve, and
      * a file that misses either answers "no items" — the same silence a module
-     * with no declarations produces. `RestPanelNavItems` shipped with the
+     * with no declarations produces. `RestApiNavItems` shipped with the
      * pre-rename namespace and attribute and removed its own sidebar link that
      * way, and every test still passed. This asserts what the scan assumes
      * instead of trusting it.

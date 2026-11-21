@@ -49,7 +49,7 @@ final class MariaDbDatabaseTest extends TestCase
             'media' => ['assets', 'media_folders'],
             'notifications' => ['notifications'],
             'questions' => ['questions'],
-            'restpanel' => ['services', 'resources', 'fields', 'relations'],
+            'restapi' => ['services', 'resources', 'fields', 'relations'],
         ];
     }
 
@@ -84,9 +84,9 @@ final class MariaDbDatabaseTest extends TestCase
             ['audit', 'SELECT * FROM audit_log ORDER BY created_at DESC, %s DESC LIMIT 5'],
             ['forms', 'SELECT * FROM form_submissions ORDER BY created_at DESC, %s DESC LIMIT 5'],
             ['notifications', 'SELECT * FROM notifications ORDER BY created_at DESC, %s DESC LIMIT 5'],
-            ['restpanel', 'SELECT * FROM resources ORDER BY %s ASC'],
-            ['restpanel', 'SELECT * FROM fields ORDER BY sort_order ASC, %s ASC'],
-            ['restpanel', 'SELECT * FROM relations ORDER BY sort_order ASC, %s ASC'],
+            ['restapi', 'SELECT * FROM resources ORDER BY %s ASC'],
+            ['restapi', 'SELECT * FROM fields ORDER BY sort_order ASC, %s ASC'],
+            ['restapi', 'SELECT * FROM relations ORDER BY sort_order ASC, %s ASC'],
         ];
     }
 

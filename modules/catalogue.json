@@ -32,6 +32,12 @@
                 "Validation"
             ]
         },
+        "Boson": {
+            "source": "modules/Themes/Boson",
+            "requires": [
+                "ContentLocale"
+            ]
+        },
         "Cardboard": {
             "source": "modules/Cardboard",
             "requires": [
@@ -114,8 +120,8 @@
                 "PageCache"
             ]
         },
-        "RestPanel": {
-            "source": "modules/RestPanel",
+        "RestApi": {
+            "source": "modules/RestApi",
             "requires": [
                 "Cardboard"
             ]
