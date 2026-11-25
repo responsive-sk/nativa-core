@@ -17,8 +17,9 @@ use Modules\Core\Infrastructure\Paths\AppPaths;
  *
  * ONE answer, not a merge: two modules composing one landing page is two pages
  * glued together, the same argument `navigation` makes in the shell port. The
- * lowest priority wins; a tie keeps discovery order, because the alternative is
- * a page whose content depends on directory iteration.
+ * lowest priority wins; a tie is broken by class name, because discovery order
+ * is `glob()` order and a page whose owner depends on directory iteration is
+ * the coin flip this port exists to avoid.
  *
  * Nothing installed means null, and null means the kernel renders its own
  * landing — a thinner page, not an error.
@@ -57,7 +58,9 @@ final class HomepageSurfaceRegistry
             }
         }
 
-        usort($found, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
+        // Priority first, class name second: two surfaces that claim the same
+        // priority must still answer the same on every filesystem.
+        usort($found, static fn (array $a, array $b): int => $a[0] <=> $b[0] ?: $a[1]::class <=> $b[1]::class);
 
         return self::$surfaces = $found;
     }

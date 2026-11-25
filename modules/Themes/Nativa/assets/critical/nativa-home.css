@@ -1,0 +1,58 @@
+/**
+ * nativa2-home.css — the home surface sheet.
+ *
+ * Moved out of the base sheet with the surface that reads it. The
+ * build lists it after the base, so cascade order is unchanged.
+ */
+
+/* ---- hero -------------------------------------------------------------- */
+
+/*
+   Asymmetric on purpose: the display title owns the left column, the lede
+   and the actions answer from the right, and a hairline rule separates the
+   two. Neither reference composes this way — Boson centres its hero inside a
+   fixed header, Griffe fills a slider — and the asymmetry is what lets a
+   serif headline carry the page without an image.
+*/
+
+.na-hero {
+    border-bottom: 1px solid var(--na-line);
+    padding-block: clamp(2.5rem, 8vw, 6rem);
+}
+
+.na-hero__inner {
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+}
+
+/* A short rule before the eyebrow: the page's one piece of furniture, and the
+   line that ties the header's hairline to the headline. */
+.na-hero__eyebrow::before {
+    content: "";
+    display: inline-block;
+    inline-size: 2rem;
+    block-size: 1px;
+    margin-right: 0.65rem;
+    vertical-align: 0.35em;
+    background: var(--na-ink);
+}
+
+.na-hero__title {
+    margin-bottom: 0;
+    font-size: clamp(2.4rem, 6.4vw, 4.5rem);
+}
+
+.na-hero__lede {
+    margin: 0 0 1.75rem;
+    max-width: 40ch;
+    font-size: clamp(1rem, 1.4vw, 1.125rem);
+    line-height: 1.7;
+    color: var(--na-muted);
+}
+
+.na-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    align-items: center;
+}

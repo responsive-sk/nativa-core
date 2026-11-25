@@ -73,7 +73,7 @@ final class GenerateImagesCommandTest extends TestCase
         }
         file_put_contents(
             $article,
-            "---\ntitle: Test Cover\ndate: 2026-10-16\n---\n\n# Test\n\n```php\necho 'hello';\n```\n",
+            "---\ntitle: Test Cover\ndate: 2026-10-16\ntags: [\"php\", \"testing\", \"seo\", \"ignored\"]\n---\n\n# Test\n\n```php\necho 'hello';\n```\n",
         );
         $this->created[] = $article;
     }
@@ -111,12 +111,65 @@ final class GenerateImagesCommandTest extends TestCase
 
         $exit = (new GenerateImagesCommand())->run(['generate-images', '--slug', $slug], $output);
 
-        $svg = AppPaths::instance()->storage('blog-images' . DIRECTORY_SEPARATOR . $slug . '.svg');
+        $svg = $this->renderedCover($slug);
         $this->created[] = $svg;
 
         $this->assertSame(0, $exit, $output->text());
         $this->assertFileExists($svg, 'the file is the assertion; the exit code only reports it.');
         $this->assertStringContainsString('Generated 1 image(s), 0 failed', $output->text());
+    }
+
+    /**
+     * The one place the test spells the cover directory, so a new case does
+     * not add another copy of the name.
+     */
+    private function renderedCover(string $slug): string
+    {
+        return AppPaths::instance()->storage('blog-images' . DIRECTORY_SEPARATOR . $slug . '.svg');
+    }
+
+    /**
+     * The cover is an image, not a second h1. Repeating the article title
+     * there puts the same words in one page twice, and a crawler counts both.
+     */
+    #[Test]
+    public function theCoverDoesNotRepeatTheArticleTitle(): void
+    {
+        $output = $this->collector();
+        $slug = (string) $this->slug;
+
+        (new GenerateImagesCommand())->run(['generate-images', '--slug', $slug], $output);
+
+        $svg = $this->renderedCover($slug);
+        $this->created[] = $svg;
+
+        $this->assertFileExists($svg);
+        $this->assertStringNotContainsString(
+            'Test Cover',
+            (string) file_get_contents($svg),
+            'The cover repeats the article title, so the page carries it twice.',
+        );
+    }
+
+    /**
+     * Three tags fit the bottom bar; a fourth is noise and a place for the
+     * keyword list to grow without a design decision.
+     */
+    #[Test]
+    public function theCoverShowsAtMostThreeTopicTags(): void
+    {
+        $output = $this->collector();
+        $slug = (string) $this->slug;
+
+        (new GenerateImagesCommand())->run(['generate-images', '--slug', $slug], $output);
+
+        $svg = $this->renderedCover($slug);
+        $this->created[] = $svg;
+
+        $markup = (string) file_get_contents($svg);
+
+        $this->assertStringContainsString('php · testing · seo', $markup);
+        $this->assertStringNotContainsString('ignored', $markup);
     }
 
     #[Test]
@@ -127,7 +180,7 @@ final class GenerateImagesCommandTest extends TestCase
 
         (new GenerateImagesCommand())->run(['generate-images', '-s', $slug], $output);
 
-        $svg = AppPaths::instance()->storage('blog-images' . DIRECTORY_SEPARATOR . $slug . '.svg');
+        $svg = $this->renderedCover($slug);
         $this->created[] = $svg;
 
         $this->assertFileExists($svg);

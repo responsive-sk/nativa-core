@@ -38,6 +38,7 @@ final readonly class BlogSitemapContributor implements SitemapContributor
                     $prefix . '/blog/' . $article->slug,
                     SitemapEntry::DEFAULT_CHANGEFREQ,
                     '0.6',
+                    '' !== $article->image ? [$article->image] : [],
                 );
             }
         }

@@ -38,7 +38,7 @@ final class KernelFallbackTheme implements ThemeModule
     }
 
     /** No stylesheet: the fallback is unstyled on purpose. */
-    public function criticalCss(): array
+    public function criticalCss(?string $surface = null): array
     {
         return [];
     }

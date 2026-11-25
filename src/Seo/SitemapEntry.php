@@ -41,19 +41,26 @@ final readonly class SitemapEntry
 
     public string $priority;
 
+    /** @var list<string> */
+    public array $images;
+
     /**
+     * @param list<string> $images root-relative paths or absolute http(s) URLs
+     *
      * @throws InvalidArgumentException when the path is not root-relative and safe
      */
     public function __construct(
         string $path,
         string $changefreq = self::DEFAULT_CHANGEFREQ,
         string $priority = self::DEFAULT_PRIORITY,
+        array $images = [],
     ) {
         $this->path = self::assertPath($path);
         $this->changefreq = in_array($changefreq, self::CHANGEFREQS, true)
             ? $changefreq
             : self::DEFAULT_CHANGEFREQ;
         $this->priority = self::normalizePriority($priority);
+        $this->images = array_map(self::assertImage(...), $images);
     }
 
     private static function assertPath(string $path): string
@@ -74,6 +81,32 @@ final readonly class SitemapEntry
         }
 
         return $path;
+    }
+
+    /**
+     * An image loc is either an absolute http(s) URL or a safe root-relative
+     * path. Unlike a page path, it may carry the cover's `?v=` cache-buster.
+     */
+    private static function assertImage(string $image): string
+    {
+        if (str_starts_with($image, 'https://') || str_starts_with($image, 'http://')) {
+            return $image;
+        }
+
+        if ('' === $image
+            || !str_starts_with($image, '/')
+            || str_starts_with($image, '//')
+            || str_contains($image, '..')
+            || str_contains($image, '#')
+            || 1 === preg_match('/[\x00-\x20]/', $image)
+        ) {
+            throw new InvalidArgumentException(sprintf(
+                'Sitemap image must be a safe root-relative path or http(s) URL, got "%s".',
+                $image,
+            ));
+        }
+
+        return $image;
     }
 
     private static function normalizePriority(string $priority): string

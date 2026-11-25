@@ -10,8 +10,8 @@
  *
  * Failure handling: the server's error page carries a readable message
  * in responseText — extract and show it in the error box instead of only
- * colouring the progress bar red. window.UPLOAD_LIMITS (injected by the
- * template) drives the client-side size guard.
+ * colouring the progress bar red. The form's data-upload-limits attribute
+ * drives the client-side size guard.
  */
 (function(){
     var form=document.getElementById('upload-form');
@@ -21,7 +21,8 @@
     var btn=document.getElementById('upload-btn');
     var errBox=document.getElementById('upload-js-error');
     if(!form||!fileInput)return;
-    var limits=window.UPLOAD_LIMITS||{};
+    var limits={};
+    try{limits=JSON.parse(form.getAttribute('data-upload-limits')||'{}');}catch(e){limits=window.UPLOAD_LIMITS||{};}
     var maxBytes=limits.maxBytes||10*1024*1024;
     function showError(msg){
         if(errBox){errBox.textContent=msg;errBox.style.display='block';}

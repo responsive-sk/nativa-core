@@ -238,6 +238,18 @@ final class SettingsShellContextProvider implements ShellContextProvider
     }
 
     /**
+     * Settings owns stored choices, not URL prefixes: which paths a site
+     * serves per language is the locale module's answer, and this module has
+     * no opinion to add. Null, not `''` — an empty prefix is a real answer
+     * ("the default locale owns the bare path"), and a provider that does not
+     * know must not vote for it.
+     */
+    public function localePrefix(): ?string
+    {
+        return null;
+    }
+
+    /**
      * @return list<ShellNavItem>
      */
     public function navigation(string $slot, string $currentPath): array

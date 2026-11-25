@@ -69,7 +69,8 @@ final readonly class RestApiDatabaseMigrator implements MigratorInterface
      * as `restapi-legacy.db` afterwards, so a second migrate is a no-op.
      *
      * The legacy file is the sibling the previous releases wrote: `restpanel.db`
-     * first, then `restadmin.db`. No environment key names it.
+     * first, then `restadmin.db`. No environment key names it; the file either
+     * sits beside the live database or it does not exist.
      */
     private function adoptLegacyDatabase(CliOutput $output): void
     {

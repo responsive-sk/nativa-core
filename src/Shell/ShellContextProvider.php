@@ -78,6 +78,18 @@ interface ShellContextProvider
     public function htmlLang(): ?string;
 
     /**
+     * The URL prefix this request is served from — `''` when the default
+     * locale owns the bare path, `/en` on an English page — or null when the
+     * provider has no opinion.
+     *
+     * The locale module owns this answer because it owns the prefixes; the
+     * kernel only uses it. The shell rewrites every internal menu href with it
+     * (`LocalizedNav`), so one stored menu serves every language instead of
+     * sending an English reader to the Slovak page.
+     */
+    public function localePrefix(): ?string;
+
+    /**
      * The locale resolved for THIS request — URL prefix, header, cookie,
      * session, or the site default — or null when the provider has no opinion.
      *

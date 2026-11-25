@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Modules\Themes\Nativa\Theme;
 
+use View\InlineJs;
+
 use Modules\Core\Domain\MarkRoutePolicy;
 use Shell\ShellNavItem;
 use Themes\ThemeSetting;
@@ -12,6 +14,7 @@ use Shell\PageContext;
 use Shell\ShellContext;
 use Themes\AuthPageTheme;
 use Themes\DocsPageTheme;
+use Themes\FrontendLayout;
 use Themes\ThemeModule;
 use Themes\ThemeSettings;
 
@@ -67,9 +70,9 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
     }
 
     /** @return list<string> src/-relative, resolved by InlineCss */
-    public function criticalCss(): array
+    public function criticalCss(?string $surface = null): array
     {
-        return ['Modules/Nativa/assets/critical/nativa.css'];
+        return FrontendLayout::themeCriticalCss(['Modules/Nativa/assets/critical/nativa.css'], $surface);
     }
 
     /**
@@ -83,22 +86,9 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
      */
     public function themeInitScript(): string
     {
-        return <<<'HTML'
-            <!-- Sync theme init — FOUC prevention: restore the persisted theme
-                 (or the OS preference) before first paint. Falls back to the
-                 light default when neither is available (Chrome 70 baseline). -->
-            <script nonce="__CSP_NONCE_PLACEHOLDER__">
-                (function() {
-                    try {
-                        var theme = localStorage.getItem('nativa-theme');
-                        if (!theme) {
-                            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                        }
-                        document.documentElement.setAttribute('data-theme', theme);
-                    } catch (e) {}
-                })();
-            </script>
-            HTML;
+        $script = InlineJs::file('Themes/assets/scripts/theme-init.js');
+
+        return '' === $script ? '' : '<script nonce="__CSP_NONCE_PLACEHOLDER__">' . $script . '</script>';
     }
 
     public function prefix(): string
@@ -256,7 +246,7 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
         $cover = '' !== $context->coverUrl ? $context->coverUrl : $context->coverImage;
 
         if ('' !== $cover) {
-            $article .= '<img class="na-article__cover" src="' . self::e($cover) . '" alt="">';
+            $article .= '<img class="na-article__cover" src="' . self::e($cover) . '" alt="' . self::e($context->coverAlt) . '">';
         }
 
         $article .= '<div class="na-article__body">' . $context->bodyHtml . '</div>';
@@ -507,7 +497,7 @@ final class NativaTheme implements AuthPageTheme, DocsPageTheme, ThemeModule, Th
                 . self::e($pair['title']) . '</a></h2>';
 
             if (null !== $pair['image']) {
-                $cards .= '<img class="na-card__image" loading="lazy" src="' . self::e($pair['image']) . '" alt="">';
+                $cards .= '<img class="na-card__image" loading="lazy" src="' . self::e($pair['image']) . '" alt="' . self::e($pair['title']) . '">';
             }
 
             if ('' !== $pair['excerpt']) {

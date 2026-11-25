@@ -15,6 +15,7 @@ use Modules\Navigation\Infrastructure\Registry\NavBadgeRegistry;
 use Shell\ShellContextProviderRegistry;
 use Themes\AssetManager;
 use Themes\ThemeResolver;
+use View\InlineJs;
 use View\ViewRenderer;
 
 /**
@@ -214,14 +215,14 @@ final class CardboardLayout
      */
     public static function toast(string $message, string $type = 'ok'): string
     {
-        $safeMessage = self::e($message);
-        $safeType = self::e($type);
-        $call = 'window.mToast("' . $safeMessage . '", "' . $safeType . '");';
+        $script = InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/toast.js');
 
-        return '<script nonce="__CSP_NONCE_PLACEHOLDER__">'
-            . 'if(typeof window.mToast==="function"){' . $call . '}'
-            . 'else{document.addEventListener("DOMContentLoaded",function(){' . $call . '});}'
-            . '</script>';
+        if ('' === $script) {
+            return '';
+        }
+
+        return '<span data-toast-message="' . self::e($message) . '" data-toast-kind="' . self::e($type) . '" hidden></span>'
+            . '<script nonce="__CSP_NONCE_PLACEHOLDER__">' . $script . '</script>';
     }
 
     /**
@@ -607,20 +608,9 @@ final class CardboardLayout
     private static function htmxConfigScript(): string
     {
         $token = CsrfMiddleware::token();
-        $csrfHeader = '' !== $token
-            ? 'e.detail.headers["X-CSRF-Token"]="' . self::e($token) . '";' // PHP is 8.5 so curly braces are fine.
-            : '';
 
-        return '<script nonce="__CSP_NONCE_PLACEHOLDER__">'
-            . 'document.addEventListener("DOMContentLoaded",function(){'
-            . 'if(typeof htmx!=="undefined"){'
-            . 'document.body.addEventListener("htmx:configRequest",function(e){'
-            . $csrfHeader
-            . '});'
-            . 'htmx.config.defaultSwapStyle="innerHTML";' // PHP is 8.5 so curly braces are fine.
-            . 'htmx.config.historyEnabled=true;' // PHP is 8.5 so curly braces are fine.
-            . '}'
-            . '});'
+        return '<script nonce="__CSP_NONCE_PLACEHOLDER__" data-csrf-token="' . self::e($token) . '">'
+            . InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/htmx-config.js')
             . '</script>';
     }
 

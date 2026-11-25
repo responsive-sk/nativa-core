@@ -78,6 +78,104 @@ final class FrontendLayout
         'Themes/assets/critical/blog-members.css',
         'Themes/assets/critical/home.css',
     ];
+
+    /**
+     * The shared three every public page needs, whatever its surface.
+     *
+     * @var list<string>
+     */
+    private const array SHARED_CRITICAL_CSS = [
+        'Themes/assets/critical/base.css',
+        'Themes/assets/critical/shell.css',
+        'Themes/assets/critical/nav.css',
+    ];
+
+    /**
+     * The kernel members one surface adds to the shared three.
+     *
+     * `PAGE` is deliberately absent: it means "the theme's complete sheet",
+     * so it answers with `BASE_CRITICAL_CSS` itself and a caller that declares
+     * nothing therefore pays exactly what it paid before surfaces existed.
+     *
+     * @var array<string, list<string>>
+     */
+    private const array SURFACE_CRITICAL_CSS = [
+        PageSurface::HOME => [
+            'Themes/assets/critical/home.css',
+        ],
+        PageSurface::LISTING => [
+            'Themes/assets/critical/blog.css',
+            'Themes/assets/critical/blog-search.css',
+        ],
+        PageSurface::ARTICLE => [
+            'Themes/assets/critical/blog.css',
+            'Themes/assets/critical/blog-comments.css',
+            'Themes/assets/critical/blog-toc.css',
+            'Themes/assets/critical/blog-members.css',
+        ],
+    ];
+
+    /**
+     * The kernel critical chain for one surface, in cascade order.
+     *
+     * `null`, an empty key, an unknown key and `PageSurface::PAGE` all answer
+     * with the complete list: the fallback is the page the theme ships whole,
+     * never an unstyled one. A theme whose own sheet is one file (Boson, Mono,
+     * Griffe, Erik, Nativa) does not use this chain at all; Jednotka does, and
+     * its surface answer is the shared three plus the members that surface
+     * reads.
+     *
+     * @return list<string>
+     */
+    public static function criticalCssFiles(?string $surface): array
+    {
+        $resolved = PageSurface::orPage($surface);
+
+        if (PageSurface::PAGE === $resolved) {
+            return self::BASE_CRITICAL_CSS;
+        }
+
+        return [...self::SHARED_CRITICAL_CSS, ...self::SURFACE_CRITICAL_CSS[$resolved]];
+    }
+
+    /**
+     * A theme's own critical list, widened with the surface sheets that sit
+     * beside its base sheet.
+     *
+     * The rule is one sentence and it is the same for every theme: a surface
+     * sheet is `<base stem>-<surface>.css` in the same directory, and it is
+     * added only when the file exists. Nothing has to be registered when a
+     * theme grows one; a theme without one answers with its base list, byte for
+     * byte the page it shipped before surfaces existed.
+     *
+     * @param list<string> $files
+     *
+     * @return list<string>
+     */
+    public static function themeCriticalCss(array $files, ?string $surface): array
+    {
+        $resolved = PageSurface::orPage($surface);
+
+        if (PageSurface::PAGE === $resolved) {
+            return $files;
+        }
+
+        $widened = $files;
+
+        foreach ($files as $file) {
+            $candidate = preg_replace('/\.css$/', '-' . $resolved . '.css', $file);
+
+            if (null === $candidate || $candidate === $file) {
+                continue;
+            }
+
+            if (is_file(\View\Paths::moduleFile($candidate))) {
+                $widened[] = $candidate;
+            }
+        }
+
+        return $widened;
+    }
     /**
      * Navigation data (header + footer) — the provider that owns the menu
      * answers through the shell port, already mapped into kernel-owned
@@ -146,6 +244,7 @@ final class FrontendLayout
         ?string $searchAction = null,
         string $searchPlaceholder = 'Search',
         string $searchLabel = 'Search',
+        ?string $surface = null,
     ): string {
         // The site's own name comes first: a provider that knows it answers
         // through the port, and the caller's literal is the last resort (a
@@ -190,10 +289,10 @@ final class FrontendLayout
             self::noindexTag($noindex),
             self::structuredTag($structuredData),
             self::feedTags($feedLinks),
-            self::styleTag($bundle, $jsKey, $themeModule->criticalCss()),
+            self::styleTag($bundle, $jsKey, $themeModule->criticalCss($surface), $surface),
             self::themeInitScript($themeModule->themeInitScript()),
             self::themeToggleScript(),
-            self::jsTag($bundle, $jsKey),
+            self::jsTag($bundle, $jsKey, $surface),
             $pageChrome,
         );
     }
@@ -338,9 +437,9 @@ final class FrontendLayout
      *
      * @param list<string> $criticalCss
      */
-    private static function styleTag(string $bundle, string $jsKey, array $criticalCss): string
+    private static function styleTag(string $bundle, string $jsKey, array $criticalCss, ?string $surface): string
     {
-        $inlineCss = self::inlineCss(new AssetManager($bundle), $jsKey);
+        $inlineCss = self::inlineCss(new AssetManager($bundle), $jsKey, $surface);
 
         if ('' === $inlineCss) {
             $inlineCss = InlineCss::files($criticalCss);
@@ -391,14 +490,19 @@ final class FrontendLayout
         return $tags;
     }
 
-    /** Manifest-resolved deferred JS tag (empty when no entry resolves). */
-    private static function jsTag(string $bundle, string $jsKey): string
+    /**
+     * Manifest-resolved deferred JS tags: the page's base script, then every
+     * surface script it declares. Empty when no entry resolves.
+     */
+    private static function jsTag(string $bundle, string $jsKey, ?string $surface): string
     {
-        $jsUrl = (new AssetManager($bundle))->jsUrl($jsKey);
+        $tags = '';
 
-        return null !== $jsUrl
-            ? '<script src="' . $jsUrl . '" nonce="__CSP_NONCE_PLACEHOLDER__" defer></script>' . "\n"
-            : '';
+        foreach ((new AssetManager($bundle))->jsUrlsForSurface($jsKey, $surface) as $jsUrl) {
+            $tags .= '<script src="' . $jsUrl . '" nonce="__CSP_NONCE_PLACEHOLDER__" defer></script>' . "\n";
+        }
+
+        return $tags;
     }
 
     /** Shared theme-toggle handler — one copy referenced by every theme module. */
@@ -435,22 +539,22 @@ final class FrontendLayout
      */
     private static function sharedThemeInitScript(): string
     {
-        return <<<'HTML'
-                <!-- Sync theme init — FOUC prevention: restore the persisted theme
-                     (or the OS preference) before first paint. Falls back to the
-                     dark default when neither is available (Chrome 70 baseline). -->
-                <script nonce="__CSP_NONCE_PLACEHOLDER__">
-                    (function() {
-                        try {
-                            var theme = localStorage.getItem('nativa-theme');
-                            if (!theme) {
-                                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                            }
-                            document.documentElement.setAttribute('data-theme', theme);
-                        } catch (e) {}
-                    })();
-                </script>
-            HTML;
+        $script = InlineJs::file('Themes/assets/scripts/theme-init.js');
+
+        if ('' === $script) {
+            return '';
+        }
+
+        // The asset is authored flush left; the emitted block sits four spaces
+        // in with the rest of <head>, so the base indent is added here.
+        $body = '        ' . str_replace("\n", "\n        ", rtrim($script));
+
+        return <<<HTML
+            <!-- Sync theme init - FOUC prevention: restore the persisted theme
+                 (or the OS preference) before first paint. Falls back to the
+                 dark default when neither is available (Chrome 70 baseline). -->
+            <script nonce="__CSP_NONCE_PLACEHOLDER__">{$body}</script>
+        HTML;
     }
 
     /** Canonical <link> — rendered only when the action provides a URL. */
@@ -636,11 +740,11 @@ final class FrontendLayout
      *
      * @return string concatenated built CSS (empty when the build is missing)
      */
-    private static function inlineCss(AssetManager $assets, string $jsKey): string
+    private static function inlineCss(AssetManager $assets, string $jsKey, ?string $surface): string
     {
         $css = '';
 
-        foreach ($assets->cssUrls($jsKey) as $url) {
+        foreach ($assets->cssUrlsForSurface($jsKey, $surface) as $url) {
             $path = AppPaths::instance()->public(ltrim($url, '/'));
 
             if (is_file($path)) {
@@ -670,7 +774,10 @@ final class FrontendLayout
      * previews (Facebook/LinkedIn/WhatsApp read og:*, Twitter reads both).
      * og:url mirrors the canonical URL when present (otherwise the scraper
      * falls back to the page URL); og:locale is derived from the html lang.
-     * All values arrive already escaped by the caller.
+     * Title, description and site name arrive escaped by the caller. The two
+     * URLs do not: they are built from the request (a `Host` header the tree
+     * may not have constrained), so they are escaped here — a quote in the host
+     * must not end the attribute it lands in.
      */
     private static function ogTags(
         string $title,
@@ -693,12 +800,14 @@ final class FrontendLayout
             . '<meta name="twitter:description" content="' . $description . '">' . "\n";
 
         if (null !== $canonicalUrl) {
-            $tags .= '<meta property="og:url" content="' . $canonicalUrl . '">' . "\n";
+            $tags .= '<meta property="og:url" content="' . self::e($canonicalUrl) . '">' . "\n";
         }
 
         if (null !== $ogImage) {
-            $tags .= '<meta property="og:image" content="' . $ogImage . '">' . "\n"
-                . '<meta name="twitter:image" content="' . $ogImage . '">' . "\n";
+            $ogImageEscaped = self::e($ogImage);
+
+            $tags .= '<meta property="og:image" content="' . $ogImageEscaped . '">' . "\n"
+                . '<meta name="twitter:image" content="' . $ogImageEscaped . '">' . "\n";
         }
 
         return $tags;
@@ -874,30 +983,9 @@ final class FrontendLayout
      */
     private static function readerLayoutStyle(): string
     {
-        return <<<'CSS'
-            <style nonce="__CSP_NONCE_PLACEHOLDER__">
-            [data-docs-reader]{--docs-header-offset:0px;display:grid;grid-template-columns:minmax(0,1fr);gap:2.5rem}
-            @media (min-width:1024px){
-              [data-docs-reader][data-has-rail]{grid-template-columns:minmax(0,68ch) minmax(12rem,16rem);justify-content:center;align-items:start}
-            }
-            [data-docs-prose]{max-width:68ch;min-width:0}
-            [data-docs-prose] p,[data-docs-prose] li,[data-docs-prose] blockquote{max-width:68ch}
-            [data-docs-prose]>*{max-width:100%}
-            [data-docs-prose] pre,[data-docs-prose] table{max-width:100%}
-            [data-docs-prose] pre{overflow-x:auto}
-            [data-docs-prose] table{display:block;overflow-x:auto}
-            [data-docs-toc]{font-size:.875rem;line-height:1.5}
-            @media (min-width:1024px){
-              [data-docs-toc]{position:sticky;top:calc(var(--docs-header-offset) + 1.5rem);max-height:calc(100vh - var(--docs-header-offset) - 3rem);overflow:auto;padding-left:1rem;border-left:1px solid rgba(128,128,128,.35)}
-            }
-            [data-docs-toc__title]{margin:0 0 .5rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.75rem;opacity:.7}
-            [data-docs-toc] ul{margin:0;padding:0;list-style:none}
-            [data-docs-toc] li{margin:0 0 .35rem}
-            [data-docs-toc] li[data-level="3"]{padding-left:.85rem;opacity:.85}
-            [data-docs-toc] a{text-decoration:none;opacity:.8}
-            [data-docs-toc] a:hover,[data-docs-toc] a:focus-visible{opacity:1;text-decoration:underline}
-            </style>
-            CSS;
+        return '<style nonce="__CSP_NONCE_PLACEHOLDER__">' . "\n"
+            . InlineCss::file('Themes/assets/critical/docs-reader.css')
+            . '</style>';
     }
 
     /**

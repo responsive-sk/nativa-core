@@ -1,5 +1,14 @@
 # Installed target adapters cannot be pinned: `lekalo lock -- <program>` refuses with `lock.schema-invalid`
 
+> **Status:** filed as
+> [`ichinya/lekalo#259`](https://github.com/ichinya/lekalo/issues/259) on
+> 2026-11-18 and closed as completed by
+> [`#273`](https://github.com/ichinya/lekalo/pull/273) (merge `7441eed` into
+> `main`, 2026-11-21). Verified on `main` at `a8a6372` with this report's own
+> reproduction script; see [Verification after the fix](#verification-after-the-fix).
+> No release carries the fix yet: the published 1.3.1 CLI still reproduces the
+> refusal. The report below is the 1.2.0 text as filed.
+
 **Area:** CLI / lockfile — issue #91 catalog seam, issue #32 installed provenance
 **Version:** lekalo 1.2.0 (resolver 0.2.16, registry 1.1.0, target protocol 0.3.2)
 **Severity:** blocking. No installed adapter of any shape can be pinned, so
@@ -165,3 +174,27 @@ request is merged with the identities the lock already pins. Provenance
   the mismatch, not `lock.schema-invalid`.
 * `doctor` on a project with one installed adapter no longer reports
   `adapters.inventory blocked targets-without-adapters`.
+
+## Verification after the fix
+
+Run on 2026-11-22 against a debug build of `main` at `a8a6372`
+(`cargo build --bin lekalo`; the binary reports `lekalo 1.3.1`), with the
+`adapters/php-nativa` package beside this report:
+
+| check | result |
+| --- | --- |
+| `LEKALO=… tests/upstream/lock-pin-repro.sh` | exit 0. Scenario 1 is `valid`, `provenance.source.kind` is `installed`, and `provenance.install_plan_id` equals the confirmed plan. The control still pins `source.kind: project` with the executable digest. |
+| tampered stored entry | exit 3, `status: denied`, `adapter.checksum-mismatch` (`LEK-ADP-007`, `domain: file`, `identity: adapter.php`), and no `lock.schema-invalid`. |
+| `doctor --json` with the installed adapter and the created lock | exit 0, `adapters.inventory` is `state: ok` / `reason: resolved`, `adapters.trust` is `clean`, and `targets-without-adapters` appears nowhere. |
+
+The fix pins the package digest as `digest` and the entry digest in
+`artifacts`, checks the launched entry against the manifest, and verifies the
+stored package bytes before locking. `resolution.rs` still returns
+`LockFailure::SchemaInvalid` in its `pinned == 0` branch, but the candidate now
+carries the package digest, so the filter matches, and `catalog.rs` refuses a
+contradicting manifest with `adapter.source-changed` first; the generic code is
+no longer reachable through this path.
+
+Verification used `tests/upstream/lock-pin-repro.sh` and the package in this
+tree only; it did not exercise the tampered **project** copy (only the stored
+package), nor a release binary.

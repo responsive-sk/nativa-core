@@ -10,10 +10,20 @@
  * copied: this theme has one design, and a second copy under `src/` would be
  * the first place the two drift. The bundle therefore adds BEHAVIOUR and a
  * manifest; the CSS it inlines is byte-identical to the no-build fallback.
+ *
+ * `nativa-article`, `nativa-home` and `nativa-listing` are CSS-only inputs: the
+ * manifest names them in `file` with no `css` array (measured 2026-11-24), and
+ * `AssetManager::cssUrlsForSurface()` reads both shapes, so only the article
+ * page pays for the reading rail.
  */
 import { createThemeConfig } from '../build/vite-theme-factory.ts';
 
 export default createThemeConfig({
   theme: 'nativa',
-  inputs: { nativa: 'src/nativa.ts' },
+  inputs: {
+    nativa: 'src/nativa.ts',
+    'nativa-article': 'src/nativa-article.css',
+    'nativa-home': 'src/nativa-home.css',
+    'nativa-listing': 'src/nativa-listing.css',
+  },
 });

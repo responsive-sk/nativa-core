@@ -28,9 +28,7 @@ final class SqlState
         $sqlState = $failure->errorInfo[0] ?? null;
         $driver = $failure->errorInfo[1] ?? null;
 
-        if (null === $sqlState) {
-            $sqlState = $failure->getCode();
-        }
+        $sqlState ??= $failure->getCode();
 
         if ('0' === (string) $sqlState
             && 1 === preg_match('/SQLSTATE\[([0-9A-Z]{5})]/', $failure->getMessage(), $matches)

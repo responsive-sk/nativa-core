@@ -86,7 +86,7 @@ final class BlogServices
     }
 
     /**
-     * `Title ... Site` for document titles and feeds.
+     * `Title — Site` for document titles and feeds.
      *
      * The brand is the site's, read through the kernel shell port — the same
      * answer FrontendLayout puts in <head>. Hardcoding one here made every

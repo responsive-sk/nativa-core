@@ -25,6 +25,24 @@ final class SitemapActionTest extends TestCase
     }
 
     #[Test]
+    public function aThrowingContributorStillLeavesTheKernelRows(): void
+    {
+        $broken = new class () implements SitemapContributor {
+            public function entries(): array
+            {
+                throw new \RuntimeException('fixture failure');
+            }
+        };
+
+        $body = self::render(SitemapContributorRegistry::fromContributors([$broken]));
+
+        self::assertStringContainsString('<loc>http://localhost/</loc>', $body);
+        self::assertSame(200, (new SitemapAction(SitemapContributorRegistry::fromContributors([$broken])))
+            ->handle(Request::create('GET', '/sitemap.xml'))
+            ->getStatusCode());
+    }
+
+    #[Test]
     public function aContributorAddsItsOwnPath(): void
     {
         $body = self::render(SitemapContributorRegistry::fromContributors([
@@ -45,6 +63,27 @@ final class SitemapActionTest extends TestCase
 
         self::assertSame(1, substr_count($body, '<loc>http://localhost/</loc>'));
         self::assertSame(1, substr_count($body, '<loc>http://localhost/blog/probe</loc>'));
+    }
+
+    #[Test]
+    public function aContributorCanAttachImagesToItsUrl(): void
+    {
+        $body = self::render(SitemapContributorRegistry::fromContributors([
+            self::contributor([new SitemapEntry(
+                '/blog/probe',
+                images: ['/storage/blog-images/probe.svg?v=abc', 'https://cdn.example.test/probe.png'],
+            )]),
+        ]));
+
+        self::assertStringContainsString('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"', $body);
+        self::assertStringContainsString(
+            '<image:loc>http://localhost/storage/blog-images/probe.svg?v=abc</image:loc>',
+            $body,
+        );
+        self::assertStringContainsString(
+            '<image:loc>https://cdn.example.test/probe.png</image:loc>',
+            $body,
+        );
     }
 
     #[Test]

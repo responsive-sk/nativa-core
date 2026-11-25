@@ -111,6 +111,11 @@ APPLY_PROFILE=true
 #   .env and friends    local secrets. NOTE: `.env.*` also matches the
 #                       `.env.example` this artifact DOES need — it arrives via
 #                       the explicit copy below, not through this tar pass.
+#   ./storage/config/database.json
+#                       the operator's saved engine choice, including a DSN
+#                       password when one is set. A fresh install has no file
+#                       to carry and an update must not replace the target's
+#                       choice, so the artifact never ships this one.
 #   ./storage/data|logs|cache|sessions|uploads
 #                       runtime state (SQLite files, sessions, article views).
 #                       The skeleton is recreated below; the databases are
@@ -159,6 +164,7 @@ EXCLUDES=(
     "./phpstan.neon"
     "./phpunit.xml"
     "./rector.php"
+    "./storage/config/database.json"
     "./storage/data"
     "./storage/logs"
     "./storage/cache"

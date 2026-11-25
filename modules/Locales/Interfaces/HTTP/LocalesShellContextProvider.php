@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Locales\Interfaces\HTTP;
 
+use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Shell\ShellContextProvider;
 use Shell\ShellNavItem;
 use Shell\AsShellContextProvider;
@@ -71,6 +72,19 @@ final class LocalesShellContextProvider implements ShellContextProvider
     public function htmlLang(): ?string
     {
         return LocalesServices::locale()->default()->language();
+    }
+
+    /**
+     * The prefix the current request is served from.
+     *
+     * `ContentLocaleMapper::urlPrefix()` is the one owner of the shape `'' for
+     * the default, /en for the other one`, and it is fed the locale the
+     * middleware resolved for THIS request — not the default, or an English
+     * page would answer `''` and its menu would link back into Slovak.
+     */
+    public function localePrefix(): ?string
+    {
+        return ContentLocaleServices::mapper()->urlPrefix(LocalesServices::locale()->current()->code());
     }
 
     /**

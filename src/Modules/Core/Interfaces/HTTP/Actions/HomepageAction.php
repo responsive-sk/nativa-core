@@ -12,6 +12,7 @@ use Shell\HomepageSurfaceRegistry;
 use Shell\PageContext;
 use Shell\ShellContextProviderRegistry;
 use Themes\FrontendLayout;
+use Themes\PageSurface;
 use Themes\ThemeKernel;
 use Themes\ThemeResolver;
 
@@ -76,11 +77,9 @@ final class HomepageAction
         // own homepage renders, exactly as before — the kernel is the floor, not
         // the finished page.
         $surface = HomepageSurfaceRegistry::first();
-        $homepage = null === $surface ? null : $surface->homepage($context);
+        $homepage = $surface?->homepage($context);
 
-        $content = null === $homepage
-            ? ThemeKernel::for($theme)->homepage($context)
-            : $homepage->content;
+        $content = $homepage->content ?? ThemeKernel::for($theme)->homepage($context);
 
         // The landing's own head, where it names one: a title that says what the
         // site does, alternates for its languages, an absolute share image.
@@ -88,6 +87,18 @@ final class HomepageAction
         $hreflang = null === $homepage || [] === $homepage->hreflang ? null : $homepage->hreflang;
 
         $homeUrl = $request->absoluteUrl('/');
+
+        // A translated landing is its own page. The canonical used to be `/` for
+        // every language, so `/en` told a crawler that the English page IS the
+        // Slovak one while its `hreflang` alternates said otherwise — and a
+        // canonical that contradicts the alternates wins, dropping the English
+        // home from the index. The surface already answers where each language
+        // lives (`hreflang`); the canonical is that same answer for the page's
+        // own language. `/sk` resolves to `/`, which is its canonical alias.
+        $lang = $homepage?->lang;
+        $canonicalUrl = null !== $lang && isset($homepage->hreflang[$lang])
+            ? $homepage->hreflang[$lang]
+            : $homeUrl;
 
         // The home surface announces the site itself (Organization + WebSite,
         // with a SearchAction). The name is the port's answer, the URL the
@@ -98,9 +109,10 @@ final class HomepageAction
             $content,
             description: $homepage?->description,
             currentPath: '/',
+            surface: PageSurface::HOME,
             lang: $homepage?->lang,
             hreflangLinks: $hreflang,
-            canonicalUrl: $homeUrl,
+            canonicalUrl: $canonicalUrl,
             ogImage: $homepage?->ogImage,
             structuredData: WebsiteStructuredData::website($siteName, $homeUrl),
             theme: $theme,

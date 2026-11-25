@@ -129,6 +129,95 @@ final class AssetManager
     }
 
     /**
+     * The CSS a page of one surface carries: the base entry first, then the
+     * surface entry when the build emitted one.
+     *
+     * A surface entry is an ordinary input named `<key>-<surface>`
+     * (`src/boson-article.css`), and the spike of 2026-11-24 measured that a
+     * CSS-only input appears in the manifest with its file in `file` and NO
+     * `css` array. Both shapes resolve here, because the caller wants bytes on
+     * a page and not a manifest term.
+     *
+     * The answer is the base entry alone when the surface is unknown or its
+     * build is absent: a page whose theme cannot narrow keeps exactly the bytes
+     * it had, which is the fallback the spec asks for.
+     *
+     * @return list<string>
+     */
+    public function cssUrlsForSurface(string $key, ?string $surface): array
+    {
+        return [...$this->cssUrls($key), ...$this->surfaceCssUrls($key, $surface)];
+    }
+
+    /**
+     * The JS a page of one surface tags: the base script, then the surface
+     * script when the build emitted one.
+     *
+     * Same rule as CSS, and the same fallback: a page without a surface script
+     * tags one deferred `<script>`, as every page did before surfaces existed.
+     * A CSS-only surface entry is skipped here by construction: its `file` ends
+     * in `.css`, so it is a stylesheet and not a script tag.
+     *
+     * @return list<string>
+     */
+    public function jsUrlsForSurface(string $key, ?string $surface): array
+    {
+        $urls = [];
+        $base = $this->jsUrl($key);
+
+        if (null !== $base) {
+            $urls[] = $base;
+        }
+
+        if (null === $surface || PageSurface::PAGE === $surface || !PageSurface::isKnown($surface)) {
+            return $urls;
+        }
+
+        $entry = $this->manifestEntry($key . '-' . $surface);
+        $file = $entry['file'] ?? null;
+
+        if (is_string($file) && str_ends_with($file, '.js')) {
+            $urls[] = $this->bundlePrefix . $file;
+        }
+
+        return $urls;
+    }
+
+    /**
+     * CSS files of the surface entry alone — the half a page adds to its base.
+     *
+     * @return list<string>
+     */
+    private function surfaceCssUrls(string $key, ?string $surface): array
+    {
+        if (null === $surface || PageSurface::PAGE === $surface || !PageSurface::isKnown($surface)) {
+            return [];
+        }
+
+        $entry = $this->manifestEntry($key . '-' . $surface);
+        $files = $entry['css'] ?? [];
+
+        // A CSS-only entry names its stylesheet in `file`, measured 2026-11-24:
+        // the manifest row is `{"file":"assets/x-*.css"}` with no `css` array.
+        if ([] === $files) {
+            $file = $entry['file'] ?? null;
+
+            if (is_string($file) && str_ends_with($file, '.css')) {
+                $files = [$file];
+            }
+        }
+
+        $urls = [];
+        foreach ($files as $file) {
+            if ('' !== $file) {
+                $urls[] = $this->bundlePrefix . $file;
+            }
+        }
+
+        return $urls;
+    }
+
+    /**
      * Manifest entry for a logical entry key ('main', 'mark', 'erik', …).
      *
      * Vite 8 keys the manifest by the resolved source path

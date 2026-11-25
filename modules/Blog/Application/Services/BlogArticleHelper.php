@@ -166,6 +166,26 @@ final readonly class BlogArticleHelper
     }
 
     /**
+     * What the generated cover shows, for `alt`: its category and first tags.
+     *
+     * The title is already the page's h1, so repeating it in the image text
+     * was removed. The alt describes the cover instead of copying the heading.
+     *
+     * @param array<string, mixed> $meta
+     */
+    public static function coverAlt(array $meta, string $locale = 'sk'): string
+    {
+        $language = ContentLocaleServices::mapper()->languageCode($locale);
+        $english = ContentLocaleServices::mapper()->languageCode('en_US');
+        $label = $english === $language ? 'Article cover illustration' : 'Ilustračný obrázok článku';
+        $category = is_string($meta['category'] ?? null) ? trim($meta['category']) : '';
+        $tags = array_slice(self::tagList($meta), 0, 3);
+        $bits = array_values(array_filter([$category, ...$tags], static fn (string $bit): bool => '' !== $bit));
+
+        return [] === $bits ? $label : $label . ': ' . implode(', ', $bits);
+    }
+
+    /**
      * Cover image HTML — fixed 720×360 aspect to prevent layout shift.
      *
      * @param array<string, mixed> $meta
@@ -175,7 +195,7 @@ final readonly class BlogArticleHelper
         $image = $articles->resolveCover($slug, $meta, $locale);
 
         return '<img class="st-article__cover" src="' . FrontendLayout::e($image)
-            . '" alt="' . FrontendLayout::e($meta['title'] ?? $slug) . '" width="720" height="360"'
+            . '" alt="' . FrontendLayout::e(self::coverAlt($meta, $locale)) . '" width="720" height="360"'
             . ' loading="eager" fetchpriority="high" decoding="async">';
     }
 

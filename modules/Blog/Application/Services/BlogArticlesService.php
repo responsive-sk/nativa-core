@@ -314,15 +314,17 @@ final class BlogArticlesService
             return $meta['image'];
         }
 
-        // 2a. Locale-qualified SVG (blog-images/{locale}/{slug}.svg) — the
+        // 2a. Locale-qualified SVG (blog-images/{language}/{slug}.svg) — the
         // collision-proof location. The generator writes here whenever two
         // locales share the same slug; the flat file of an ambiguous slug
-        // can only ever hold ONE locale's identity.
+        // can only ever hold ONE locale's identity. Callers pass the full
+        // locale code (`sk_SK`), so the directory is the language half.
+        $language = ContentLocaleServices::mapper()->languageCode($locale);
         $qualifiedPath = AppPaths::instance()->storage(
-            'blog-images' . DIRECTORY_SEPARATOR . $locale . DIRECTORY_SEPARATOR . $slug . '.svg',
+            'blog-images' . DIRECTORY_SEPARATOR . $language . DIRECTORY_SEPARATOR . $slug . '.svg',
         );
         if (is_file($qualifiedPath)) {
-            return $this->covers->versionedUrl('/storage/blog-images/' . $locale . '/' . $slug . '.svg', $qualifiedPath);
+            return $this->covers->versionedUrl('/storage/blog-images/' . $language . '/' . $slug . '.svg', $qualifiedPath);
         }
 
         // 2b. Flat SVG (blog-images/{slug}.svg) — legacy and unique-slug

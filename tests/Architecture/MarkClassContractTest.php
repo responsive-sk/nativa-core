@@ -34,9 +34,9 @@ use RecursiveIteratorIterator;
  *
  * Stylesheets come from `Frontend/` (every package: the panel loads the
  * moonshine sheet, a theme sheet at once, and a future class may live in
- * either) plus the `<style>` block a layout carries inline — the compact panel
- * defines its whole top navigation there, and a scan that ignored it would
- * report a styled layout as broken.
+ * either) plus the panel's own critical stylesheets under
+ * `modules/Cardboard/Interfaces/HTTP/assets/styles`, where the two layouts'
+ * inline blocks now live as files.
  *
  * ## The scope is one direction
  *
@@ -250,7 +250,10 @@ final class MarkClassContractTest extends TestCase
      */
     private function cssFiles(): array
     {
-        return $this->filesIn(APP_BASE_PATH . '/Frontend', ['css']);
+        return [
+            ...$this->filesIn(APP_BASE_PATH . '/Frontend', ['css']),
+            ...$this->filesIn(APP_BASE_PATH . '/modules/' . self::MODULE . '/Interfaces/HTTP/assets/styles', ['css']),
+        ];
     }
 
     /**

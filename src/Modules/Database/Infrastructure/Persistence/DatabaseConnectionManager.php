@@ -60,9 +60,7 @@ final class DatabaseConnectionManager
      */
     public static function instance(): self
     {
-        if (null === self::$instance) {
-            self::$instance = new self(AppPaths::instance());
-        }
+        self::$instance ??= new self(AppPaths::instance());
 
         return self::$instance;
     }

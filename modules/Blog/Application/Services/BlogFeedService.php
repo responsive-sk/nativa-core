@@ -34,7 +34,7 @@ final readonly class BlogFeedService
             $entries .= $this->atomEntry($article, $baseUrl);
         }
 
-        $title = FrontendLayout::e(BlogServices::brandSuffix() . ' ... Blog');
+        $title = FrontendLayout::e(BlogServices::brandSuffix() . ' — Blog');
         $subtitle = FrontendLayout::e('Articles from storage/blog ... plain Markdown, zero dependencies.');
         $updated = '' !== ($articles[0]->date ?? '')
             ? FrontendLayout::e($this->rfc2822($articles[0]->date))
@@ -64,7 +64,7 @@ final readonly class BlogFeedService
             $items .= $this->rssItem($article, $baseUrl);
         }
 
-        $title = FrontendLayout::e(BlogServices::brandSuffix() . ' ... Blog');
+        $title = FrontendLayout::e(BlogServices::brandSuffix() . ' — Blog');
         $description = FrontendLayout::e('Articles from storage/blog ... plain Markdown, zero dependencies.');
         $feedUrl = FrontendLayout::e($baseUrl . '/blog/feed.xml');
 

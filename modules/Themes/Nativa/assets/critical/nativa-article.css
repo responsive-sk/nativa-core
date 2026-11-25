@@ -1,0 +1,170 @@
+/**
+ * nativa2-article.css — the article surface sheet.
+ *
+ * Moved out of the base sheet with the surface that reads it. The
+ * build lists it after the base, so cascade order is unchanged.
+ */
+
+/* ---- article and reader rail ------------------------------------------- */
+
+.na-reader {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+}
+
+.na-article {
+    max-width: var(--na-measure);
+}
+
+.na-article__meta {
+    margin: 0 0 1.25rem;
+    color: var(--na-muted);
+    font-size: 0.875rem;
+}
+
+.na-article__meta a {
+    color: var(--na-muted);
+}
+
+.na-article__cover {
+    inline-size: 100%;
+    block-size: auto;
+    margin-bottom: 1.5rem;
+    border-radius: var(--na-radius);
+}
+
+.na-article__body {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+}
+
+.na-article__body p,
+.na-article__body ul,
+.na-article__body ol {
+    margin: 0 0 1.25rem;
+}
+
+.na-article__body h2,
+.na-article__body h3 {
+    margin: 2.5rem 0 0.75rem;
+    font-family: var(--na-display);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+}
+
+.na-article__body code {
+    padding: 0.1em 0.35em;
+    border: 1px solid var(--na-line);
+    border-radius: var(--na-radius);
+    background: var(--na-surface);
+    font-family: var(--na-mono);
+    font-size: 0.875em;
+}
+
+.na-article__body hr {
+    margin: 2.5rem 0;
+    border: 0;
+    border-top: 1px solid var(--na-line);
+}
+
+.na-article__body figure {
+    margin: 1.75rem 0;
+}
+
+.na-article__body figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--na-muted);
+}
+
+.na-article__body a {
+    color: var(--na-accent);
+}
+
+.na-article__body pre {
+    overflow-x: auto;
+    padding: 1rem;
+    border: 1px solid var(--na-line);
+    border-radius: var(--na-radius);
+    background: var(--na-surface);
+    font-family: var(--na-mono);
+    font-size: 0.875rem;
+}
+
+.na-article__body blockquote {
+    margin: 1.5rem 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--na-accent);
+    color: var(--na-muted);
+}
+
+.na-article__body table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.na-article__body th,
+.na-article__body td {
+    border-bottom: 1px solid var(--na-line);
+    padding: 0.5rem 0.6rem;
+    text-align: left;
+}
+
+.na-toc {
+    position: sticky;
+    top: 5.5rem;
+    font-size: 0.875rem;
+}
+
+.na-toc__title {
+    margin: 0 0 0.5rem;
+    font-family: var(--na-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--na-muted);
+}
+
+.na-toc__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-left: 1px solid var(--na-line);
+}
+
+.na-toc__item {
+    line-height: 1.4;
+}
+
+.na-toc__item--sub {
+    padding-left: 0.75rem;
+    font-size: 0.8125rem;
+}
+
+.na-toc__link {
+    display: block;
+    padding: 0.3rem 0 0.3rem 0.75rem;
+    color: var(--na-muted);
+    text-decoration: none;
+}
+
+.na-toc__link:hover {
+    color: var(--na-ink);
+}
+
+/* The scrollspy's answer (na-toc-scrollspy.ts). The inset shadow paints the
+   rail's own line where the active link sits, so the marker costs no layout
+   and the list keeps its single border. `aria-current` is the no-JS half: a
+   reader landing on a fragment still sees which section the link belongs to. */
+.na-toc__link--active,
+.na-toc__link[aria-current="location"] {
+    color: var(--na-ink);
+    font-weight: 500;
+    box-shadow: inset 1px 0 0 var(--na-ink);
+}
+
+.na-docs__body {
+    max-width: none;
+}

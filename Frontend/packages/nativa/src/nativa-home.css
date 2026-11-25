@@ -1,0 +1,6 @@
+/**
+ * nativa-home.css — the home surface entry, built from the catalogue sheet.
+ *
+ * A CSS-only input; see `nativa-article.css` for why the manifest accepts one.
+ */
+@import '../../../../modules/Themes/Nativa/assets/critical/nativa-home.css';

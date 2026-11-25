@@ -38,7 +38,8 @@ final readonly class SitemapAction
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
-            . ' xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n"
+            . ' xmlns:xhtml="http://www.w3.org/1999/xhtml"'
+            . ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n"
             . $this->render($base, $entries)
             . '</urlset>' . "\n";
 
@@ -106,8 +107,16 @@ final readonly class SitemapAction
 
         foreach ($entries as $entry) {
             $xml .= '  <url>' . "\n"
-                . '    <loc>' . FrontendLayout::e($base . $entry->path) . '</loc>' . "\n"
-                . '    <changefreq>' . $entry->changefreq . '</changefreq>' . "\n"
+                . '    <loc>' . FrontendLayout::e($base . $entry->path) . '</loc>' . "\n";
+
+            foreach ($entry->images as $image) {
+                $imageUrl = str_contains($image, '://') ? $image : $base . $image;
+                $xml .= '    <image:image>' . "\n"
+                    . '      <image:loc>' . FrontendLayout::e($imageUrl) . '</image:loc>' . "\n"
+                    . '    </image:image>' . "\n";
+            }
+
+            $xml .= '    <changefreq>' . $entry->changefreq . '</changefreq>' . "\n"
                 . '    <priority>' . $entry->priority . '</priority>' . "\n"
                 . '  </url>' . "\n";
         }

@@ -72,9 +72,7 @@ final class CsrfMiddleware implements MiddlewareInterface
     {
         self::startSession();
 
-        if (!isset($_SESSION[self::SESSION_KEY])) {
-            $_SESSION[self::SESSION_KEY] = bin2hex(random_bytes(32));
-        }
+        $_SESSION[self::SESSION_KEY] ??= bin2hex(random_bytes(32));
 
         /** @var string $token */
         $token = $_SESSION[self::SESSION_KEY];

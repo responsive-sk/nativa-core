@@ -1,0 +1,37 @@
+/**
+ * nativa2-listing.css — the listing surface sheet.
+ *
+ * Moved out of the base sheet with the surface that reads it. The
+ * build lists it after the base, so cascade order is unchanged.
+ */
+
+.na-empty {
+    color: var(--na-muted);
+    border: 1px dashed var(--na-line);
+    border-radius: var(--na-radius);
+    padding: 1rem 1.25rem;
+}
+
+.na-list {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.na-list a {
+    color: var(--na-ink);
+}
+
+/* ---- search ------------------------------------------------------------ */
+
+.na-search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    margin-block: 0 1.5rem;
+}
+
+.na-search__label {
+    font-size: 0.875rem;
+    color: var(--na-muted);
+}

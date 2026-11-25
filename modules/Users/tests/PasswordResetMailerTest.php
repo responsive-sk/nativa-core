@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Users\Tests;
 
+use Modules\Core\Infrastructure\Env;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
@@ -130,9 +131,9 @@ final class PasswordResetMailerTest extends TestCase
             putenv('DB_CONFIG');
 
             if (null === $this->appEnvBefore) {
-                putenv('APP_ENV');
+                self::appEnv(null);
             } else {
-                putenv('APP_ENV=' . $this->appEnvBefore);
+                self::appEnv($this->appEnvBefore);
             }
 
             foreach (self::MAIL_ENV_KEYS as $key) {
@@ -165,7 +166,7 @@ final class PasswordResetMailerTest extends TestCase
     #[Test]
     public function productionAnswersTheFlowWithoutWritingTheTokenToTheLog(): void
     {
-        putenv('APP_ENV=production');
+        self::appEnv('production');
         AuthServices::reset();
 
         self::assertFalse(
@@ -207,7 +208,7 @@ final class PasswordResetMailerTest extends TestCase
     #[Test]
     public function developmentDeliversTheLinkToTheLogFile(): void
     {
-        putenv('APP_ENV=development');
+        self::appEnv('development');
         AuthServices::reset();
 
         self::assertTrue(PasswordResetMailerFactory::writesToLog());
@@ -247,7 +248,7 @@ final class PasswordResetMailerTest extends TestCase
         ];
 
         foreach ($cases as $value => $expected) {
-            putenv('APP_ENV=' . $value);
+            self::appEnv($value);
 
             self::assertSame(
                 $expected,
@@ -261,7 +262,7 @@ final class PasswordResetMailerTest extends TestCase
             );
         }
 
-        putenv('APP_ENV');
+        self::appEnv(null);
 
         self::assertTrue(
             PasswordResetMailerFactory::writesToLog(),
@@ -349,7 +350,7 @@ final class PasswordResetMailerTest extends TestCase
     #[Test]
     public function productionUsesTheConfiguredHttpTransportAndRefusesAHalfConfiguredOne(): void
     {
-        putenv('APP_ENV=production');
+        self::appEnv('production');
         putenv('MAIL_API_URL=https://mail.example.test/send');
         putenv('MAIL_API_KEY=secret-key');
         putenv('MAIL_FROM=no-reply@example.test');
@@ -449,7 +450,7 @@ final class PasswordResetMailerTest extends TestCase
     #[Test]
     public function aFailingTransportKeepsTheFlowNeutralAndNeverFallsBackToTheLog(): void
     {
-        putenv('APP_ENV=production');
+        self::appEnv('production');
         putenv('MAIL_API_URL=http://127.0.0.1:9/nowhere');
         putenv('MAIL_FROM=no-reply@example.test');
         putenv('APP_URL=https://app.example.test');
@@ -527,4 +528,30 @@ final class PasswordResetMailerTest extends TestCase
             }
         };
     }
+
+    /**
+     * Set APP_ENV on every layer the environment reads.
+     *
+     * `Env::get()` reads its cache, then `$_ENV`, then `$_SERVER`, then the
+     * process environment — and a local `.env` has already filled the first
+     * three. A test that only calls `putenv()` therefore keeps seeing the
+     * deployment's value, which is how four mailer assertions went red on a
+     * machine with a `.env` while CI, which has none, stayed green.
+     */
+    private static function appEnv(?string $value): void
+    {
+        Env::reset();
+
+        if (null === $value) {
+            putenv('APP_ENV');
+            unset($_ENV['APP_ENV'], $_SERVER['APP_ENV']);
+
+            return;
+        }
+
+        putenv('APP_ENV=' . $value);
+        $_ENV['APP_ENV'] = $value;
+        $_SERVER['APP_ENV'] = $value;
+    }
+
 }

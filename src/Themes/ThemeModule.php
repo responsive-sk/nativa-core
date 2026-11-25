@@ -31,9 +31,15 @@ interface ThemeModule
     /**
      * Ordered critical-CSS file list used when the Vite manifest is absent.
      *
+     * `null` and `Themes\PageSurface::PAGE` answer with the theme's complete
+     * list; a narrower surface answers with the list that surface reads, which
+     * for a theme with one sheet means that sheet and a `-<surface>` sibling
+     * when one exists beside it. The page must never render unstyled because
+     * an action declared a surface the build has no entry for.
+     *
      * @return list<string>
      */
-    public function criticalCss(): array;
+    public function criticalCss(?string $surface = null): array;
 
     /** Inline <script> body executed before first paint (theme-init). Empty string when none. */
     public function themeInitScript(): string;

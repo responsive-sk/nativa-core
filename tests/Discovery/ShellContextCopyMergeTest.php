@@ -206,6 +206,19 @@ final class ShellContextCopyMergeTest extends TestCase
                     return null;
                 }
 
+
+
+                public function localePrefix(): ?string
+
+
+                {
+
+
+                    return null;
+
+
+                }
+
                 /** @return list<string> */
                 public function languages(): array
                 {
@@ -281,6 +294,19 @@ final class ShellContextCopyMergeTest extends TestCase
                 public function htmlLang(): ?string
                 {
                     return null;
+                }
+
+
+
+                public function localePrefix(): ?string
+
+
+                {
+
+
+                    return null;
+
+
                 }
 
                 /** @return list<string> */

@@ -54,6 +54,25 @@ final class BlogSitemapContributorTest extends TestCase
     }
 
     #[Test]
+    public function everyArticleCarriesItsCoverImage(): void
+    {
+        $slug = 'sitemap-image-' . bin2hex(random_bytes(4));
+        $this->writeArticle($slug, true);
+
+        $entry = null;
+        foreach ((new BlogSitemapContributor())->entries() as $candidate) {
+            if (str_ends_with($candidate->path, '/blog/' . $slug)) {
+                $entry = $candidate;
+                break;
+            }
+        }
+
+        self::assertNotNull($entry, 'The article has no sitemap row.');
+        self::assertNotSame([], $entry->images, 'The article row carries no cover image.');
+        self::assertMatchesRegularExpression('#^(?:https?://|/)#', $entry->images[0]);
+    }
+
+    #[Test]
     public function itDoesNotListAFeedOrATaxonomySurface(): void
     {
         $paths = self::paths();

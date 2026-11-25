@@ -1,0 +1,48 @@
+{
+  "measured": "2026-11-25",
+  "why": "One ceiling per theme and surface, in bytes of inlined CSS and tagged JS. A page at or under its ceiling is the theme as it ships; a page above it is a rule that arrived from another surface. A lower number records an improvement, a higher one is a decision that shows in the diff. Byte counts are read from the built bundle under public/dist, so a tree without a build is not measured here.",
+  "ceilings": {
+    "kernel": {
+      "page": { "css": 2483, "js": 0 },
+      "home": { "css": 2483, "js": 0 },
+      "listing": { "css": 2483, "js": 0 },
+      "article": { "css": 2483, "js": 0 }
+    },
+    "boson": {
+      "page": { "css": 22762, "js": 11255 },
+      "home": { "css": 35538, "js": 11255 },
+      "listing": { "css": 25182, "js": 11255 },
+      "article": { "css": 30790, "js": 11255 }
+    },
+    "jednotka": {
+      "page": { "css": 36967, "js": 10537 },
+      "home": { "css": 36967, "js": 10537 },
+      "listing": { "css": 36967, "js": 10537 },
+      "article": { "css": 43912, "js": 22773 }
+    },
+    "mono": {
+      "page": { "css": 37158, "js": 17875 },
+      "home": { "css": 37158, "js": 17875 },
+      "listing": { "css": 37158, "js": 17875 },
+      "article": { "css": 42007, "js": 17875 }
+    },
+    "griffe": {
+      "page": { "css": 24613, "js": 9439 },
+      "home": { "css": 24613, "js": 28889 },
+      "listing": { "css": 24613, "js": 9439 },
+      "article": { "css": 25431, "js": 9439 }
+    },
+    "erik": {
+      "page": { "css": 31118, "js": 10176 },
+      "home": { "css": 31118, "js": 10176 },
+      "listing": { "css": 31118, "js": 10176 },
+      "article": { "css": 36502, "js": 22412 }
+    },
+    "nativa": {
+      "page": { "css": 9159, "js": 1176 },
+      "home": { "css": 9768, "js": 1176 },
+      "listing": { "css": 9507, "js": 1176 },
+      "article": { "css": 11390, "js": 1176 }
+    }
+  }
+}

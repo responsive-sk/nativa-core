@@ -97,7 +97,7 @@ final class McpServerTest extends TestCase
         self::assertSame('2.0', $response['jsonrpc']);
         self::assertSame('2024-11-05', $response['result']['protocolVersion']);
         self::assertArrayHasKey('tools', $response['result']['capabilities']);
-        self::assertSame('nativa-rest-admin', $response['result']['serverInfo']['name']);
+        self::assertSame('nativa-rest-api', $response['result']['serverInfo']['name']);
     }
 
     #[Test]

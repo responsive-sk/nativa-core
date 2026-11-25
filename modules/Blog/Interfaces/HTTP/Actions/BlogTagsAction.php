@@ -13,6 +13,7 @@ use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
 use Themes\FrontendLayout;
+use Themes\PageSurface;
 use Shell\PageContext;
 use Themes\ThemeKernel;
 use Themes\ThemeResolver;
@@ -50,9 +51,10 @@ final class BlogTagsAction
         );
 
         return Response::html(FrontendLayout::render(
-            'Tags ... ' . BlogServices::brandSuffix(),
+            'Tags — ' . BlogServices::brandSuffix(),
             $content,
             currentPath: $request->getPathInfo(),
+            surface: PageSurface::LISTING,
             noindex: true,
             feedLinks: BlogArticleHelper::feedLinks($locale),
             theme: $theme,
@@ -94,9 +96,10 @@ final class BlogTagsAction
         );
 
         return Response::html(FrontendLayout::render(
-            'Tag: ' . $tag . ' ... ' . BlogServices::brandSuffix(),
+            'Tag: ' . $tag . ' — ' . BlogServices::brandSuffix(),
             $content,
             currentPath: $request->getPathInfo(),
+            surface: PageSurface::LISTING,
             noindex: true,
             feedLinks: BlogArticleHelper::feedLinks($locale),
             theme: $theme,
@@ -163,7 +166,7 @@ final class BlogTagsAction
             . '</section>';
 
         return Response::html(
-            FrontendLayout::render('Not Found ... ' . BlogServices::brandSuffix(), $content, currentPath: $currentPath, noindex: true),
+            FrontendLayout::render('Not Found — ' . BlogServices::brandSuffix(), $content, currentPath: $currentPath, noindex: true),
             404,
         );
     }

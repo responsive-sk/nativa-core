@@ -8,6 +8,7 @@ use Shell\ShellNavItem;
 use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Shell\PageContext;
 use Shell\ShellContext;
+use Themes\FrontendLayout;
 use Themes\ThemeModule;
 
 /**
@@ -53,9 +54,9 @@ final class KernelTheme implements ThemeModule
      *
      * @return list<string>
      */
-    public function criticalCss(): array
+    public function criticalCss(?string $surface = null): array
     {
-        return ['Modules/KernelTheme/assets/critical/kernel.css'];
+        return FrontendLayout::themeCriticalCss(['Modules/KernelTheme/assets/critical/kernel.css'], $surface);
     }
 
     /**

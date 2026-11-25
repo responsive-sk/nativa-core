@@ -14,6 +14,7 @@ use Modules\Core\Infrastructure\Http\Response;
 use Modules\Core\Interfaces\HTTP\Attributes\Route;
 use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Themes\FrontendLayout;
+use Themes\PageSurface;
 use Shell\PageContext;
 use Themes\ThemeKernel;
 use Themes\ThemeResolver;
@@ -122,9 +123,10 @@ final class AuthorProfileAction
         $profileUrl = $request->absoluteUrl($this->profilePath($locale, $slug));
 
         return Response::html(FrontendLayout::render(
-            $profile['name'] . ' ... ' . BlogServices::brandSuffix(),
+            $profile['name'] . ' — ' . BlogServices::brandSuffix(),
             $content,
             currentPath: $request->getPathInfo(),
+            surface: PageSurface::LISTING,
             canonicalUrl: $profileUrl,
             // An author profile exists in both locales (the article grid is
             // locale-filtered, the profile itself is not). Without alternates
@@ -172,7 +174,7 @@ final class AuthorProfileAction
             . '</section>';
 
         return Response::html(
-            FrontendLayout::render('Not Found ... ' . BlogServices::brandSuffix(), $content, currentPath: '/authors/'),
+            FrontendLayout::render('Not Found — ' . BlogServices::brandSuffix(), $content, currentPath: '/authors/'),
             404,
         );
     }

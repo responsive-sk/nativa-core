@@ -32,12 +32,6 @@
                 "Validation"
             ]
         },
-        "Boson": {
-            "source": "modules/Themes/Boson",
-            "requires": [
-                "ContentLocale"
-            ]
-        },
         "Cardboard": {
             "source": "modules/Cardboard",
             "requires": [

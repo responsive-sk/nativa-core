@@ -1,3 +1,4 @@
+var recent = (function(){try{return JSON.parse(document.body.getAttribute('data-recent')||'[]');}catch(e){return [];}})();
                 for (var r = 0; r < recent.length; r++) {
                     commands.unshift({ label: recent[r].label, href: recent[r].href, icon: recent[r].icon });
                 }

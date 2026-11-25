@@ -62,6 +62,7 @@ final class PageContext
         public string $tagChips = '',
         public string $coverImage = '',
         public string $coverUrl = '',
+        public string $coverAlt = '',
         public array $headings = [],
         public array $meta = [],
         public int $views = 0,
@@ -182,6 +183,7 @@ final class PageContext
         string $editUrl = '',
         string $editLabel = 'Edit',
         string $inlineEditHtml = '',
+        string $coverAlt = '',
     ): self {
         return new self(
             request: $request,
@@ -194,6 +196,7 @@ final class PageContext
             tagChips: $tagChips,
             coverImage: $coverImage,
             coverUrl: $coverUrl,
+            coverAlt: $coverAlt,
             headings: $headings,
             meta: $meta,
             views: $views,

@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Blog\Tests;
 
+use Modules\Blog\Application\BlogServices;
 use Modules\Blog\Application\Services\BlogArticlesService;
 use Modules\Blog\Application\Services\BlogCrudService;
 use Modules\Cardboard\Application\Services\CardboardLocale;
@@ -209,6 +210,32 @@ final class ArticleCoverDeletionTest extends TestCase
         $this->assertTrue((new BlogCrudService())->delete($this->slug, $locale));
         $this->assertFileDoesNotExist($article);
         $this->assertFileDoesNotExist($cover);
+    }
+
+    /**
+     * The page passes the full locale code (`sk_SK`), while the cover
+     * directory is named by language (`sk`). Before this case, a slug two
+     * locales shared resolved to the FLAT file for both pages, because
+     * `blog-images/sk_SK/` does not exist and the ladder fell through.
+     */
+    #[Test]
+    public function aCollidingSlugResolvesTheCoverInItsLanguageDirectory(): void
+    {
+        $slug = 'cover-resolution-' . bin2hex(random_bytes(5));
+
+        $this->writeArticle('sk_SK', $slug);
+        $this->writeArticle('en_US', $slug);
+        $this->writeCover('sk/' . $slug . '.svg');
+        $this->writeCover('en/' . $slug . '.svg');
+
+        $articles = BlogServices::articles();
+
+        $slovak = $articles->resolveCover($slug, [], 'sk_SK');
+        $english = $articles->resolveCover($slug, [], 'en_US');
+
+        self::assertStringContainsString('/storage/blog-images/sk/' . $slug . '.svg', $slovak);
+        self::assertStringContainsString('/storage/blog-images/en/' . $slug . '.svg', $english);
+        self::assertNotSame($slovak, $english);
     }
 
     #[Test]

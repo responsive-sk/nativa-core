@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Modules\Themes\Nativa\Tests;
 
 use Themes\AssetManager;
+use Themes\PageSurface;
 use View\InlineCss;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Themes\Nativa\Theme\NativaTheme;
@@ -128,20 +129,25 @@ final class NativaBuildFreezeTest extends TestCase
     }
 
     /**
-     * The built stylesheet IS the critical fallback: the package imports the
-     * module's file instead of carrying a copy, so every `na-` class the
-     * no-build page keeps must still be in the bundle. A class that goes
-     * missing here is a page that loses rules the moment a manifest appears.
+     * The built stylesheets ARE the critical fallbacks: the package imports the
+     * module's files instead of carrying a copy, so every `na-` class the
+     * no-build page keeps must still be in the bundle for that surface. A class
+     * that goes missing here is a page that loses rules the moment a manifest
+     * appears.
      */
     #[Test]
     public function theBuiltStylesheetCoversEveryCriticalFallbackClass(): void
     {
-        $fallback = InlineCss::file((new NativaTheme())->criticalCss()[0]);
-        $css = $this->frozenCss();
+        $css = $this->frozenCssAll();
+        $classes = [];
 
-        preg_match_all('/\.na-[a-z0-9_-]+/', $fallback, $matches);
+        foreach ($this->fallbackFiles() as $file) {
+            preg_match_all('/\.na-[a-z0-9_-]+/', InlineCss::file($file), $matches);
 
-        $classes = array_values(array_unique($matches[0]));
+            $classes = array_merge($classes, $matches[0]);
+        }
+
+        $classes = array_values(array_unique($classes));
 
         $this->assertNotSame([], $classes, 'The fallback file declares no na- class — the extractor is broken.');
 
@@ -179,7 +185,25 @@ final class NativaBuildFreezeTest extends TestCase
     public function theFrozenScriptWritesTheClassTheStylesheetDeclares(): void
     {
         $this->assertStringContainsString('na-toc__link', $this->frozenJs());
-        $this->assertStringContainsString('.na-toc__link--active', $this->frozenCss());
+        $this->assertStringContainsString('.na-toc__link--active', $this->frozenCssAll());
+    }
+
+    /**
+     * Every stylesheet the no-build page can inline: the base sheet the theme
+     * registers, plus one per named surface the layout can ask for. The split
+     * lives in `themeCriticalCss()`, so this asks the theme rather than
+     * spelling a filename twice.
+     */
+    private function fallbackFiles(): array
+    {
+        $theme = new NativaTheme();
+        $files = $theme->criticalCss();
+
+        foreach (PageSurface::all() as $surface) {
+            $files = array_merge($files, $theme->criticalCss($surface));
+        }
+
+        return array_values(array_unique($files));
     }
 
     private function frozenJs(): string
@@ -197,8 +221,24 @@ final class NativaBuildFreezeTest extends TestCase
 
     private function frozenCss(): string
     {
-        $urls = (new AssetManager(self::bundle()))->cssUrls(self::bundle());
+        return $this->frozenCssFrom((new AssetManager(self::bundle()))->cssUrls(self::bundle()));
+    }
 
+    /** Every stylesheet a page can resolve: base plus each named surface. */
+    private function frozenCssAll(): string
+    {
+        $assets = new AssetManager(self::bundle());
+        $urls = $assets->cssUrls(self::bundle());
+
+        foreach (PageSurface::all() as $surface) {
+            $urls = array_merge($urls, $assets->cssUrlsForSurface(self::bundle(), $surface));
+        }
+
+        return $this->frozenCssFrom(array_values(array_unique($urls)));
+    }
+
+    private function frozenCssFrom(array $urls): string
+    {
         $this->assertNotSame([], $urls, 'The frozen manifest names no `nativa` CSS.');
 
         $css = '';

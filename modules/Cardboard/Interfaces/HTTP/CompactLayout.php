@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Modules\Cardboard\Interfaces\HTTP;
 
+use View\InlineJs;
+
 use View\ViewRenderer;
 use Modules\Core\Infrastructure\Paths\AppPaths;
 use Modules\Core\Interfaces\HTTP\Middleware\CsrfMiddleware;
@@ -194,20 +196,9 @@ final class CompactLayout
     private static function htmxConfigScript(): string
     {
         $token = CsrfMiddleware::token();
-        $csrfHeader = '' !== $token
-            ? 'e.detail.headers["X-CSRF-Token"]="' . CardboardLayout::e($token) . '";'
-            : '';
 
-        return '<script nonce="__CSP_NONCE_PLACEHOLDER__">'
-            . 'document.addEventListener("DOMContentLoaded",function(){'
-            . 'if(typeof htmx!=="undefined"){'
-            . 'document.body.addEventListener("htmx:configRequest",function(e){'
-            . $csrfHeader
-            . '});'
-            . 'htmx.config.defaultSwapStyle="innerHTML";'
-            . 'htmx.config.historyEnabled=true;'
-            . '}'
-            . '});'
+        return '<script nonce="__CSP_NONCE_PLACEHOLDER__" data-csrf-token="' . CardboardLayout::e($token) . '">'
+            . InlineJs::file('Modules/Cardboard/Interfaces/HTTP/assets/scripts/htmx-config.js')
             . '</script>';
     }
 }

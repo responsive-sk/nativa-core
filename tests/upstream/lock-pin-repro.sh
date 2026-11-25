@@ -5,6 +5,11 @@
 # The same command against the same adapter, not installed, succeeds and pins
 # the *executable* digest.
 #
+# Status: ichinya/lekalo#259, closed as completed by #273 (merge 7441eed,
+# 2026-11-21). Against a build of main at a8a6372 this script exits 0; the
+# published 1.3.1 CLI still reproduces the refusal, so the fix is on main only.
+# The root-cause notes and measurements below are the original 1.2.0 report.
+#
 # Root cause, in one sentence: the issue #91 catalog seam carries the
 # adapter's executable digest in its candidate, but the installed-provenance
 # step looks the candidate up by the package digest, finds nothing, and

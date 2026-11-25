@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Users\Tests;
 
+use Modules\Core\Infrastructure\Env;
 use Modules\Users\Domain\Contracts\Mailer;
 use Modules\Users\Infrastructure\Mail\DevLogMailer;
 use Modules\Users\Infrastructure\Mail\HttpMailer;
@@ -93,7 +94,7 @@ final class MailerTest extends TestCase
     #[Test]
     public function aDevelopmentEnvironmentGetsTheLogTransport(): void
     {
-        putenv('APP_ENV=development');
+        self::appEnv('development');
 
         self::assertTrue(MailerFactory::writesToLog());
         self::assertInstanceOf(DevLogMailer::class, MailerFactory::create());
@@ -107,7 +108,7 @@ final class MailerTest extends TestCase
     public function onlyNamesThatSayDevelopmentKeepTheLogTransport(): void
     {
         foreach (['production' => false, 'staging' => false, 'prodction' => false, 'development' => true, 'local' => true] as $name => $expected) {
-            putenv('APP_ENV=' . $name);
+            self::appEnv($name);
 
             self::assertSame(
                 $expected,
@@ -116,14 +117,14 @@ final class MailerTest extends TestCase
             );
         }
 
-        putenv('APP_ENV');
+        self::appEnv(null);
         self::assertTrue(MailerFactory::writesToLog(), 'an unset APP_ENV is this tree\'s development default');
     }
 
     #[Test]
     public function aProductionDeploymentWithoutATransportGetsTheRealNullAnswer(): void
     {
-        putenv('APP_ENV=production');
+        self::appEnv('production');
 
         self::assertInstanceOf(NullMailer::class, MailerFactory::create());
         self::assertNull(MailerFactory::http());
@@ -132,7 +133,7 @@ final class MailerTest extends TestCase
     #[Test]
     public function aConfiguredProductionDeploymentGetsTheHttpTransport(): void
     {
-        putenv('APP_ENV=production');
+        self::appEnv('production');
         putenv('MAIL_API_URL=https://mail.example.test/send');
         putenv('MAIL_FROM=no-reply@example.test');
 
@@ -146,7 +147,7 @@ final class MailerTest extends TestCase
     #[Test]
     public function aHalfConfiguredTransportIsRefusedAndNamed(): void
     {
-        putenv('APP_ENV=production');
+        self::appEnv('production');
         putenv('MAIL_API_URL=https://mail.example.test/send');
 
         $logFile = $this->tmpDir . '/factory.log';
@@ -285,8 +286,34 @@ final class MailerTest extends TestCase
     #[Test]
     public function thePortIsWhatTheFactoryReturns(): void
     {
-        putenv('APP_ENV=production');
+        self::appEnv('production');
 
         self::assertInstanceOf(Mailer::class, MailerFactory::create());
     }
+
+    /**
+     * Set APP_ENV on every layer the environment reads.
+     *
+     * `Env::get()` reads its cache, then `$_ENV`, then `$_SERVER`, then the
+     * process environment — and a local `.env` has already filled the first
+     * three. A test that only calls `putenv()` therefore keeps seeing the
+     * deployment's value, which is how four mailer assertions went red on a
+     * machine with a `.env` while CI, which has none, stayed green.
+     */
+    private static function appEnv(?string $value): void
+    {
+        Env::reset();
+
+        if (null === $value) {
+            putenv('APP_ENV');
+            unset($_ENV['APP_ENV'], $_SERVER['APP_ENV']);
+
+            return;
+        }
+
+        putenv('APP_ENV=' . $value);
+        $_ENV['APP_ENV'] = $value;
+        $_SERVER['APP_ENV'] = $value;
+    }
+
 }

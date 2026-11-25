@@ -19,17 +19,5 @@ if (!isset($viewRendererGuard)) {
     <div id="image-preview" style="margin-top:8px;display:none;">
         <img id="image-preview-img" src="" alt="Preview" style="max-width:200px;max-height:120px;border-radius:8px;border:1px solid var(--cba-border);">
     </div>
-    <script nonce="__CSP_NONCE_PLACEHOLDER__">
-    (function(){
-        var img=document.getElementById('<?php echo $name; ?>');
-        var prev=document.getElementById('image-preview');
-        var prevImg=document.getElementById('image-preview-img');
-        if(img&&prev&&prevImg){
-            if(img.value){prevImg.src=img.value;prev.style.display='block'}
-            img.addEventListener('input',function(){
-                if(img.value){prevImg.src=img.value;prev.style.display='block'}
-                else{prev.style.display='none'}
-            });
-        }
-    })();
-    </script>
+    <?php $mediaPickerTargetScript = View\InlineJs::file('Modules/Media/Interfaces/HTTP/assets/scripts/media-picker-target.js'); ?>
+    <script nonce="__CSP_NONCE_PLACEHOLDER__" data-target="<?php echo $name; ?>"><?php echo $mediaPickerTargetScript; ?></script>

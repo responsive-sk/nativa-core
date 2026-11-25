@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Modules\Locales\Tests;
 
+use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Shell\ShellContextProviderRegistry;
 use Modules\Core\Interfaces\CLI\CliOutput;
 use Modules\Database\Infrastructure\Persistence\DatabaseConnectionManager;
@@ -110,6 +111,34 @@ final class LocalesShellContextProviderTest extends TestCase
             $default,
             $provider->defaultLocale(),
             'resolving a request locale must not rewrite the stored default — the two facts are independent',
+        );
+    }
+
+    /**
+     * The prefix the kernel rewrites every internal menu href with. The
+     * default locale owns the bare path; an explicitly requested one carries
+     * its own — `/en/blog` on an English page, never the bare `/blog`, which
+     * is the Slovak page. The shape comes from the mapper, so this test
+     * cannot disagree with the tree about where English lives.
+     */
+    #[Test]
+    public function localePrefixFollowsTheRequestResolution(): void
+    {
+        $provider = new LocalesShellContextProvider();
+        $default = (string) $provider->defaultLocale();
+
+        LocalesServices::locale()->set($default);
+
+        $this->assertSame('', $provider->localePrefix(), 'The default locale owns the bare path.');
+
+        $codes = array_keys(Locale::available());
+        $other = $codes[0] === $default ? $codes[1] : $codes[0];
+        LocalesServices::locale()->set($other);
+
+        $this->assertSame(
+            ContentLocaleServices::mapper()->urlPrefix($other),
+            $provider->localePrefix(),
+            'A page served under an explicit locale must answer its prefix, or its menu links back into the default language.',
         );
     }
 

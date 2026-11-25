@@ -121,6 +121,19 @@ final class PreferenceContentionTest extends TestCase
                         return null;
                     }
 
+
+
+                    public function localePrefix(): ?string
+
+
+                    {
+
+
+                        return null;
+
+
+                    }
+
                     /** @return list<string> */
                     public function languages(): array
                     {

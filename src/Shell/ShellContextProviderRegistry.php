@@ -266,7 +266,20 @@ final class ShellContextProviderRegistry
         /** @var list<ShellNavItem> $winner */
         $winner = $result['winner']['value'] ?? [];
 
-        return $winner;
+        // One stored menu, every language: the provider answers the canonical
+        // hrefs and the locale module answers the prefix this request was
+        // served from. The rewrite is the kernel's because it is the same rule
+        // for every provider — a menu that does not go through it sends an
+        // English reader to the Slovak page (see `LocalizedNav`).
+        return LocalizedNav::apply($winner, self::localePrefix());
+    }
+
+    /**
+     * The URL prefix this request is served from, `''` for the default locale.
+     */
+    public static function localePrefix(): string
+    {
+        return self::firstString(static fn (ShellContextProvider $p): ?string => $p->localePrefix(), 'localePrefix') ?? '';
     }
 
     /**

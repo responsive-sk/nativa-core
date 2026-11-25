@@ -28,7 +28,7 @@ final class Server
 {
     public function __construct(
         private readonly ToolRegistry $tools,
-        private readonly string $name = 'nativa-rest-admin',
+        private readonly string $name = 'nativa-rest-api',
         private readonly string $version = '0.1.0',
         private readonly string $protocolVersion = '2024-11-05',
     ) {

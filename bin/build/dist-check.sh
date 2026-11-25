@@ -103,6 +103,10 @@ if [ -d "$TREE/dist/vendor" ]; then
     fail "the artifact carries vendor/ — the kernel runtime has no Composer packages"
 fi
 
+if [ -e "$TREE/dist/storage/config/database.json" ]; then
+    fail "the artifact carries storage/config/database.json: the operator's engine choice is runtime state"
+fi
+
 if [ ! -f "$TREE/dist/.build-info" ]; then
     fail "the artifact carries no .build-info"
 fi

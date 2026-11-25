@@ -25,9 +25,7 @@ final class AppPaths
      */
     public static function instance(): self
     {
-        if (null === self::$instance) {
-            self::$instance = new self();
-        }
+        self::$instance ??= new self();
 
         return self::$instance;
     }

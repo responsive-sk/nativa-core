@@ -1,0 +1,9 @@
+/**
+ * nativa-article.css — the article surface entry, built from the catalogue sheet.
+ *
+ * A CSS-only input: no script wraps it, because the manifest names a
+ * stylesheet-only entry in `file` (measured 2026-11-24). The source is the
+ * module's own sheet for the same reason `nativa.ts` imports the catalogue —
+ * the installed slice does not exist yet when CI builds.
+ */
+@import '../../../../modules/Themes/Nativa/assets/critical/nativa-article.css';

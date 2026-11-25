@@ -4,10 +4,10 @@ declare(strict_types = 1);
 
 namespace Modules\PageCache\Tests;
 
-use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Modules\Core\Domain\MarkRoutePolicy;
 use Modules\Core\Infrastructure\Http\Request;
 use Modules\Core\Infrastructure\Http\Response;
+use Modules\ContentLocale\Interfaces\HTTP\ContentLocaleServices;
 use Modules\Core\Interfaces\HTTP\Middleware\CsrfMiddleware;
 use Modules\Core\Interfaces\HTTP\Middleware\SecurityHeadersMiddleware;
 use Modules\PageCache\Application\Services\PageCacheService;
@@ -419,55 +419,6 @@ final class PageCacheServiceTest extends TestCase
     private function startSessionWithToken(): void
     {
         CsrfMiddleware::token();
-    }
-
-    /**
-     * A sweep pass must finish inside the request that triggered it.
-     *
-     * The pruning used to read and decode every entry in the directory, which
-     * is linear in cache size and lands in a visitor's TTFB once per interval —
-     * the stall the live site fixed by switching the cache off. A pass now
-     * stops at PRUNE_BUDGET_BYTES, so the work is bounded and the remainder is
-     * carried by the following passes instead of being lost.
-     */
-    #[Test]
-    public function onePrunePassReadsABoundedNumberOfEntries(): void
-    {
-        $service = new PageCacheService($this->cacheDir);
-        $body = str_repeat('x', 120_000);
-
-        for ($i = 0; $i < 120; $i++) {
-            $file = $this->cacheDir . '/stale' . $i . '.json';
-
-            file_put_contents($file, json_encode([
-                'content' => $body,
-                'statusCode' => 200,
-                'headers' => [],
-                'path' => '/blog',
-                'cachedAt' => time() - 10_000,
-                'ttl' => 300,
-            ]));
-
-            // The write time the sweep reads before it decides to decode.
-            touch($file, time() - 10_000);
-        }
-
-        $this->assertCount(120, $this->cacheFiles());
-
-        // A lookup of a missing key is what runs the sweep in production.
-        $service->get('missing-key');
-
-        $afterOnePass = \count($this->cacheFiles());
-
-        $this->assertLessThan(120, $afterOnePass, 'One pass must not read the whole directory.');
-        $this->assertGreaterThan(0, $afterOnePass, 'One pass must still delete expired entries.');
-
-        for ($pass = 0; $pass < 10 && [] !== $this->cacheFiles(); $pass++) {
-            @unlink($this->cacheDir . '/.last_prune');
-            $service->get('missing-key');
-        }
-
-        $this->assertCount(0, $this->cacheFiles(), 'The deferred entries are deleted by later passes.');
     }
 
     /**

@@ -5,6 +5,96 @@ says so here too, because a changelog that only lists what worked is a brochure.
 
 ## Unreleased
 
+### The hero title's two lines stop touching
+
+The landing's `.site-hero__title` is a flex column of two rows, and its
+`line-height: .94` left less leading than the first row's descenders need, so
+the second line sat in the first one's tails. It is `1.04` now — the gap the
+font actually needs, not the tightest value that still looked deliberate at one
+window width. `SiteHomepageTest` renders the page in a built theme and does not
+measure type, so nothing in the suite could see it; the check is the page.
+
+The first build that carried the fix did not serve it: `build-dist.sh` assembles
+the artifact from the **installed** slice (`src/Modules/Site`), which is
+gitignored operator state, and editing `modules/Site` does not touch it. The
+artifact kept `.94` while the tree was clean and the version carried no `-dirty`
+marker, which is exactly how a stale copy hides. Reinstalling the slice
+(`php bin/cms module:remove Site --force`, `php bin/cms module:add Site`) and
+rebuilding put `1.04` in `dist/src/Modules/Site/…` and in the served page.
+Anyone editing a landing surface should reinstall before believing an artifact.
+
+### The diagram asks mermaid 12 for what it still has
+
+`pnpm typecheck` failed on `flowchart: { defaultRenderer: 'dagre-wrapper' }`:
+mermaid 12 dropped that key from its types, and the key was redundant anyway,
+since one renderer remains. It is gone; `layout: 'dagre'` and
+`securityLevel: 'strict'` stay. The rebuilt bundle contains no
+`defaultRenderer`, and the landing still renders its diagram — the artifact
+smoke checks for the figure, not for the bundle's internals.
+
+### The SQLite default is migrated once, for every job
+
+Module tests pin SQLite and read the databases other modules own, while the
+PostgreSQL and MariaDB jobs point `DB_DSN` at the real server: their
+`php bin/cms migrate` built that schema and left `storage/data/*.db` untouched,
+so the first render inside a test died on `no such table: questions` — and
+`settings`. One script, `bin/build/migrate-sqlite-defaults.sh`, now drops
+`DB_DSN` and `DB_DRIVER` explicitly, migrates, and asserts the thirteen files
+the catalogue writes: audit, blog, comments, config, forms, locales, media,
+notifications, outbox, questions, queue, restapi, users. The Modules job runs
+the same script.
+
+The file list is the gate, not the migrator's log line: the first version
+asserted nine databases and would have passed a migrate that wrote only part of
+the catalogue. The step is also one `make migrate-defaults` target, registered
+in `toolchain.json`. It is source-only — `bin/export/core/prune.txt` classifies
+the script as a source tool, because the export prunes Forms, Comments and
+Questions, so three of the thirteen files can never exist there, and the
+exported registry (20 gates) does not carry it.
+
+### The landing asserts on a theme that has a build
+
+`SiteHomepageTest` had two gates for one question: a hand-checked
+`public/dist/<theme>/manifest.json` and a second, Boson-specific check in the
+diagram claim that could only pass where the first already had. Both are one
+`requireBuiltTheme()` now: it reads the theme from the markup the page loads and
+asks `AssetManager::isAvailable()`, so the test spells neither a theme nor a
+theme module — a `use Modules\Themes\Boson\…` would make the catalogue check
+read Site → Boson.
+
+The Modules job had also seeded `theme=mono`, so the landing's copy and diagram
+claims had no Boson build to read at all; it seeds `boson`. The two skips that
+remain in a catalogue-installed tree are named in the no-skip gate —
+`Tests\Boot\KernelOnlyBootTest::unroutedAdminPathIsNeverForbidden` and
+`Tests\Discovery\HomepageSurfaceRegistryTest::nothingInstalledAnswersNull` —
+and the comment above it lists both instead of one.
+
+### `APP_ENV` is set where it is read
+
+A local `.env` fills the `Env` cache, `$_ENV` and `$_SERVER` at boot, so a test
+that only called `putenv()` kept reading the deployment's `APP_ENV` and four
+mailer assertions failed on a developer machine while CI, which has no `.env`,
+stayed green. Those tests now set or clear the value on all three layers the
+reader consults.
+
+### The module is `RestApi`
+
+`RestPanel` named the slice after the shell it renders into. The module, its
+namespace, catalogue key, database (`restapi.db`), snapshot directory
+(`storage/data/restapi/`), audit events (`restapi.*`) and its MCP entry point
+(`bin/restapi-mcp`) are `RestApi`; `Cardboard` keeps the panel. `/mark/rest`,
+the `mark.rest*` route names, `settings.manage` and the fifteen MCP tools are
+unchanged.
+
+No aliases: `RESTADMIN_*` and `DB_RESTPANEL` are no longer read, and
+`bin/cardboard-rest-mcp` is gone rather than kept as a stub. A deployment
+renames its keys (`RESTAPI_ALLOWED_HOSTS`, `RESTAPI_SPEC_DIR`,
+`RESTAPI_<SERVICE>_TOKEN`, `DB_RESTAPI`), reinstalls the slice
+(`php bin/cms module:remove RestPanel --force && php bin/cms module:add RestApi`)
+and runs `bin/cms migrate`, which adopts the rows of `restpanel.db` — or
+`restadmin.db`, when the nearer file is absent — beside the live database and
+retires it as `restapi-legacy.db`.
+
 ### MariaDB is a third engine
 
 `DB_DRIVER=mariadb` reads `DB_DSN` as a server DSN and gives every module its
@@ -81,8 +171,9 @@ The four repositories became one. The six theme modules were imported from
 `evan70/nativa-themes` after a byte comparison (`identical=23 diverged=0`) and
 now live at `modules/Themes/<Name>/`; the static gallery moved to
 `themes/gallery/`. `bin/build/sync-themes.sh`, its `themes-sync` target and its
-CI job are gone, because with one checkout there is no second side to compare,
-and `evan70/nativa-themes` is archived read-only. The retired `extract-check`
+CI job are gone, because with one checkout there is no second side to compare.
+`evan70/nativa-themes` was archived read-only on 2026-11-18 and unarchived on
+2026-11-22 — see "One gallery, one publisher" below. The retired `extract-check`
 is recorded in `docs/kernel-status/28-retiring-the-extract-check.md`, the theme
 import in part 29.
 
@@ -92,19 +183,37 @@ import in part 29.
   with `php bin/cms module:remove <Name> --force` and `module:add <Name>`.
 - `modules/Themes` is linted like every other module; the exclusion that hid 7
   findings is gone.
-- The gallery deploys from this tree to
-  `https://responsive-sk.github.io/nativa-php-core/`; the archived repository's
-  Pages build remains as a frozen snapshot.
+- The gallery has one publisher: `evan70/nativa-themes`, at
+  `https://evan70.github.io/nativa-themes/`. The copy in this tree no longer
+  deploys.
 
-### The theme gallery is published from this tree
+### One gallery, one publisher
 
-The gallery used to be deployed from `evan70/nativa-themes`, which is archived,
-so its Pages build stopped at the pre-import state. The deploy runs here now:
-`.github/workflows/gallery-pages.yml` publishes `themes/gallery/` to
-`https://responsive-sk.github.io/nativa-php-core/` on every push that touches
-it, with a post-deploy check of the served pages, and
-`gallery-pages-check.yml` re-checks them weekly. The archived URL keeps
-answering as a snapshot.
+The gallery is published from `evan70/nativa-themes` again, at
+`https://evan70.github.io/nativa-themes/`. The repository was unarchived on
+2026-11-22 and caught up with this tree: the eight module files that had changed
+here since 2026-11-17 (the orb in Boson's CSS and script, the footer's locale
+prefix, the rebuilt Roboto Condensed face the CSS references, three budget
+literals), that rebuilt face, and 56 demo pages re-rendered from the themes'
+own PHP. Its `pages.yml` deploys and `pages-check.yml` re-checks the served
+pages; the publishing run reported 77/77 pages served.
+
+The renderer had to be repaired first, and it had been broken in two ways that
+kept the demos stale without saying so. It still imported the retired
+`Modules\Core\Interfaces\HTTP\ContentServices`, which moved to
+`modules/ContentLocale` — running it was a fatal error, so nobody did. And its
+surface map matched `/` and `/en/` but not `/en`, so the nav's Home link on
+every English demo pointed at a path the gallery does not publish: 42 broken
+internal links once the pages were actually rendered. Fixed, and
+`--check` now exits 0 over the 56 pages.
+
+The copy in this tree stopped deploying the same day. `gallery-pages.yml` and
+`gallery-pages-check.yml` are disabled, and the
+`https://responsive-sk.github.io/nativa-php-core/` Pages site was removed: two
+publishers of one gallery had already diverged, with `themes/gallery/` 42
+generated pages behind, and a second URL that answers is a second thing to keep
+true. `themes/gallery/` stays as a local copy that this tree can still build and
+check.
 
 ### The vocabulary reaches configuration and data
 
